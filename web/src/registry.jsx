@@ -19,14 +19,14 @@ export const NODE_REGISTRY = [
   {
     type: 'input',
     icon: ICONS.input, label: '输入', color: 'var(--type-input)',
-    preset: () => ({ label: '新输入', text: '', attachments: [] }),
-    summary: (d) => d.text || '未配置输入内容',
+    preset: (t = (value) => value) => ({ label: t('新输入'), text: '', attachments: [] }),
+    summary: (d, t = (value) => value) => d.text || t('未配置输入内容'),
   },
   {
     type: 'agent',
     icon: ICONS.agent, label: '智能体', color: 'var(--type-agent)',
-    preset: () => ({ label: '新智能体', prompt: '', tools: [] }),
-    summary: (d) => `提示词：${d.prompt || '(默认助手)'}`,
+    preset: (t = (value) => value) => ({ label: t('新智能体'), prompt: '', tools: [] }),
+    summary: (d, t = (value) => value) => `${t('提示词')}：${d.prompt || t('(默认助手)')}`,
     badges: (d) => [
       d.model && { text: shortModel(d.model), cls: 'badge-model', title: `模型：${d.model}` },
       d.maxRounds && { text: `↻${d.maxRounds}` },
@@ -37,22 +37,22 @@ export const NODE_REGISTRY = [
   {
     type: 'condition',
     icon: ICONS.condition, label: '条件', color: 'var(--type-condition)',
-    preset: () => ({ label: '条件判断', include: '', exclude: '' }),
-    summary: (d) => `含"${(d.include || '任意').split(/[,，]/)[0]}"→ 是`,
+    preset: (t = (value) => value) => ({ label: t('条件判断'), include: '', exclude: '' }),
+    summary: (d, t = (value) => value) => `${t('含')}"${(d.include || t('任意')).split(/[,，]/)[0]}"→ ${t('是')}`,
     badges: () => [{ text: '分流', cls: 'badge-cond' }],
   },
   {
     type: 'http',
     icon: ICONS.http, label: 'HTTP', color: 'var(--type-http)',
-    preset: () => ({ label: 'HTTP 请求', url: '', method: 'GET', headers: '', body: '' }),
-    summary: (d) => `${(d.method || 'GET')} ${(d.url || '(未配置 URL)').slice(0, 30)}`,
+    preset: (t = (value) => value) => ({ label: t('HTTP 请求'), url: '', method: 'GET', headers: '', body: '' }),
+    summary: (d, t = (value) => value) => `${(d.method || 'GET')} ${(d.url || `(${t('未配置 URL')})`).slice(0, 30)}`,
     badges: (d) => d.url ? [{ text: '接口' }] : [],
   },
   {
     type: 'script',
     icon: ICONS.script, label: '脚本', color: 'var(--type-script)',
-    preset: () => ({ label: '脚本', inputs: [], code: 'function main(input, workspace) {\n  return input;\n}' }),
-    summary: (d) => `main(input, workspace) · ${(d.inputs || []).length} 参数`,
+    preset: (t = (value) => value) => ({ label: t('脚本'), inputs: [], code: 'function main(input, workspace) {\n  return input;\n}' }),
+    summary: (d, t = (value) => value) => `main(input, workspace) · ${(d.inputs || []).length} ${t('参数')}`,
     badges: (d) => [
       (d.inputs || []).length > 0 && { text: `参数 ${d.inputs.length}` },
       d.outputSchema && { text: 'Schema' },
@@ -61,17 +61,17 @@ export const NODE_REGISTRY = [
   {
     type: 'output',
     icon: ICONS.output, label: '输出', color: 'var(--type-output)',
-    preset: () => ({ label: '新输出' }),
-    summary: () => '汇总上游输出',
+    preset: (t = (value) => value) => ({ label: t('新输出') }),
+    summary: (d, t = (value) => value) => t('汇总上游输出'),
   },
   {
     type: 'notify',
     icon: ICONS.notify, label: '消息通知', color: 'var(--accent)',
-    preset: () => ({
-      label: '消息通知', channel: 'feishu', mode: 'terminal',
+    preset: (t = (value) => value) => ({
+      label: t('消息通知'), channel: 'feishu', mode: 'terminal',
       channelConfig: { targetType: 'chat_id', targetId: '' },
     }),
-    summary: (d) => `${d.channel === 'feishu' ? '飞书' : (d.channel || '未选渠道')} · ${d.channelConfig?.targetType === 'open_id' ? '私聊' : '群聊'} · ${d.mode === 'each_node' ? '逐节点' : '仅结束'}`,
+    summary: (d, t = (value) => value) => `${d.channel === 'feishu' ? t('飞书') : (d.channel || t('未选渠道'))} · ${d.channelConfig?.targetType === 'open_id' ? t('私聊') : t('群聊')} · ${d.mode === 'each_node' ? t('逐节点') : t('仅结束')}`,
     badges: (d) => [
       { text: d.channel === 'feishu' ? '飞书卡片' : (d.channel || '渠道') },
       { text: d.channelConfig?.targetType === 'open_id' ? '私聊' : '群聊' },
@@ -81,15 +81,15 @@ export const NODE_REGISTRY = [
   {
     type: 'note',
     icon: ICONS.note, label: '注释', color: 'var(--type-note)',
-    preset: () => ({ label: '说明', text: '' }),
-    summary: (d) => d.text || '（空白说明）',
+    preset: (t = (value) => value) => ({ label: t('说明'), text: '' }),
+    summary: (d, t = (value) => value) => d.text || t('（空白说明）'),
     badges: () => [{ text: '不参与运行', cls: 'badge-note' }],
   },
   {
     type: 'subworkflow',
     icon: ICONS.subworkflow, label: '子工作流', color: 'var(--type-subworkflow, var(--accent))',
-    preset: () => ({ label: '子工作流', workflowId: '', inputMap: { triggerInput: '$upstream', runInputs: {} } }),
-    summary: (d) => d.workflowName || d.workflowId || '未选择工作流',
+    preset: (t = (value) => value) => ({ label: t('子工作流'), workflowId: '', inputMap: { triggerInput: '$upstream', runInputs: {} } }),
+    summary: (d, t = (value) => value) => d.workflowName || d.workflowId || t('未选择工作流'),
     badges: (d) => [
       { text: '同步调用' },
       d.workflowId && { text: d.workflowId.slice(0, 12), cls: 'badge-model' },

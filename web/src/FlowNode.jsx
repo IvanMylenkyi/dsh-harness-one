@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { NODE_REGISTRY, kindOf } from './registry.jsx';
+import { useI18n } from './i18n/index.js';
 
 // 状态边框走 CSS 变量（跟随主题）：borderColor 由 CSS 类/内联 var() 决定，
 // 这里只给结构（粗细/线型/透明度）与光晕强度。
@@ -33,24 +34,24 @@ function useElapsedBadge(startedAt, active) {
   return `${mm}:${ss}`;
 }
 
-const STATUS_TEXT = {
-  queued: '排队中', running: <span className="flow-node-running"><span className="spinner" />执行中</span>,
-  waiting: '⏸ 待审批',
-  error: '✗ 失败', skipped: '跳过', canceled: '已取消',
-};
-
 const CHILD_TYPES = NODE_REGISTRY.map((k) => ({ type: k.type, icon: k.icon, label: k.label }));
 
 export function FlowNode({ data, selected, id, onAddChild }) {
+  const { t } = useI18n();
   const meta = kindOf(data.nodeType);
   const status = data.runStatus || 'idle';
   const turns = status === 'running' ? data.liveTurns : data.runTurns;
   const elapsed = useElapsedBadge(data.runStartedAt, status === 'running');
+  const statusText = {
+    queued: t('排队中'), running: <span className="flow-node-running"><span className="spinner" />{t('执行中')}</span>,
+    waiting: `⏸ ${t('等待审批')}`,
+    error: `✗ ${t('失败')}`, skipped: t('跳过'), canceled: t('已取消'),
+  };
   const statusDetail = status === 'success'
-    ? `✓ ${data.runChars ?? 0} 字${turns != null ? ` · ${turns} 轮` : ''}`
+    ? `✓ ${data.runChars ?? 0} ${t('字')}${turns != null ? ` · ${turns} ${t('轮')}` : ''}`
     : status === 'running'
-      ? (turns != null ? ` 第 ${turns} 轮` : '')
-      : `${STATUS_TEXT[status] || ''}${turns != null ? ` · ${turns} 轮` : ''}`;
+      ? (turns != null ? ` ${turns} ${t('轮')}` : '')
+      : `${statusText[status] || ''}${turns != null ? ` · ${turns} ${t('轮')}` : ''}`;
   const badges = [
     ...extraBadges(data),
     ...((meta.badges || (() => []))(data) || []),
@@ -60,18 +61,18 @@ export function FlowNode({ data, selected, id, onAddChild }) {
     <div className={`flow-node ${status === 'running' ? 'flow-node-is-running' : ''}`} style={{ borderColor: meta.color, ...STATUS_STYLE[status] }}>
       <Handle type="target" position={Position.Left} className="flow-handle flow-handle-target" />
       <div className="flow-node-head" style={{ background: meta.color }}>
-        <span className="flow-node-title"><span dangerouslySetInnerHTML={{ __html: meta.icon }} />{data.label || meta.label}</span>
+        <span className="flow-node-title"><span dangerouslySetInnerHTML={{ __html: meta.icon }} />{data.label || t(meta.label)}</span>
         <span className="flow-node-badge">
-          {status === 'running' && elapsed && <span className="flow-node-elapsed" title="已执行时长">{elapsed}</span>}
-          {status === 'running' && STATUS_TEXT.running}
+          {status === 'running' && elapsed && <span className="flow-node-elapsed" title={t('已执行时长')}>{elapsed}</span>}
+          {status === 'running' && statusText.running}
           {statusDetail}
         </span>
       </div>
       <div className="flow-node-body">
-        <p className="flow-node-hint">{clip(meta.summary(data), 60)}</p>
+        <p className="flow-node-hint">{clip(meta.summary(data, t), 60)}</p>
         {badges.length > 0 && (
           <p className="flow-node-badges">
-            {badges.map((b, i) => <span key={i} className={`badge ${b.cls || ''}`} title={b.title}>{b.text}</span>)}
+            {badges.map((b, i) => <span key={i} className={`badge ${b.cls || ''}`} title={b.title}>{t(b.text)}</span>)}
           </p>
         )}
         {status === 'running' && data.livePreview && (
@@ -85,8 +86,8 @@ export function FlowNode({ data, selected, id, onAddChild }) {
           <button
             type="button"
             className="flow-node-addbtn"
-            aria-label="添加下一个节点"
-            title="快速添加下一个节点（自动连线）"
+            aria-label={t('添加下一个节点')}
+            title={t('快速添加下一个节点（自动连线）')}
             onClick={(e) => {
               e.stopPropagation();
               const wrap = e.currentTarget.closest('.flow-node-addwrap');
@@ -98,24 +99,24 @@ export function FlowNode({ data, selected, id, onAddChild }) {
             }}
           >＋</button>
           <div className="flow-node-addmenu" role="menu">
-            {CHILD_TYPES.map((t) => (
+            {CHILD_TYPES.map((child) => (
               <button
-                key={t.type}
+                key={child.type}
                 type="button"
                 role="menuitem"
                 className="flow-node-additem"
                 onClick={(e) => {
                   e.stopPropagation();
                   e.currentTarget.closest('.flow-node-addwrap')?.classList.remove('add-open');
-                  onAddChild(id, t.type);
+                  onAddChild(id, child.type);
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
-              ><span dangerouslySetInnerHTML={{ __html: t.icon }} />{t.label}</button>
+              ><span dangerouslySetInnerHTML={{ __html: child.icon }} />{t(child.label)}</button>
             ))}
           </div>
         </div>
       )}
-      {selected && <div className="flow-node-selected-tag">选中</div>}
+      {selected && <div className="flow-node-selected-tag">{t('选中')}</div>}
     </div>
   );
 }

@@ -186,6 +186,9 @@ body {
 .main { flex: 1; display: flex; min-height: 0; }
 .canvas-wrap { flex: 1; min-width: 0; position: relative; }
 .toolbar-spacer { flex: 1 1 0; min-width: 0; }
+.locale-picker { display: inline-flex; align-items: center; }
+.locale-picker select { min-height: 30px; max-width: 126px; padding: 0 24px 0 8px; border: 1px solid var(--line, #d8dde7); border-radius: 7px; background: var(--panel, #fff); color: var(--text, #253044); font: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* ============ 工具栏 ============ */
 .toolbar {

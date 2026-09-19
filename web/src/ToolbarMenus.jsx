@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { NODE_REGISTRY } from './registry.jsx';
+import { useI18n } from './i18n/index.js';
 
 function useOutsideClose(onClose) {
   const ref = useRef(null);
@@ -25,6 +26,7 @@ function useOutsideClose(onClose) {
 
 /** ＋ 添加节点下拉：anchor 在工具栏；onPick(type) */
 export function AddNodeMenu({ onPick }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useOutsideClose(() => setOpen(false));
   return (
@@ -34,10 +36,10 @@ export function AddNodeMenu({ onPick }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="添加节点"
-        title="添加节点（或双击画布空白处）"
+        aria-label={t('添加节点')}
+        title={t('添加节点（或双击画布空白处）')}
       >
-        <span aria-hidden="true">＋</span><span className="tb-add-label">添加</span><span aria-hidden="true" className={`tb-caret ${open ? 'tb-caret-open' : ''}`}>▾</span>
+        <span aria-hidden="true">＋</span><span className="tb-add-label">{t('添加')}</span><span aria-hidden="true" className={`tb-caret ${open ? 'tb-caret-open' : ''}`}>▾</span>
       </button>
       {open && (
         <div className="tb-dropdown" role="menu">
@@ -46,8 +48,8 @@ export function AddNodeMenu({ onPick }) {
               style={{ '--item-color': k.color }}
               onClick={() => { setOpen(false); onPick(k.type); }}>
               <span className="tb-menu-icon" dangerouslySetInnerHTML={{ __html: k.icon }} />
-              {k.label}
-              {k.type === 'note' && <span className="tb-menu-sub">不参与运行</span>}
+              {t(k.label)}
+              {k.type === 'note' && <span className="tb-menu-sub">{t('不参与运行')}</span>}
             </button>
           ))}
         </div>
@@ -58,6 +60,7 @@ export function AddNodeMenu({ onPick }) {
 
 /** 双击画布空白处弹出的加节点菜单（fixed 定位在光标处） */
 export function CanvasAddMenu({ x, y, onPick, onClose }) {
+  const { t } = useI18n();
   const ref = useOutsideClose(onClose);
   // 靠近视口右/下边缘时向左/上翻转
   const flipX = x > window.innerWidth - 180;
@@ -74,14 +77,14 @@ export function CanvasAddMenu({ x, y, onPick, onClose }) {
       }}
       role="menu"
     >
-      <div className="tb-canvas-title">添加节点</div>
+      <div className="tb-canvas-title">{t('添加节点')}</div>
       {NODE_REGISTRY.map((k) => (
         <button key={k.type} role="menuitem" className="tb-menu-item"
           style={{ '--item-color': k.color }}
           onClick={() => { onClose(); onPick(k.type); }}>
           <span className="tb-menu-icon" dangerouslySetInnerHTML={{ __html: k.icon }} />
-          {k.label}
-          {k.type === 'note' && <span className="tb-menu-sub">不参与运行</span>}
+          {t(k.label)}
+          {k.type === 'note' && <span className="tb-menu-sub">{t('不参与运行')}</span>}
         </button>
       ))}
     </div>
@@ -90,6 +93,7 @@ export function CanvasAddMenu({ x, y, onPick, onClose }) {
 
 /** ⋯ 更多操作：低频项收纳 */
 export function MoreMenu({ items }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useOutsideClose(() => setOpen(false));
   return (
@@ -99,8 +103,8 @@ export function MoreMenu({ items }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="更多操作"
-        aria-label="更多操作"
+        title={t('更多操作')}
+        aria-label={t('更多操作')}
       >⋯</button>
       {open && (
         <div className="tb-dropdown tb-dropdown-right" role="menu">
@@ -110,8 +114,8 @@ export function MoreMenu({ items }) {
               onClick={() => { setOpen(false); it.onClick?.(); }}>
               {it.icon && <span className="tb-menu-icon tb-menu-glyph">{it.icon}</span>}
               <span className="tb-menu-text">
-                {it.label}
-                {it.hint && <span className="tb-menu-sub">{it.hint}</span>}
+                {t(it.label)}
+                {it.hint && <span className="tb-menu-sub">{t(it.hint)}</span>}
               </span>
             </button>
           ))}

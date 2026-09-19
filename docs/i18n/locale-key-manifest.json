@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "locales": ["en", "zh-CN"],
+  "keys": [
+    "app.title", "app.language", "app.locale.en", "app.locale.zhCN",
+    "status.running", "status.success", "status.error", "status.canceled", "status.interrupted", "status.skipped", "status.waiting",
+    "action.save", "action.cancel", "action.confirm", "action.close", "action.delete", "action.edit", "action.run", "action.retry", "action.resume", "action.refresh", "action.undo", "action.redo",
+    "nav.canvas", "nav.documents", "nav.workflows", "nav.history", "nav.newDocuments",
+    "menu.settings", "menu.templates", "menu.variables", "menu.schedules", "menu.credentials",
+    "run.notRun", "run.running", "run.complete", "run.failed", "run.canceled", "run.cancelOther", "run.interrupted", "run.empty", "run.results", "run.process", "run.issues", "run.duration", "run.input", "run.output", "run.waiting",
+    "workflow.new", "workflow.open", "workflow.rename", "workflow.delete", "workflow.empty", "workflow.search",
+    "node.add", "node.delete", "node.details", "node.input", "node.output", "node.agent", "node.script", "node.condition", "node.http", "node.notify", "node.note", "node.subworkflow", "node.required", "node.optional", "node.type", "node.description", "node.test",
+    "settings.languageHint", "settings.languageChanged",
+    "error.generic", "error.network", "error.notFound", "error.forbidden", "error.timeout", "error.conflict",
+    "validation.required", "validation.invalidJson", "validation.invalidCron",
+    "count.nodes", "count.runs", "count.files", "count.issues"
+  ]
+}

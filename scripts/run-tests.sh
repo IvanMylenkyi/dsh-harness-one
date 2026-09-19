@@ -4,6 +4,8 @@
 set -e
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 
+node "$HERE/scripts/check-i18n.mjs"
+
 fail=0
 run_suite() { # run_suite <目录> <glob>
   dir=$1 glob=$2

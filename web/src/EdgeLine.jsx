@@ -4,8 +4,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react';
 import { NODE_REGISTRY } from './registry.jsx';
+import { useI18n } from './i18n/index.js';
 
 export function EdgeLine({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, label, labelStyle, data }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
@@ -61,14 +63,14 @@ export function EdgeLine({ id, sourceX, sourceY, targetX, targetY, sourcePositio
           <button
             type="button"
             className="edge-addbtn"
-            aria-label="在此连线插入节点"
-            title="在此插入节点"
+            aria-label={t('在此连线插入节点')}
+            title={t('在此插入节点')}
             onClick={toggle}
             onPointerDown={(e) => e.stopPropagation()}
           >＋</button>
           {open && (
             <div className="edge-addmenu" role="menu" onPointerDown={(e) => e.stopPropagation()}>
-              <div className="tb-canvas-title">插入节点</div>
+              <div className="tb-canvas-title">{t('插入节点')}</div>
               {NODE_REGISTRY.filter((k) => k.type !== 'note').map((k) => (
                 <button
                   key={k.type}
@@ -78,7 +80,7 @@ export function EdgeLine({ id, sourceX, sourceY, targetX, targetY, sourcePositio
                   onClick={(e) => pick(e, k.type)}
                 >
                   <span className="tb-menu-icon" dangerouslySetInnerHTML={{ __html: k.icon }} />
-                  {k.label}
+                  {t(k.label)}
                 </button>
               ))}
             </div>

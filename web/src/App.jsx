@@ -23,6 +23,7 @@ import { applyRunEvent } from './workflow-list-state.js';
 import { adoptRunStatusPatch, projectRunNodeStates, seedTerminalNodeIds } from './live-run-adopt.js';
 import { useThemePalette } from './theme.js';
 import { useToast, PromptModal, ConfirmModal, Modal } from './ui.jsx';
+import { useI18n } from './i18n/index.js';
 
 const STATUS_CN = { running: '运行中', success: '成功', error: '失败', canceled: '已取消', interrupted: '异常中断', skipped: '跳过', waiting: '等待审批' };
 
@@ -46,6 +47,7 @@ import { TEMPLATES, TemplateModal } from './templates.jsx';
 
 export default function App() {
   const toast = useToast();
+  const { locale, setLocale, t } = useI18n();
   const palette = useThemePalette();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -1184,14 +1186,14 @@ export default function App() {
 
   const addNode = useCallback((type, position) => {
     const id = `n_${type}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
-    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset()]));
+    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset(t)]));
     const pos = position || findFreeSpot(nodesRef.current);
     snapshot();
     setNodes((nds) => [...nds, toFlowNode({ id, type, position: pos, data: presets[type] })]);
     setSelectedId(id);
     markDirty();
     return id;
-  }, [setNodes, markDirty, snapshot]);
+  }, [setNodes, markDirty, snapshot, t]);
 
   // 快捷加下游：hover 菜单触发。新节点放源节点右侧（多条出边时向下错开），自动连线
   const addChildNode = useCallback((sourceId, type) => {
@@ -1199,7 +1201,7 @@ export default function App() {
     if (!src) return;
     snapshot();
     const outCount = edgesRef.current.filter((e) => e.source === sourceId).length;
-    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset()]));
+    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset(t)]));
     const id = `n_${type}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
     setNodes((nds) => [...nds, toFlowNode({
       id, type,
@@ -1217,7 +1219,7 @@ export default function App() {
     setEdges((eds) => [...eds, toFlowEdge({ id: `e_${Date.now().toString(36)}`, source: sourceId, target: id, branch })]);
     setSelectedId(id);
     markDirty();
-  }, [setNodes, setEdges, snapshot, markDirty]);
+  }, [setNodes, setEdges, snapshot, markDirty, t]);
   addChildNodeRef.current = addChildNode;
 
   // 面板编辑防抖入栈：第一次按键改动前压快照，1s 静默后视为一次编辑单元结束
@@ -1481,7 +1483,7 @@ export default function App() {
 
   // AI 补丁 → 画布落图：一批 ops 一次快照（一次 Cmd+Z 撤销整批）
   const applyAssistantOps = useCallback((ops, version = 0) => {
-    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset()]));
+    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset(t)]));
     snapshot();
     if (version) assistantVersionRef.current = Number(version);
     let lastAdded = null;
@@ -1510,7 +1512,7 @@ export default function App() {
     toast('✨ AI 已修改画布（Cmd+Z 可撤销）', 'success', 3200);
     // 落图后立即上报（不等节流），AI 的下一次校验拿到的一定是新图
     setTimeout(() => reportCanvasState(true), 250);
-  }, [setNodes, setEdges, snapshot, markDirty, toast, fitView, reportCanvasState]);
+  }, [setNodes, setEdges, snapshot, markDirty, toast, fitView, reportCanvasState, t]);
   assistantOpsRef.current = applyAssistantOps;
 
   // #105 挂起批次裁决：approve → 正常落图；放弃 → 前端不落图，认领版本后把旧图
@@ -1644,7 +1646,7 @@ export default function App() {
     const dst = nodesRef.current.find((n) => n.id === edge.target);
     if (!src || !dst) return;
     snapshot();
-    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset()]));
+    const presets = Object.fromEntries(NODE_REGISTRY.map((k) => [k.type, k.preset(t)]));
     const id = `n_${type}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
     const mid = {
       x: Math.round((src.position.x + dst.position.x) / 2) + 24,
@@ -1660,8 +1662,8 @@ export default function App() {
     ]);
     setSelectedId(id);
     markDirty();
-    toast(`已在连线间插入「${NODE_REGISTRY.find((k) => k.type === type)?.label || type}」节点`, 'success', 2400);
-  }, [setNodes, setEdges, snapshot, markDirty, toast]);
+    toast(`${t('在此连线插入节点')}「${t(NODE_REGISTRY.find((k) => k.type === type)?.label || type)}」`, 'success', 2400);
+  }, [setNodes, setEdges, snapshot, markDirty, toast, t]);
 
   // 边样式：状态着色 + 条件分支标签；走自定义 EdgeLine（中点＋插入），样式透传。
   // 拆两层 memo：状态映射只依赖节点的【运行状态】序列（拖动/改数据不重建边），
@@ -1753,10 +1755,10 @@ export default function App() {
       <header className="toolbar">
         <strong className="toolbar-brand">Workflow One</strong>
         <nav className="view-tabs">
-          <button className={`view-tab ${view === 'canvas' ? 'view-tab-on' : ''}`} onClick={() => setView('canvas')}>画布</button>
-          <button className={`view-tab ${view === 'docs' ? 'view-tab-on' : ''}`} onClick={() => { setView('docs'); setDocsSeenAt(Date.now()); }}>文稿{docsBadge ? <span className="docs-dot" aria-label="有新文稿" /> : null}</button>
-          <button className={`view-tab ${view === 'workflows' ? 'view-tab-on' : ''}`} onClick={() => setView('workflows')}>工作流</button>
-          <button className={`view-tab ${historyOpen ? 'view-tab-on' : ''}`} onClick={() => setHistoryOpen(true)}>历史</button>
+          <button className={`view-tab ${view === 'canvas' ? 'view-tab-on' : ''}`} onClick={() => setView('canvas')}>{t('nav.canvas')}</button>
+          <button className={`view-tab ${view === 'docs' ? 'view-tab-on' : ''}`} onClick={() => { setView('docs'); setDocsSeenAt(Date.now()); }}>{t('nav.documents')}{docsBadge ? <span className="docs-dot" aria-label={t('nav.newDocuments')} /> : null}</button>
+          <button className={`view-tab ${view === 'workflows' ? 'view-tab-on' : ''}`} onClick={() => setView('workflows')}>{t('nav.workflows')}</button>
+          <button className={`view-tab ${historyOpen ? 'view-tab-on' : ''}`} onClick={() => setHistoryOpen(true)}>{t('nav.history')}</button>
         </nav>
         {view === 'canvas' && currentWf && <span className="mode-badge toolbar-workflow-badge" title={`当前编辑的工作流：${currentWf.name}`}>{currentWf.name}{dirty ? ' •' : ''}</span>}
         {runtime && (
@@ -1765,6 +1767,13 @@ export default function App() {
           </span>
         )}
         <div className="toolbar-spacer" />
+        <label className="locale-picker">
+          <span className="sr-only">{t('app.language')}</span>
+          <select value={locale} onChange={(event) => setLocale(event.target.value)} aria-label={t('app.language')}>
+            <option value="en">{t('app.locale.en')}</option>
+            <option value="zh-CN">{t('app.locale.zhCN')}</option>
+          </select>
+        </label>
         {view === 'canvas' && (
           <>
             {runStatus.running && <span className="mode-badge mode-glm toolbar-progress-badge">{doneCount}/{runStatus.total || businessNodeCount} 节点</span>}
@@ -1787,9 +1796,9 @@ export default function App() {
               { key: 'reset', icon: '⟲', label: '重置为示例', danger: true, onClick: resetGraph },
             ]} />
             {/* 多运行并发：常驻「运行」随时可再开一轮；「取消」只作用于当前查看的运行 */}
-            <button className="btn btn-primary tb-run-btn" onClick={run} aria-label="运行工作流"><span aria-hidden="true">▶</span><span className="tb-run-label">运行</span></button>
+            <button className="btn btn-primary tb-run-btn" onClick={run} aria-label={t('action.run')}><span aria-hidden="true">▶</span><span className="tb-run-label">{t('action.run')}</span></button>
             {runStatus.running && (
-              <button className="btn btn-danger tb-run-btn" onClick={cancelRun} aria-label="取消当前查看的运行" title="取消当前查看的运行（不影响其他并行运行）"><span aria-hidden="true">■</span><span className="tb-run-label">取消</span></button>
+              <button className="btn btn-danger tb-run-btn" onClick={cancelRun} aria-label={t('action.cancel')} title={t('run.cancelOther')}><span aria-hidden="true">■</span><span className="tb-run-label">{t('action.cancel')}</span></button>
             )}
           </>
         )}
