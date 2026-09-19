@@ -3,6 +3,7 @@ import {
   Braces, Check, ChevronRight, CircleAlert, Copy, Database, FileInput, Globe2, Plus, RefreshCw, Save, Trash2,
 } from 'lucide-react';
 import { Modal, useToast } from './ui.jsx';
+import { useI18n } from './i18n/index.js';
 import {
   createGlobalVariable,
   deleteGlobalVariable,
@@ -17,13 +18,15 @@ import {
 } from './global-variables.js';
 
 const SCOPE_META = {
-  global: { label: '实例变量', hint: '跨工作流共享', icon: Globe2 },
-  workflow: { label: '工作流变量', hint: '随当前工作流保存', icon: Braces },
-  input: { label: '运行输入', hint: '每次运行提供', icon: FileInput },
+  global: { labelKey: 'variables.scope.global', hintKey: 'variables.scope.globalHint', icon: Globe2 },
+  workflow: { labelKey: 'variables.scope.workflow', hintKey: 'variables.scope.workflowHint', icon: Braces },
+  input: { labelKey: 'variables.scope.input', hintKey: 'variables.scope.inputHint', icon: FileInput },
 };
+const TYPE_KEYS = { string: 'variables.type.string', number: 'variables.type.number', boolean: 'variables.type.boolean', json: 'variables.type.json', 'string[]': 'variables.type.stringArray' };
 
 export function VariableCenter({ onClose, workflowVariables = [], inputSchema = { fields: [] }, onGlobalChanged }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [scope, setScope] = useState('global');
   const [document, setDocument] = useState({ version: 1, revision: 0, variables: [] });
   const [selectedId, setSelectedId] = useState(null);
@@ -47,7 +50,7 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
       setCreating(false);
       setDraft(fallback ? variableToDraft(fallback) : EMPTY_GLOBAL_VARIABLE_DRAFT);
     } catch (loadError) {
-      setError(loadError.message || '加载实例变量失败');
+      setError(loadError.message || t('variables.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -84,7 +87,7 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
 
   const handleConflict = async (requestError) => {
     if (!(requestError instanceof GlobalVariableApiError) || requestError.code !== 'revision-conflict') return false;
-    toast('变量已被其他操作修改，已刷新到最新版本', 'warn');
+    toast(t('variables.conflict'), 'warn');
     await load({ preserveSelection: true });
     return true;
   };
@@ -103,10 +106,10 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
       setSelectedId(result.variable.id);
       setCreating(false);
       setDraft(variableToDraft(result.variable));
-      toast(creating ? `已创建「${result.variable.label || result.variable.key}」` : '变量已保存', 'success');
+      toast(creating ? t('variables.created', { label: result.variable.label || result.variable.key }) : t('variables.saved'), 'success');
       onGlobalChanged?.(result.revision);
     } catch (requestError) {
-      if (!(await handleConflict(requestError))) setError(requestError.message || '保存失败');
+      if (!(await handleConflict(requestError))) setError(requestError.message || t('variables.saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -122,10 +125,10 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
       setDocument({ version: result.version, revision: result.revision, variables: result.variables });
       setSelectedId(next?.id || null);
       setDraft(next ? variableToDraft(next) : EMPTY_GLOBAL_VARIABLE_DRAFT);
-      toast(`已删除「${selected.label || selected.key}」`, 'warn');
+      toast(t('variables.deleted', { label: selected.label || selected.key }), 'warn');
       onGlobalChanged?.(result.revision);
     } catch (requestError) {
-      if (!(await handleConflict(requestError))) setError(requestError.message || '删除失败');
+      if (!(await handleConflict(requestError))) setError(requestError.message || t('variables.deleteFailed'));
     } finally {
       setBusy(false);
     }
@@ -136,46 +139,46 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
       await navigator.clipboard.writeText(`{{${token}}}`);
       setCopied(token);
       setTimeout(() => setCopied(''), 1200);
-    } catch { toast('复制失败，请手动选择引用', 'error'); }
+    } catch { toast(t('variables.copyFailed'), 'error'); }
   };
 
   return (
     <>
-    <Modal title="变量与输入" onClose={onClose} className="variable-center-modal">
+    <Modal title={t('variables.title')} onClose={onClose} className="variable-center-modal">
       <div className="variable-center">
-        <aside className="vc-scopes" aria-label="变量作用域">
-          <div className="vc-scope-title">作用域</div>
+        <aside className="vc-scopes" aria-label={t('variables.scopeLabel')}>
+          <div className="vc-scope-title">{t('variables.scopeLabel')}</div>
           {Object.entries(SCOPE_META).map(([key, meta]) => {
             const Icon = meta.icon;
             return (
               <button key={key} className={`vc-scope ${scope === key ? 'vc-scope-on' : ''}`} onClick={() => { setScope(key); setError(''); }}>
                 <Icon size={16} />
-                <span><strong>{meta.label}</strong><small>{meta.hint}</small></span>
+                <span><strong>{t(meta.labelKey)}</strong><small>{t(meta.hintKey)}</small></span>
                 <b>{counts[key]}</b>
               </button>
             );
           })}
           <div className="vc-scope-note">
             <Database size={15} />
-            <span>普通变量仅保存非敏感值。密钥和账号继续使用凭据管理。</span>
+            <span>{t('variables.sensitiveHint')}</span>
           </div>
         </aside>
 
         <section className="vc-list-pane">
           <header className="vc-pane-head">
-            <div><strong>{SCOPE_META[scope].label}</strong><span>{visibleItems.length} 项</span></div>
+            <div><strong>{t(SCOPE_META[scope].labelKey)}</strong><span>{t('variables.itemCount', { count: visibleItems.length })}</span></div>
             {scope === 'global' && (
-              <button className="btn btn-primary btn-sm" onClick={beginCreate}><Plus size={14} /> 新建</button>
+              <button className="btn btn-primary btn-sm" onClick={beginCreate}><Plus size={14} /> {t('action.new')}</button>
             )}
           </header>
           <div className="vc-list">
-            {loading && <div className="vc-empty"><RefreshCw size={18} className="vc-spin" />正在加载</div>}
+            {loading && <div className="vc-empty"><RefreshCw size={18} className="vc-spin" />{t('status.loading')}</div>}
             {!loading && visibleItems.length === 0 && (
               <div className="vc-empty">
                 <Database size={24} />
-                <strong>{scope === 'global' ? '还没有实例变量' : '当前没有声明'}</strong>
-                <span>{scope === 'global' ? '创建后即可在所有工作流中引用。' : '该作用域将在后续输入管理阶段开放维护。'}</span>
-                {scope === 'global' && <button className="btn btn-sm" onClick={beginCreate}><Plus size={14} /> 创建第一个变量</button>}
+                <strong>{t(scope === 'global' ? 'variables.emptyGlobal' : 'variables.emptyScope')}</strong>
+                <span>{t(scope === 'global' ? 'variables.emptyGlobalHint' : 'variables.emptyScopeHint')}</span>
+                {scope === 'global' && <button className="btn btn-sm" onClick={beginCreate}><Plus size={14} /> {t('variables.createFirst')}</button>}
               </div>
             )}
             {!loading && visibleItems.map((item) => {
@@ -189,10 +192,10 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
                       <strong>{item.label || item.key}</strong>
                       <code>{token}</code>
                     </span>
-                    {item.required && <span className="vc-required">必填</span>}
+                    {item.required && <span className="vc-required">{t('node.required')}</span>}
                     {scope === 'global' && <ChevronRight size={14} className="vc-row-arrow" />}
                   </button>
-                  <button type="button" className="btn-icon vc-copy" aria-label={`复制 ${item.label || item.key}`} title="复制引用"
+                  <button type="button" className="btn-icon vc-copy" aria-label={t('variables.copyLabel', { label: item.label || item.key })} title={t('variables.copyReference')}
                     onClick={() => copyToken(token)}>
                     {copied === token ? <Check size={14} /> : <Copy size={14} />}
                   </button>
@@ -202,8 +205,8 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
           </div>
           {scope === 'global' && (
             <footer className="vc-list-foot">
-              <span>Revision {document.revision}</span>
-              <button className="btn-icon" title="刷新变量" aria-label="刷新变量" disabled={loading} onClick={() => load({ preserveSelection: true })}>
+              <span>{t('variables.revision', { revision: document.revision })}</span>
+              <button className="btn-icon" title={t('action.refresh')} aria-label={t('action.refresh')} disabled={loading} onClick={() => load({ preserveSelection: true })}>
                 <RefreshCw size={14} />
               </button>
             </footer>
@@ -214,11 +217,11 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
           {scope !== 'global' ? (
             <div className="vc-readonly">
               <CircleAlert size={26} />
-              <strong>{SCOPE_META[scope].label}当前只读</strong>
-              <p>{scope === 'workflow' ? '这些声明随当前工作流保存。下一阶段会在这里增加新增、约束和引用重构。' : '运行输入来自工作流 Input Schema。下一阶段会在这里维护类型、默认值和必填规则。'}</p>
+              <strong>{t(SCOPE_META[scope].labelKey)}{t('variables.readOnly')}</strong>
+              <p>{t(scope === 'workflow' ? 'variables.workflowReadOnlyHint' : 'variables.inputReadOnlyHint')}</p>
             </div>
           ) : (!creating && !selected) ? (
-            <div className="vc-readonly"><Database size={26} /><strong>选择或创建变量</strong><p>右侧会显示类型、值和引用。</p></div>
+            <div className="vc-readonly"><Database size={26} /><strong>{t('variables.selectOrCreate')}</strong><p>{t('variables.selectOrCreateHint')}</p></div>
           ) : (
             <GlobalVariableForm draft={draft} setDraft={setDraft} creating={creating} busy={busy} error={error}
               token={draft.key ? variableToken(draft.key) : ''} onSave={saveGlobal} onDelete={() => setConfirmDelete(true)} />
@@ -227,13 +230,13 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
       </div>
     </Modal>
     {confirmDelete && selected && (
-      <Modal title="删除实例变量" onClose={() => setConfirmDelete(false)} className="vc-confirm-modal" footer={(
+      <Modal title={t('variables.deleteTitle')} onClose={() => setConfirmDelete(false)} className="vc-confirm-modal" footer={(
         <>
-          <button className="btn" onClick={() => setConfirmDelete(false)}>取消</button>
-          <button className="btn btn-danger" disabled={busy} onClick={async () => { setConfirmDelete(false); await removeGlobal(); }}>删除变量</button>
+          <button className="btn" onClick={() => setConfirmDelete(false)}>{t('action.cancel')}</button>
+          <button className="btn btn-danger" disabled={busy} onClick={async () => { setConfirmDelete(false); await removeGlobal(); }}>{t('variables.delete')}</button>
         </>
       )}>
-        <p className="modal-message">确定删除「{selected.label || selected.key}」？已有模板引用不会自动移除，后续校验会把它标记为未知变量。</p>
+        <p className="modal-message">{t('variables.deleteConfirm', { label: selected.label || selected.key })}</p>
       </Modal>
     )}
     </>
@@ -241,38 +244,40 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
 }
 
 function GlobalVariableForm({ draft, setDraft, creating, busy, error, token, onSave, onDelete }) {
+  const { t } = useI18n();
   const set = (patch) => setDraft((current) => ({ ...current, ...patch }));
   return (
     <div className="vc-form">
       <header className="vc-form-head">
-        <div><strong>{creating ? '新建实例变量' : '编辑实例变量'}</strong><span>非敏感 · 实例级</span></div>
-        {!creating && <button className="btn-icon vc-delete" title="删除变量" aria-label="删除变量" disabled={busy} onClick={onDelete}><Trash2 size={16} /></button>}
+        <div><strong>{t(creating ? 'variables.newGlobal' : 'variables.editGlobal')}</strong><span>{t('variables.nonSensitive')}</span></div>
+        {!creating && <button className="btn-icon vc-delete" title={t('variables.delete')} aria-label={t('variables.delete')} disabled={busy} onClick={onDelete}><Trash2 size={16} /></button>}
       </header>
       <div className="vc-form-body">
-        <label className="vc-field"><span>Key <em>{creating ? '稳定引用标识' : '已被模板引用，不可直接修改'}</em></span><input autoFocus={creating} disabled={!creating} value={draft.key} onChange={(e) => set({ key: e.target.value.trim() })} placeholder="emergency_sla_minutes" /></label>
-        <label className="vc-field"><span>显示名称</span><input value={draft.label} onChange={(e) => set({ label: e.target.value })} placeholder="紧急上门时限" /></label>
-        <label className="vc-field"><span>类型</span><select value={draft.type} onChange={(e) => set({ type: e.target.value, valueText: e.target.value === 'boolean' ? 'false' : '' })}>
-          {GLOBAL_VARIABLE_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label} · {item.value}</option>)}
+        <label className="vc-field"><span>Key <em>{t(creating ? 'variables.stableReference' : 'variables.lockedReference')}</em></span><input autoFocus={creating} disabled={!creating} value={draft.key} onChange={(e) => set({ key: e.target.value.trim() })} placeholder="emergency_sla_minutes" /></label>
+        <label className="vc-field"><span>{t('variables.displayName')}</span><input value={draft.label} onChange={(e) => set({ label: e.target.value })} placeholder={t('variables.displayNamePlaceholder')} /></label>
+        <label className="vc-field"><span>{t('variables.type')}</span><select value={draft.type} onChange={(e) => set({ type: e.target.value, valueText: e.target.value === 'boolean' ? 'false' : '' })}>
+          {GLOBAL_VARIABLE_TYPES.map((item) => <option key={item.value} value={item.value}>{t(TYPE_KEYS[item.value] || 'variables.type.unknown')} · {item.value}</option>)}
         </select></label>
         <ValueEditor draft={draft} set={set} />
-        <label className="vc-field"><span>说明 <em>可选</em></span><textarea rows={3} value={draft.description} onChange={(e) => set({ description: e.target.value })} placeholder="这个变量用于什么场景" /></label>
-        <div className="vc-token-preview"><span>模板引用</span><code>{token ? `{{${token}}}` : '填写 Key 后生成'}</code></div>
+        <label className="vc-field"><span>{t('variables.description')} <em>{t('node.optional')}</em></span><textarea rows={3} value={draft.description} onChange={(e) => set({ description: e.target.value })} placeholder={t('variables.descriptionPlaceholder')} /></label>
+        <div className="vc-token-preview"><span>{t('variables.templateReference')}</span><code>{token ? `{{${token}}}` : t('variables.fillKey')}</code></div>
         {error && <div className="vc-form-error"><CircleAlert size={14} />{error}</div>}
       </div>
-      <footer className="vc-form-foot"><button className="btn btn-primary" disabled={busy} onClick={onSave}><Save size={15} />{busy ? '保存中' : '保存变量'}</button></footer>
+      <footer className="vc-form-foot"><button className="btn btn-primary" disabled={busy} onClick={onSave}><Save size={15} />{busy ? t('status.saving') : t('variables.save')}</button></footer>
     </div>
   );
 }
 
 function ValueEditor({ draft, set }) {
+  const { t } = useI18n();
   if (draft.type === 'boolean') {
-    return <label className="vc-field"><span>值</span><select value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })}><option value="false">false</option><option value="true">true</option></select></label>;
+    return <label className="vc-field"><span>{t('variables.value')}</span><select value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })}><option value="false">false</option><option value="true">true</option></select></label>;
   }
   if (draft.type === 'json') {
-    return <label className="vc-field"><span>值 <em>JSON</em></span><textarea className="vc-code-input" rows={9} value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })} placeholder={'{\n  "enabled": true\n}'} /></label>;
+    return <label className="vc-field"><span>{t('variables.value')} <em>JSON</em></span><textarea className="vc-code-input" rows={9} value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })} placeholder={'{\n  "enabled": true\n}'} /></label>;
   }
   if (draft.type === 'string[]') {
-    return <label className="vc-field"><span>值 <em>每行一项</em></span><textarea rows={7} value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })} placeholder={'item-a\nitem-b'} /></label>;
+    return <label className="vc-field"><span>{t('variables.value')} <em>{t('variables.onePerLine')}</em></span><textarea rows={7} value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })} placeholder={'item-a\nitem-b'} /></label>;
   }
-  return <label className="vc-field"><span>值</span><input type={draft.type === 'number' ? 'number' : 'text'} value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })} placeholder={draft.type === 'number' ? '15' : '变量值'} /></label>;
+  return <label className="vc-field"><span>{t('variables.value')}</span><input type={draft.type === 'number' ? 'number' : 'text'} value={draft.valueText} onChange={(e) => set({ valueText: e.target.value })} placeholder={draft.type === 'number' ? '15' : t('variables.valuePlaceholder')} /></label>;
 }
