@@ -109,7 +109,7 @@ export default {
     'node.feishuCard': 'Feishu card',
     'node.channel': 'Channel',
     'node.runComplete': 'Run complete',
-    'node.attachmentsCount': '{count} attachments',
+    'node.attachmentsCount': '{count, plural, one {# attachment} other {# attachments}}',
     'node.urlNotConfigured': 'URL not configured',
     'node.noChannel': 'No channel selected',
     'status.charsCount': '{count, plural, one {# char} other {# chars}}',
