@@ -46,7 +46,7 @@ const runDetail = {
 
 assert.equal(getRunId(runDetail, {}, {}), 'run-42');
 assert.equal(getRunId(null, { runId: 'run-live' }, null), 'run-live');
-assert.deepEqual(getRunStatusMeta('interrupted'), { label: '异常中断', tone: 'danger' });
+assert.deepEqual(getRunStatusMeta('interrupted'), { statusKey: 'status.interrupted', tone: 'danger' });
 
 const fallback = adaptRunResults({}, { runDetail });
 assert.equal(fallback.runId, 'run-42');
@@ -200,7 +200,7 @@ assert.equal(state.activeTab, 'process');
 assert.deepEqual(state.counts, { result: 2, process: 3, issues: 0 });
 assert.equal(state.canExport, true);
 assert.equal(state.isEmpty, false);
-assert.deepEqual(getRunStatusMeta('mystery'), { label: 'mystery', tone: 'neutral' });
+assert.deepEqual(getRunStatusMeta('mystery'), { statusKey: null, statusLabel: 'mystery', tone: 'neutral' });
 
 // fetch_err.json 这类技术转储文件不进「过程文件」列表，但保留在 files 索引（正文行内引用仍可点）
 const withTechnical = adaptRunResults({

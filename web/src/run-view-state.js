@@ -1,22 +1,22 @@
 export const RESULT_TABS = Object.freeze([
-  { id: 'process', label: '过程' },
-  { id: 'result', label: '成果' },
-  { id: 'issues', label: '问题' },
+  { id: 'process', labelKey: 'run.process' },
+  { id: 'result', labelKey: 'run.results' },
+  { id: 'issues', labelKey: 'run.issues' },
 ]);
 
 const STATUS_META = {
-  idle: { label: '尚未运行', tone: 'neutral' },
-  queued: { label: '等待运行', tone: 'neutral' },
-  running: { label: '运行中', tone: 'running' },
-  waiting: { label: '等待审批', tone: 'waiting' },
-  success: { label: '已完成', tone: 'success' },
-  error: { label: '运行失败', tone: 'danger' },
-  canceled: { label: '已取消', tone: 'neutral' },
-  interrupted: { label: '异常中断', tone: 'danger' },
+  idle: { statusKey: 'run.notRun', tone: 'neutral' },
+  queued: { statusKey: 'status.queued', tone: 'neutral' },
+  running: { statusKey: 'status.running', tone: 'running' },
+  waiting: { statusKey: 'status.waiting', tone: 'waiting' },
+  success: { statusKey: 'status.success', tone: 'success' },
+  error: { statusKey: 'run.failed', tone: 'danger' },
+  canceled: { statusKey: 'status.canceled', tone: 'neutral' },
+  interrupted: { statusKey: 'status.interrupted', tone: 'danger' },
 };
 
 export function getRunStatusMeta(status) {
-  return STATUS_META[status] || { label: status || '未知状态', tone: 'neutral' };
+  return STATUS_META[status] || { statusKey: null, statusLabel: status || '', tone: 'neutral' };
 }
 
 export function deriveRunViewState(model, activeTab = 'process') {
