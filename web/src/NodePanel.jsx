@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, FlaskConical, Plus, Trash2, X } from 'lucide-react';
 import { apiUrl } from './api.js';
+import { useI18n } from './i18n/index.js';
 import { TemplateEditor } from './TemplateEditor.jsx';
 import { ScriptCodeEditor } from './ScriptCodeEditor.jsx';
 import {
@@ -22,13 +23,13 @@ import MarkdownDocument from './MarkdownDocument.jsx';
 import { Modal } from './ui.jsx';
 
 const TOOL_LABELS = {
-  read_file: '读附件',
-  web_fetch: '抓网页',
-  feishu_doc_read: '读飞书文档',
-  feishu_doc_write: '写飞书文档',
+  read_file: 'node.tool.readFile',
+  web_fetch: 'node.tool.webFetch',
+  feishu_doc_read: 'node.tool.feishuRead',
+  feishu_doc_write: 'node.tool.feishuWrite',
 };
 
-const TYPE_TEXT = { input: '输入', agent: '智能体', output: '输出', condition: '条件', http: 'HTTP', script: '脚本', notify: '消息通知', note: '注释', subworkflow: '子工作流' };
+const TYPE_TEXT = { input: 'node.input', agent: 'node.agent', output: 'node.output', condition: 'node.condition', http: 'node.http', script: 'node.script', notify: 'node.notify', note: 'node.note', subworkflow: 'node.subworkflow' };
 
 /** 面板实时活动区的跳秒计时：每秒重渲染（仅运行中挂载） */
 function useElapsedTick(active) {
@@ -76,6 +77,7 @@ function Field({ label, hint, children, wide }) {
 }
 
 function ScriptParameterRow({ input, index, error, templateProps, onChange, onRemove }) {
+  const { t } = useI18n();
   const expressionMode = Object.prototype.hasOwnProperty.call(input, 'expression');
   const [constantText, setConstantText] = useState(() => formatScriptConstant(input.value));
   const [constantError, setConstantError] = useState('');
@@ -100,19 +102,19 @@ function ScriptParameterRow({ input, index, error, templateProps, onChange, onRe
   return (
     <div className="script-param-row">
       <div className="script-param-head">
-        <input aria-label={`参数 ${index + 1} 名称`} value={input.name}
+        <input aria-label={t('node.parameterName', { index: index + 1 })} value={input.name}
           onChange={(event) => onChange({ ...input, name: event.target.value })} placeholder="parameterName" />
-        <div className="script-param-mode" role="group" aria-label={`参数 ${index + 1} 值模式`}>
-          <button type="button" className={expressionMode ? 'script-mode-on' : ''} onClick={() => changeMode('expression')}>表达式</button>
-          <button type="button" className={!expressionMode ? 'script-mode-on' : ''} onClick={() => changeMode('constant')}>常量</button>
+        <div className="script-param-mode" role="group" aria-label={t('node.parameterMode', { index: index + 1 })}>
+          <button type="button" className={expressionMode ? 'script-mode-on' : ''} onClick={() => changeMode('expression')}>{t('node.expression')}</button>
+          <button type="button" className={!expressionMode ? 'script-mode-on' : ''} onClick={() => changeMode('constant')}>{t('node.constant')}</button>
         </div>
-        <button type="button" className="btn-icon script-param-remove" title="删除参数" aria-label={`删除参数 ${index + 1}`} onClick={onRemove}><Trash2 size={14} /></button>
+        <button type="button" className="btn-icon script-param-remove" title={t('node.removeParameter')} aria-label={t('node.removeParameterIndex', { index: index + 1 })} onClick={onRemove}><Trash2 size={14} /></button>
       </div>
       {error && <p className="script-param-error">{error}</p>}
       {expressionMode ? (
         <TemplateEditor
           {...templateProps}
-          label="参数值" hint="从变量工作台插入规范表达式"
+          label={t('node.parameterValue')} hint={t('node.variableReferenceHint')}
           rows={1}
           value={input.expression}
           onChange={(expression) => onChange({ name: input.name, expression })}
@@ -121,10 +123,10 @@ function ScriptParameterRow({ input, index, error, templateProps, onChange, onRe
           singleLine
         />
       ) : (
-        <Field label="参数值" hint="JSON，保留字符串/数字/布尔/对象/数组/null" wide>
+        <Field label={t('node.parameterValue')} hint={t('node.jsonValueHint')} wide>
           <textarea rows={3} spellCheck="false" className="script-json-input" value={constantText}
             onChange={(event) => changeConstant(event.target.value)} />
-          {constantError && <span className="script-param-error">JSON 无效：{constantError}</span>}
+          {constantError && <span className="script-param-error">{t('validation.invalidJson')}: {constantError}</span>}
         </Field>
       )}
     </div>
@@ -133,6 +135,7 @@ function ScriptParameterRow({ input, index, error, templateProps, onChange, onRe
 
 export function NodePanel({ node, onChange, onDelete, onTest, onClose, availableTools = [], availableWorkflows = [], skills = [], feishuEnabled = false, feishuCreds = [], notificationChannels = [], llmConfig = {}, upstreamNodes = [], upstreamPreviews = {}, graph, workflowId, runId, workflowVariables, inputSchema, runInputs, triggerInput, globalVariableEpoch, progress }) {
   if (!node) return null;
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
   const [runInputsText, setRunInputsText] = useState(() => JSON.stringify(node.data?.inputMap?.runInputs ?? {}, null, 2));
@@ -163,10 +166,10 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
   const effectiveProvider = d.channel || defaultProvider || '';
   const providerModels = providers.find((provider) => provider.id === effectiveProvider)?.models || [];
   const defaultModelLabel = d.channel
-    ? `渠道默认（${providerModels[0]?.name || providerModels[0]?.id || '未配置'}）`
+    ? t('node.channelDefault', { model: providerModels[0]?.name || providerModels[0]?.id || t('node.notConfigured') })
     : wf1Provider
-      ? `跟随 Workflow One 默认（${wf1Model || providerModels[0]?.name || providerModels[0]?.id || '渠道首选'}）`
-      : `跟随 dsh 默认（${llmConfig.defaultModel || '未配置'}）`;
+      ? t('node.followWorkflowDefault', { model: wf1Model || providerModels[0]?.name || providerModels[0]?.id || t('node.providerPreferred') })
+      : t('node.followDshDefault', { model: llmConfig.defaultModel || t('node.notConfigured') });
   // 所选模型的能力元数据：思考级别档位 + 视觉输入。跨渠道选模型后目录无该模型时为 null
   const currentModel = providerModels.find((item) => item.id === d.model) || null;
   const modelReasoning = currentModel?.reasoning || null;
@@ -207,7 +210,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
       body: JSON.stringify({ filename: file.name, contentBase64 }),
     });
     const data = await res.json();
-    if (!res.ok) { alert(data.error || '上传失败'); return; }
+    if (!res.ok) { alert(data.error || t('error.generic')); return; }
     set({ attachments: [...(d.attachments || []), { id: data.id, filename: data.filename, size: data.size }] });
     e.target.value = '';
   };
@@ -321,11 +324,11 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
   return (
     <aside className="panel node-panel">
       <header className="node-panel-head">
-        <span className={`type-chip type-${nodeType}`}>{TYPE_TEXT[nodeType] || nodeType}</span>
-        <input className="title-input" value={d.label || ''} onChange={(e) => set({ label: e.target.value })} placeholder="节点名称" />
-        {nodeType !== 'notify' && <button className="btn-icon" title="试运行此节点" aria-label="试运行此节点" onClick={runTest} disabled={testing}><FlaskConical size={15} className={testing ? 'icon-working' : ''} /></button>}
-        <button className="btn-icon" title="删除节点" aria-label="删除节点" onClick={() => onDelete(node.id)}><Trash2 size={15} /></button>
-        <button className="btn-icon" title="关闭面板" aria-label="关闭面板" onClick={onClose}><X size={16} /></button>
+        <span className={`type-chip type-${nodeType}`}>{TYPE_TEXT[nodeType] ? t(TYPE_TEXT[nodeType]) : nodeType}</span>
+        <input className="title-input" value={d.label || ''} onChange={(e) => set({ label: e.target.value })} placeholder={t('node.name')} />
+        {nodeType !== 'notify' && <button className="btn-icon" title={t('node.test')} aria-label={t('node.test')} onClick={runTest} disabled={testing}><FlaskConical size={15} className={testing ? 'icon-working' : ''} /></button>}
+        <button className="btn-icon" title={t('node.delete')} aria-label={t('node.delete')} onClick={() => onDelete(node.id)}><Trash2 size={15} /></button>
+        <button className="btn-icon" title={t('action.close')} aria-label={t('action.close')} onClick={onClose}><X size={16} /></button>
       </header>
 
       <div className="node-panel-scroll">
@@ -333,9 +336,9 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
       {d.runStatus === 'running' && (
         <div className="live-strip">
           <span className="live-strip-dot" aria-hidden="true" />
-          <span className="live-strip-title">正在执行</span>
+          <span className="live-strip-title">{t('status.running')}</span>
           {d.runStartedAt && <span className="live-strip-elapsed">{formatElapsed(d.runStartedAt)}</span>}
-          {progress?.turns != null && <span className="live-strip-turns">第 {progress.turns} 轮{progress.maxRounds ? ` / 上限 ${progress.maxRounds}` : ''}</span>}
+          {progress?.turns != null && <span className="live-strip-turns">{t('node.roundProgress', { turns: progress.turns, max: progress.maxRounds || '?' })}</span>}
           {(d.livePreview || progress?.preview) && (
             <pre className="live-strip-preview">{String(d.livePreview || progress.preview).slice(-400)}</pre>
           )}
@@ -343,22 +346,22 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
       )}
       {nodeType === 'input' && (
         <>
-          <Section title="输入内容" hint="支持 {{上游变量}}">
+          <Section title={t('node.inputContent')} hint={t('node.upstreamVariablesHint')}>
             <TemplateEditor
               {...templateProps}
-              label="输入内容" hint="支持变量和运行上下文"
+              label={t('node.inputContent')} hint={t('node.variableContextHint')}
               rows={6}
               value={d.text || ''}
               onChange={(v) => set({ text: v })}
-              placeholder={'报修描述…\n或直接粘贴飞书文档链接'}
+              placeholder={t('node.inputPlaceholder')}
             />
             {hasFeishuLink(d.text) && (
               <p className={`panel-note ${feishuEnabled ? 'note-ok' : 'note-warn'}`}>
-                {feishuEnabled ? '检测到飞书链接：运行时将注入文档全文' : '检测到飞书链接：未配置凭据，运行时注入占位说明'}
+                {feishuEnabled ? t('node.feishuDetected') : t('node.feishuMissingCredentials')}
               </p>
             )}
           </Section>
-          <Section title="附件" hint="文本直接注入，其余供读取" count={(d.attachments || []).length || undefined} defaultOpen={false}>
+          <Section title={t('node.attachments')} hint={t('node.attachmentHint')} count={(d.attachments || []).length || undefined} defaultOpen={false}>
             <div className="field-actions">
               <input type="file" onChange={uploadAttachment} className="file-input" />
             </div>
@@ -366,7 +369,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
               <div key={a.id || a.filename} className="attachment-row">
                 <span className="att-name">{a.filename}</span>
                 <span className="att-size">{(a.size / 1024).toFixed(1)}KB</span>
-                <button className="btn btn-sm" onClick={() => removeAttachment(a)}>移除</button>
+                <button className="btn btn-sm" onClick={() => removeAttachment(a)}>{t('action.remove')}</button>
               </div>
             ))}
           </Section>
@@ -375,29 +378,29 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
 
       {nodeType === 'subworkflow' && (
         <>
-          <Section title="目标工作流" hint="按稳定 workflowId 调用，运行时同步等待">
-            <Field label="工作流">
+          <Section title={t('node.targetWorkflow')} hint={t('node.targetWorkflowHint')}>
+            <Field label={t('node.workflow')}>
               <select value={d.workflowId || ''} onChange={(event) => {
                 const selected = availableWorkflows.find((item) => item.id === event.target.value);
                 set({ workflowId: event.target.value || undefined, workflowName: selected?.name || undefined });
               }}>
-                <option value="">请选择已保存工作流</option>
+                <option value="">{t('node.selectWorkflow')}</option>
                 {availableWorkflows.filter((item) => item.id !== workflowId).map((item) => (
                   <option key={item.id} value={item.id}>{item.name || item.id} · {item.id}</option>
                 ))}
               </select>
             </Field>
-            <Field label="工作流 ID" hint="也可手填未出现在列表中的 ID">
+            <Field label={t('node.workflowId')} hint={t('node.manualWorkflowIdHint')}>
               <input value={d.workflowId || ''} onChange={(event) => set({ workflowId: event.target.value.trim() || undefined, workflowName: undefined })}
                 placeholder="wf_xxx" />
             </Field>
-            {d.workflowId && <p className="panel-note">目标：{d.workflowName || d.workflowId}</p>}
+            {d.workflowId && <p className="panel-note">{t('node.target')}: {d.workflowName || d.workflowId}</p>}
           </Section>
-          <Section title="输入映射" hint="纯引用保留 JSON 类型；模板字符串输出文本">
+          <Section title={t('node.inputMapping')} hint={t('node.inputMappingHint')}>
             <TemplateEditor
               {...templateProps}
-              label="触发输入"
-              hint="默认使用 $upstream"
+              label={t('node.triggerInput')}
+              hint={t('node.defaultUpstream')}
               rows={1}
               value={typeof d.inputMap?.triggerInput === 'string' ? d.inputMap.triggerInput : '$upstream'}
               onChange={(value) => set({ inputMap: { ...(d.inputMap || {}), triggerInput: value } })}
@@ -405,7 +408,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
               compact
               singleLine
             />
-            <Field label="runInputs JSON" hint="例如 {&quot;ticket&quot;: {&quot;$ref&quot;: &quot;{{$upstream}}&quot;}}" wide>
+            <Field label="runInputs JSON" hint={t('node.runInputsHint')} wide>
               <textarea rows={5} spellCheck="false" value={runInputsText}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -420,41 +423,41 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
 
       {nodeType === 'condition' && (
         <>
-          <Section title="判定文本">
+          <Section title={t('node.conditionText')}>
             <TemplateEditor
               {...templateProps}
-              label="判定文本" hint="留空时取全部上游输出"
+              label={t('node.conditionText')} hint={t('node.allUpstreamHint')}
               rows={3}
               value={d.inputTemplate || ''}
               onChange={(v) => set({ inputTemplate: v })}
-              placeholder="留空 = 全部上游输出"
+              placeholder={t('node.emptyUpstream')}
             />
           </Section>
-          <Section title="命中 / 排除" hint="关键词逗号或换行分隔">
-            <Field label="命中条件" hint="任一关键词 → 走「是」" wide>
+          <Section title={t('node.matchExclude')} hint={t('node.keywordHint')}>
+            <Field label={t('node.includeCondition')} hint={t('node.matchYesHint')} wide>
               <textarea rows={2} value={d.include || ''} onChange={(e) => set({ include: e.target.value })}
                 placeholder={'紧急, 漏水, 爆管\n留空 = 默认命中'} />
             </Field>
-            <Field label="排除条件" hint="任一关键词 → 走「否」" wide>
+            <Field label={t('node.excludeCondition')} hint={t('node.matchNoHint')} wide>
               <textarea rows={2} value={d.exclude || ''} onChange={(e) => set({ exclude: e.target.value })}
                 placeholder="咨询, 无需上门" />
             </Field>
-            <p className="sec-hint">命中「是」走 branch=true 连线；「否」走 false。选中连线可改分支。</p>
+            <p className="sec-hint">{t('node.conditionBranchHint')}</p>
           </Section>
         </>
       )}
 
       {nodeType === 'http' && (
         <>
-          <Section title="请求">
-            <Field label="方法">
+          <Section title={t('node.request')}>
+            <Field label={t('node.method')}>
               <select value={d.method || 'GET'} onChange={(e) => set({ method: e.target.value })}>
                 {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => <option key={m}>{m}</option>)}
               </select>
             </Field>
             <TemplateEditor
               {...templateProps}
-              label="URL" hint="支持变量"
+              label="URL" hint={t('node.supportsVariables')}
               rows={1}
               value={d.url || ''}
               onChange={(v) => set({ url: v })}
@@ -464,7 +467,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
             />
             <TemplateEditor
               {...templateProps}
-              label="请求头" hint="每行 Key: Value"
+              label={t('node.headers')} hint={t('node.headersHint')}
               rows={2}
               value={d.headers || ''}
               onChange={(v) => set({ headers: v })}
@@ -472,7 +475,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
             />
             <TemplateEditor
               {...templateProps}
-              label="请求体" hint="默认 JSON"
+              label={t('node.body')} hint={t('node.defaultJson')}
               rows={4}
               value={d.body || ''}
               onChange={(v) => set({ body: v })}
@@ -480,30 +483,30 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
               mode="json"
             />
           </Section>
-          <Section title="响应处理" defaultOpen={false}>
+          <Section title={t('node.responseHandling')} defaultOpen={false}>
             <div className="check-stack">
               <label className="check-row">
                 <input type="checkbox" checked={d.failOnError !== false} onChange={(e) => set({ failOnError: e.target.checked || undefined })} />
-                <span>非 2xx 状态码算失败</span>
+                <span>{t('node.failOnStatus')}</span>
               </label>
               <label className="check-row">
                 <input type="checkbox" checked={Boolean(d.allowPrivate)} onChange={(e) => set({ allowPrivate: e.target.checked || undefined })} />
-                <span>允许访问内网地址</span>
+                <span>{t('node.allowPrivate')}</span>
               </label>
             </div>
-            <Field label="响应上限（字符）">
+            <Field label={t('node.responseLimit')}>
               <input type="number" min="1000" max="200000" value={d.maxChars ?? ''}
                 onChange={(e) => set({ maxChars: e.target.value === '' ? undefined : Number(e.target.value) })}
                 placeholder="65536" />
             </Field>
-            <p className="sec-hint">响应会保存为结构化数据；下游从变量树选择 status、headers、body 或 json 子字段。</p>
+            <p className="sec-hint">{t('node.responseHint')}</p>
           </Section>
         </>
       )}
 
       {nodeType === 'script' && (
         <>
-          <Section title="输入参数" hint="命名后传入 main(input, workspace)" count={scriptInputs.length || undefined}>
+          <Section title={t('node.inputParameters')} hint={t('node.namedMainHint')} count={scriptInputs.length || undefined}>
             <div className="script-param-list">
               {scriptInputs.map((input, index) => (
                 <ScriptParameterRow
@@ -519,23 +522,23 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
             </div>
             <button type="button" className="btn btn-sm script-param-add"
               onClick={() => set({ inputs: [...scriptInputs, { name: '', expression: '' }] })}>
-              <Plus size={14} />添加参数
+              <Plus size={14} />{t('node.addParameter')}
             </button>
           </Section>
 
-          <Section title="JavaScript 代码" hint="按原文保存，不解析模板">
-            <p className="sec-hint">入口函数 main(input, workspace)，return 值即节点输出；input 来自上方输入参数。</p>
+          <Section title={t('node.javascriptCode')} hint={t('node.preserveLiteralHint')}>
+            <p className="sec-hint">{t('node.scriptEntryHint')}</p>
             <ScriptCodeEditor
               value={d.code ?? 'function main(input, workspace) {\n  return input;\n}'}
               onChange={(code) => set({ code })}
             />
           </Section>
 
-          <Section title="输出 Schema" hint="可选" defaultOpen={Boolean(d.outputSchema)}>
+          <Section title={t('node.outputSchema')} hint={t('node.optional')} defaultOpen={Boolean(d.outputSchema)}>
             <label className="check-row">
               <input type="checkbox" checked={Boolean(d.outputSchema)}
                 onChange={(event) => set({ outputSchema: event.target.checked ? DEFAULT_AGENT_SCHEMA : undefined })} />
-              <span>校验结构化输出</span>
+              <span>{t('node.validateOutput')}</span>
             </label>
             {d.outputSchema && (
               <AgentSchemaEditor mode="structured" fixedMode value={d.outputSchema}
@@ -543,8 +546,8 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
             )}
           </Section>
 
-          <Section title="脚本限制" hint="JavaScript" defaultOpen={false}>
-            <Field label="执行超时（毫秒）" hint="100 - 10000">
+          <Section title={t('node.scriptLimits')} hint="JavaScript" defaultOpen={false}>
+            <Field label={t('node.executionTimeoutMs')} hint="100 - 10000">
               <input type="number" min="100" max="10000" step="100" value={d.scriptTimeoutMs ?? 1000}
                 onChange={(event) => {
                   const value = Number(event.target.value);
@@ -588,11 +591,11 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
 
           <Section title="工具" hint="勾选后仅这些可用" count={selectedTools.length || undefined} defaultOpen={false}>
             <div className="tool-chips">
-              {availableTools.map((t) => {
-                const on = selectedTools.includes(t.name);
+              {availableTools.map((tool) => {
+                const on = selectedTools.includes(tool.name);
                 return (
-                  <button key={t.name} className={`chip ${on ? 'chip-on' : ''}`} title={t.description} onClick={() => toggleTool(t.name)}>
-                    {TOOL_LABELS[t.name] || t.name}
+                  <button key={tool.name} className={`chip ${on ? 'chip-on' : ''}`} title={tool.description} onClick={() => toggleTool(tool.name)}>
+                    {TOOL_LABELS[tool.name] ? t(TOOL_LABELS[tool.name]) : tool.name}
                   </button>
                 );
               })}
