@@ -34,7 +34,7 @@ function useElapsedBadge(startedAt, active) {
   return `${mm}:${ss}`;
 }
 
-const CHILD_TYPES = NODE_REGISTRY.map((k) => ({ type: k.type, icon: k.icon, label: k.label }));
+const CHILD_TYPES = NODE_REGISTRY.map((k) => ({ type: k.type, icon: k.icon, labelKey: k.labelKey }));
 
 export function FlowNode({ data, selected, id, onAddChild }) {
   const { t } = useI18n();
@@ -43,15 +43,15 @@ export function FlowNode({ data, selected, id, onAddChild }) {
   const turns = status === 'running' ? data.liveTurns : data.runTurns;
   const elapsed = useElapsedBadge(data.runStartedAt, status === 'running');
   const statusText = {
-    queued: t('排队中'), running: <span className="flow-node-running"><span className="spinner" />{t('执行中')}</span>,
-    waiting: `⏸ ${t('等待审批')}`,
-    error: `✗ ${t('失败')}`, skipped: t('跳过'), canceled: t('已取消'),
+    queued: t('status.queued'), running: <span className="flow-node-running"><span className="spinner" />{t('status.executing')}</span>,
+    waiting: `⏸ ${t('status.waiting')}`,
+    error: `✗ ${t('status.error')}`, skipped: t('status.skipped'), canceled: t('status.canceled'),
   };
   const statusDetail = status === 'success'
-    ? `✓ ${data.runChars ?? 0} ${t('字')}${turns != null ? ` · ${turns} ${t('轮')}` : ''}`
+    ? `✓ ${data.runChars ?? 0} ${t('status.chars')}${turns != null ? ` · ${turns} ${t('status.rounds')}` : ''}`
     : status === 'running'
-      ? (turns != null ? ` ${turns} ${t('轮')}` : '')
-      : `${statusText[status] || ''}${turns != null ? ` · ${turns} ${t('轮')}` : ''}`;
+      ? (turns != null ? ` ${turns} ${t('status.rounds')}` : '')
+      : `${statusText[status] || ''}${turns != null ? ` · ${turns} ${t('status.rounds')}` : ''}`;
   const badges = [
     ...extraBadges(data),
     ...((meta.badges || (() => []))(data) || []),
@@ -61,9 +61,9 @@ export function FlowNode({ data, selected, id, onAddChild }) {
     <div className={`flow-node ${status === 'running' ? 'flow-node-is-running' : ''}`} style={{ borderColor: meta.color, ...STATUS_STYLE[status] }}>
       <Handle type="target" position={Position.Left} className="flow-handle flow-handle-target" />
       <div className="flow-node-head" style={{ background: meta.color }}>
-        <span className="flow-node-title"><span dangerouslySetInnerHTML={{ __html: meta.icon }} />{data.label || t(meta.label)}</span>
+        <span className="flow-node-title"><span dangerouslySetInnerHTML={{ __html: meta.icon }} />{data.label || t(meta.labelKey || meta.label)}</span>
         <span className="flow-node-badge">
-          {status === 'running' && elapsed && <span className="flow-node-elapsed" title={t('已执行时长')}>{elapsed}</span>}
+          {status === 'running' && elapsed && <span className="flow-node-elapsed" title={t('node.elapsed')}>{elapsed}</span>}
           {status === 'running' && statusText.running}
           {statusDetail}
         </span>
@@ -72,7 +72,7 @@ export function FlowNode({ data, selected, id, onAddChild }) {
         <p className="flow-node-hint">{clip(meta.summary(data, t), 60)}</p>
         {badges.length > 0 && (
           <p className="flow-node-badges">
-            {badges.map((b, i) => <span key={i} className={`badge ${b.cls || ''}`} title={b.title}>{t(b.text)}</span>)}
+          {badges.map((b, i) => <span key={i} className={`badge ${b.cls || ''}`} title={b.title}>{t(b.textKey || b.text, b.variables)}</span>)}
           </p>
         )}
         {status === 'running' && data.livePreview && (
@@ -86,8 +86,8 @@ export function FlowNode({ data, selected, id, onAddChild }) {
           <button
             type="button"
             className="flow-node-addbtn"
-            aria-label={t('添加下一个节点')}
-            title={t('快速添加下一个节点（自动连线）')}
+            aria-label={t('node.addNext')}
+            title={t('node.addNextConnected')}
             onClick={(e) => {
               e.stopPropagation();
               const wrap = e.currentTarget.closest('.flow-node-addwrap');
@@ -111,12 +111,12 @@ export function FlowNode({ data, selected, id, onAddChild }) {
                   onAddChild(id, child.type);
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
-              ><span dangerouslySetInnerHTML={{ __html: child.icon }} />{t(child.label)}</button>
+              ><span dangerouslySetInnerHTML={{ __html: child.icon }} />{t(child.labelKey || child.label)}</button>
             ))}
           </div>
         </div>
       )}
-      {selected && <div className="flow-node-selected-tag">{t('选中')}</div>}
+      {selected && <div className="flow-node-selected-tag">{t('node.selected')}</div>}
     </div>
   );
 }
@@ -125,8 +125,8 @@ export function FlowNode({ data, selected, id, onAddChild }) {
 function extraBadges(data) {
   const out = [];
   if (data.nodeType === 'input') {
-    if (data.attachments?.length > 0) out.push({ text: `📎 ${data.attachments.length} 附件` });
-    if (/feishu\.cn\//.test(data.text || '')) out.push({ text: '📕 飞书' });
+    if (data.attachments?.length > 0) out.push({ textKey: 'node.attachmentsCount', variables: { count: data.attachments.length } });
+    if (/feishu\.cn\//.test(data.text || '')) out.push({ textKey: 'node.feishu' });
   }
   return out;
 }

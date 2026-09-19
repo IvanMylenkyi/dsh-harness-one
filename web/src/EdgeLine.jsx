@@ -63,14 +63,14 @@ export function EdgeLine({ id, sourceX, sourceY, targetX, targetY, sourcePositio
           <button
             type="button"
             className="edge-addbtn"
-            aria-label={t('在此连线插入节点')}
-            title={t('在此插入节点')}
+            aria-label={t('node.insertOnConnection')}
+            title={t('node.insertHere')}
             onClick={toggle}
             onPointerDown={(e) => e.stopPropagation()}
           >＋</button>
           {open && (
             <div className="edge-addmenu" role="menu" onPointerDown={(e) => e.stopPropagation()}>
-              <div className="tb-canvas-title">{t('插入节点')}</div>
+              <div className="tb-canvas-title">{t('node.insert')}</div>
               {NODE_REGISTRY.filter((k) => k.type !== 'note').map((k) => (
                 <button
                   key={k.type}
@@ -80,7 +80,7 @@ export function EdgeLine({ id, sourceX, sourceY, targetX, targetY, sourcePositio
                   onClick={(e) => pick(e, k.type)}
                 >
                   <span className="tb-menu-icon" dangerouslySetInnerHTML={{ __html: k.icon }} />
-                  {t(k.label)}
+                  {t(k.labelKey || k.label)}
                 </button>
               ))}
             </div>

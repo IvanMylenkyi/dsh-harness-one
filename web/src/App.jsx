@@ -1662,7 +1662,8 @@ export default function App() {
     ]);
     setSelectedId(id);
     markDirty();
-    toast(`${t('在此连线插入节点')}「${t(NODE_REGISTRY.find((k) => k.type === type)?.label || type)}」`, 'success', 2400);
+    const nodeMeta = NODE_REGISTRY.find((k) => k.type === type);
+    toast(`${t('node.insertOnConnection')}「${t(nodeMeta?.labelKey || type)}」`, 'success', 2400);
   }, [setNodes, setEdges, snapshot, markDirty, toast, t]);
 
   // 边样式：状态着色 + 条件分支标签；走自定义 EdgeLine（中点＋插入），样式透传。

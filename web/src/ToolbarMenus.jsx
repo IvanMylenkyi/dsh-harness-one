@@ -36,10 +36,10 @@ export function AddNodeMenu({ onPick }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={t('添加节点')}
-        title={t('添加节点（或双击画布空白处）')}
+        aria-label={t('node.add')}
+        title={t('node.addHint')}
       >
-        <span aria-hidden="true">＋</span><span className="tb-add-label">{t('添加')}</span><span aria-hidden="true" className={`tb-caret ${open ? 'tb-caret-open' : ''}`}>▾</span>
+        <span aria-hidden="true">＋</span><span className="tb-add-label">{t('action.add')}</span><span aria-hidden="true" className={`tb-caret ${open ? 'tb-caret-open' : ''}`}>▾</span>
       </button>
       {open && (
         <div className="tb-dropdown" role="menu">
@@ -48,8 +48,8 @@ export function AddNodeMenu({ onPick }) {
               style={{ '--item-color': k.color }}
               onClick={() => { setOpen(false); onPick(k.type); }}>
               <span className="tb-menu-icon" dangerouslySetInnerHTML={{ __html: k.icon }} />
-              {t(k.label)}
-              {k.type === 'note' && <span className="tb-menu-sub">{t('不参与运行')}</span>}
+              {t(k.labelKey || k.label)}
+              {k.type === 'note' && <span className="tb-menu-sub">{t('node.notExecuted')}</span>}
             </button>
           ))}
         </div>
@@ -77,14 +77,14 @@ export function CanvasAddMenu({ x, y, onPick, onClose }) {
       }}
       role="menu"
     >
-      <div className="tb-canvas-title">{t('添加节点')}</div>
+      <div className="tb-canvas-title">{t('node.add')}</div>
       {NODE_REGISTRY.map((k) => (
         <button key={k.type} role="menuitem" className="tb-menu-item"
           style={{ '--item-color': k.color }}
           onClick={() => { onClose(); onPick(k.type); }}>
           <span className="tb-menu-icon" dangerouslySetInnerHTML={{ __html: k.icon }} />
-          {t(k.label)}
-          {k.type === 'note' && <span className="tb-menu-sub">{t('不参与运行')}</span>}
+          {t(k.labelKey || k.label)}
+          {k.type === 'note' && <span className="tb-menu-sub">{t('node.notExecuted')}</span>}
         </button>
       ))}
     </div>
