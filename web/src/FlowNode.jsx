@@ -48,10 +48,10 @@ export function FlowNode({ data, selected, id, onAddChild }) {
     error: `✗ ${t('status.error')}`, skipped: t('status.skipped'), canceled: t('status.canceled'),
   };
   const statusDetail = status === 'success'
-    ? `✓ ${data.runChars ?? 0} ${t('status.chars')}${turns != null ? ` · ${turns} ${t('status.rounds')}` : ''}`
+    ? `✓ ${t('status.charsCount', { count: data.runChars ?? 0 })}${turns != null ? ` · ${t('status.roundsCount', { count: turns })}` : ''}`
     : status === 'running'
-      ? (turns != null ? ` ${turns} ${t('status.rounds')}` : '')
-      : `${statusText[status] || ''}${turns != null ? ` · ${turns} ${t('status.rounds')}` : ''}`;
+      ? (turns != null ? ` ${t('status.roundsCount', { count: turns })}` : '')
+      : `${statusText[status] || ''}${turns != null ? ` · ${t('status.roundsCount', { count: turns })}` : ''}`;
   const badges = [
     ...extraBadges(data),
     ...((meta.badges || (() => []))(data) || []),

@@ -7,8 +7,9 @@ Initial review scope:
 - Legacy DOM bridge: removed; translation now happens at explicit React render
   boundaries, so workflow content, model output, code, and document bodies are
   not mutated by a global observer.
-- Local browser smoke: verified `English → 简体中文 → English`, including
-  toolbar labels, language control, document title, and `document.lang`.
+- Automated Playwright browser smoke (`npm run test:browser`): verifies
+  `English → 简体中文 → English`, including toolbar labels, language control,
+  document title, `document.lang`, and browser/page errors.
 
 Remaining review gates:
 

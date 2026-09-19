@@ -45,7 +45,7 @@ export const NODE_REGISTRY = [
     type: 'http',
     icon: ICONS.http, labelKey: 'node.http', color: 'var(--type-http)',
     preset: (t = (value) => value) => ({ label: t('node.http'), url: '', method: 'GET', headers: '', body: '' }),
-    summary: (d, t = (value) => value) => `${(d.method || 'GET')} ${(d.url || `(${t('未配置 URL')})`).slice(0, 30)}`,
+    summary: (d, t = (value) => value) => `${(d.method || 'GET')} ${(d.url || `(${t('node.urlNotConfigured')})`).slice(0, 30)}`,
     badges: (d) => d.url ? [{ textKey: 'node.api' }] : [],
   },
   {
@@ -71,7 +71,7 @@ export const NODE_REGISTRY = [
       label: t('node.notify'), channel: 'feishu', mode: 'terminal',
       channelConfig: { targetType: 'chat_id', targetId: '' },
     }),
-    summary: (d, t = (value) => value) => `${d.channel === 'feishu' ? t('node.feishu') : (d.channel || t('未选渠道'))} · ${d.channelConfig?.targetType === 'open_id' ? t('node.directMessage') : t('node.groupChat')} · ${d.mode === 'each_node' ? t('node.eachNode') : t('node.onCompletion')}`,
+    summary: (d, t = (value) => value) => `${d.channel === 'feishu' ? t('node.feishu') : (d.channel || t('node.noChannel'))} · ${d.channelConfig?.targetType === 'open_id' ? t('node.directMessage') : t('node.groupChat')} · ${d.mode === 'each_node' ? t('node.eachNode') : t('node.onCompletion')}`,
     badges: (d) => [
       { textKey: d.channel === 'feishu' ? 'node.feishuCard' : 'node.channel' },
       { textKey: d.channelConfig?.targetType === 'open_id' ? 'node.directMessage' : 'node.groupChat' },

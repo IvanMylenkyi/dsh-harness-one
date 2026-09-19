@@ -8,6 +8,7 @@ const cjk = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
 const sourceRoots = ['web/src', 'dsh-plugins', 'server'];
 const sourceExtensions = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.html']);
 const baselinePath = path.join(root, 'docs', 'i18n', 'CJK_BASELINE.json');
+const stableKey = /^[a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)+$/;
 
 function normalizedPath(file) {
   return file.replaceAll('\\', '/').replace(/^\.\//, '');
@@ -61,11 +62,24 @@ function stripComments(line, state) {
   return result;
 }
 
-function scanContent(content, file) {
+function scanContent(content, file, { checkKeys = true } = {}) {
   const findings = [];
+  const invalidKeys = [];
   const state = { block: false };
   for (const [index, original] of String(content).split(/\r?\n/).entries()) {
     const line = stripComments(original, state);
+    if (checkKeys) {
+      const calls = line.matchAll(/\b(?:t|tx)\s*\(\s*(['"`])([^'"`]*)\1/g);
+      for (const match of calls) {
+        if (!stableKey.test(match[2])) {
+          invalidKeys.push({
+            file: normalizedPath(file),
+            line: index + 1,
+            text: `translation call must use a stable key: ${match[2]}`,
+          });
+        }
+      }
+    }
     const untranslated = line.replace(/\b(?:t|tx)\s*\((?:[^()'\"]|'[^']*'|\"[^\"]*\")*\)/g, '');
     if (!cjk.test(untranslated)) continue;
     // Remove only complete explicit translation calls. Raw CJK elsewhere on
@@ -74,7 +88,7 @@ function scanContent(content, file) {
     if (!text) continue;
     findings.push({ file: normalizedPath(file), line: index + 1, text, hash: hash(text) });
   }
-  return findings;
+  return { findings, invalidKeys };
 }
 
 function hash(value) {
@@ -96,7 +110,12 @@ function walkSources() {
 }
 
 function scanWorkingTree() {
-  return walkSources().flatMap((file) => scanContent(fs.readFileSync(path.join(root, file), 'utf8'), file));
+  return walkSources().reduce((result, file) => {
+    const scanned = scanContent(fs.readFileSync(path.join(root, file), 'utf8'), file);
+    result.findings.push(...scanned.findings);
+    result.invalidKeys.push(...scanned.invalidKeys);
+    return result;
+  }, { findings: [], invalidKeys: [] });
 }
 
 function git(args) {
@@ -105,7 +124,7 @@ function git(args) {
 
 function scanGitRef(ref) {
   const files = git(['ls-tree', '-r', '--name-only', ref]).split(/\r?\n/).filter(isSourceFile);
-  return files.flatMap((file) => scanContent(git(['show', `${ref}:${file}`]), file));
+  return files.flatMap((file) => scanContent(git(['show', `${ref}:${file}`]), file, { checkKeys: false }).findings);
 }
 
 function baselineRef() {
@@ -133,8 +152,10 @@ function checkSource() {
   }
   const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
   const knownByFile = baseline.files || {};
+  const current = scanWorkingTree();
   return {
-    findings: scanWorkingTree().filter((finding) => !knownByFile[finding.file]?.includes(finding.hash)),
+    findings: current.findings.filter((finding) => !knownByFile[finding.file]?.includes(finding.hash)),
+    invalidKeys: current.invalidKeys,
   };
 }
 
@@ -156,6 +177,7 @@ const source = checkSource();
 const bundle = process.argv.includes('--strict') ? checkBundle() : [];
 const errors = [];
 if (source.error) errors.push(source.error);
+for (const finding of source.invalidKeys || []) errors.push(`${finding.file}:${finding.line}: ${finding.text}`);
 for (const finding of source.findings || []) errors.push(`${finding.file}:${finding.line}: ${finding.text}`);
 for (const file of bundle) errors.push(`${file}: bundled CJK detected`);
 

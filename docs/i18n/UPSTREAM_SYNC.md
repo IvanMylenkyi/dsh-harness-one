@@ -2,6 +2,7 @@
 
 - Canonical upstream: `https://github.com/chumingjun/dsh-harness-one.git`
 - `upstream` remote: `https://github.com/chumingjun/dsh-harness-one.git`
+- `upstream` push URL: `no_push` (fetch-only safety guard)
 - `origin` remote: local fork mirror `T:\DeepSeekHarness\workflow-one-i18n-fork.git`
 - Release compatibility tag: `v0.10.0` (`dd907eaba0b1034bb2c11e8ef3e37bc9ca5841d4`)
 - Current upstream baseline audited: `main` (`a4f7fe95b0d419d3a87f0105ff018d4e56062ee`)

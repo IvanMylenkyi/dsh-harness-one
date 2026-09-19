@@ -6,12 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "npm run test:variables && npm run test:results && npm run test:scripts && npm run test:ui && npm run test:i18n",
+    "test": "npm run test:variables && npm run test:results && npm run test:scripts && npm run test:ui && npm run test:i18n && npm run test:browser",
     "test:variables": "node src/variables.test.mjs && node src/global-variables.test.mjs && node src/json-response.test.mjs && node src/api-base.test.mjs && node src/trial-request.test.mjs && node src/variable-scope.test.mjs && node src/run-event-routing.test.mjs && node src/workflow-serialization.test.mjs && node src/doc-wall-data.test.mjs && node src/live-run-adopt.test.mjs",
     "test:results": "node src/result-adapter.test.mjs && node src/markdown-compat.test.mjs",
     "test:scripts": "node src/script-parameters.test.mjs",
     "test:ui": "node src/patch-confirm.test.mjs && node src/toolbar-responsive.test.mjs && node src/resume-workflow.test.mjs && node src/notify-node.test.mjs && node src/agent-default-label.test.mjs && node src/workflow-transfer-ui.test.mjs && node src/run-switcher.test.mjs && node src/schedule-center.test.mjs && node src/node-detail-polling.test.mjs",
-    "test:i18n": "node src/i18n/i18n.test.mjs"
+    "test:i18n": "node src/i18n/i18n.test.mjs",
+    "test:browser": "playwright test"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -45,6 +46,7 @@
     "tiptap-markdown": "0.8.10"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-react": "^4.3.1",
     "rehype-stringify": "10.0.1",
     "remark-parse": "11.0.0",

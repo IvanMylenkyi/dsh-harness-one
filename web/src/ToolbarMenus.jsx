@@ -103,8 +103,8 @@ export function MoreMenu({ items }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={t('更多操作')}
-        aria-label={t('更多操作')}
+        title={t('action.more')}
+        aria-label={t('action.more')}
       >⋯</button>
       {open && (
         <div className="tb-dropdown tb-dropdown-right" role="menu">

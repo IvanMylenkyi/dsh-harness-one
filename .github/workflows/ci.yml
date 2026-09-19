@@ -47,6 +47,12 @@ jobs:
       - name: test
         run: npm test
 
+      - name: install browser for i18n smoke
+        run: cd web && npx playwright install --with-deps chromium
+
+      - name: browser smoke
+        run: npm --prefix web run test:browser
+
       - name: build
         run: sh dsh-plugins/build-web.sh
         env:
