@@ -3,8 +3,8 @@
   "locales": ["en", "zh-CN"],
   "keys": [
     "app.title", "app.language", "app.locale.en", "app.locale.zhCN",
-    "status.running", "status.queued", "status.executing", "status.success", "status.error", "status.canceled", "status.interrupted", "status.skipped", "status.waiting",
-    "action.save", "action.add", "action.more", "action.cancel", "action.confirm", "action.close", "action.delete", "action.edit", "action.run", "action.retry", "action.resume", "action.refresh", "action.undo", "action.redo",
+    "status.running", "status.queued", "status.executing", "status.loading", "status.success", "status.error", "status.canceled", "status.interrupted", "status.skipped", "status.waiting",
+    "action.save", "action.add", "action.more", "action.execute", "action.cancel", "action.confirm", "action.close", "action.delete", "action.edit", "action.run", "action.retry", "action.resume", "action.refresh", "action.undo", "action.redo",
     "nav.canvas", "nav.documents", "nav.workflows", "nav.history", "nav.newDocuments",
     "menu.settings", "menu.templates", "menu.variables", "menu.schedules", "menu.credentials",
     "run.notRun", "run.running", "run.complete", "run.failed", "run.canceled", "run.cancelOther", "run.interrupted", "run.empty", "run.results", "run.process", "run.issues", "run.duration", "run.input", "run.output", "run.waiting",
@@ -13,6 +13,8 @@
     "settings.languageHint", "settings.languageChanged",
     "error.generic", "error.network", "error.notFound", "error.forbidden", "error.timeout", "error.conflict",
     "validation.required", "validation.invalidJson", "validation.invalidCron",
-    "count.nodes", "count.runs", "count.files", "count.issues"
+    "count.nodes", "count.runs", "count.files", "count.issues",
+    "test.completed", "test.failed", "test.modalTitle", "test.upstreamInput", "test.editable", "test.fromLastRun", "test.mockOutputPlaceholder", "test.triggerPlaceholder", "test.progress", "test.result", "test.failedAt", "test.parsedJsonInput", "test.structuredPreview", "test.workspaceArtifacts", "test.collapse", "test.compareRecent",
+    "detail.input", "detail.inject", "detail.assistant", "detail.toolCall", "detail.turnEnd", "detail.usageHelp", "detail.parameters", "detail.result", "detail.empty", "detail.modalTitle", "detail.liveTracking", "detail.toolCallsCount", "detail.continuedAfterFailure", "detail.process", "detail.inputOutput", "detail.runInput", "detail.renderedInput", "detail.fullOutput", "detail.noTrace", "detail.workspaceArtifacts", "detail.noTraceArchived"
   ]
 }

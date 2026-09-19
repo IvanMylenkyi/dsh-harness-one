@@ -5,9 +5,11 @@ import { apiUrl } from './api.js';
 import { parseJsonResponseText } from './json-response.js';
 import { trialRequestUrls } from './trial-request.js';
 import { Modal, useToast } from './ui.jsx';
+import { useI18n } from './i18n/index.js';
 
 export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId, workflowVariables, inputSchema, runInputs, triggerInput, onClose, onResult }) {
   const toast = useToast();
+  const { locale, t } = useI18n();
   // 每个上游：{ enabled, text }——text 默认 = 最近运行输出或示例占位
   const [inputs, setInputs] = useState(() => {
     const init = {};
@@ -88,16 +90,16 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
         }),
       };
       const d = await fetchTrialJson(url, request);
-      const r = { ...d, at: new Date().toLocaleTimeString('zh-CN', { hour12: false }) };
+      const r = { ...d, at: new Date().toLocaleTimeString(locale, { hour12: false }) };
       setResult(r);
       setHistory((h) => [r, ...h].slice(0, 5));
-      if (d.ok) toast('试运行完成', 'success');
-      else toast(`试运行失败：${d.error}`, 'error');
+      if (d.ok) toast(t('test.completed'), 'success');
+      else toast(t('test.failed', { error: d.error }), 'error');
       onResult?.(d);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        setResult({ ok: false, error: e.message, at: new Date().toLocaleTimeString('zh-CN', { hour12: false }) });
-        toast(`试运行失败：${e.message}`, 'error');
+        setResult({ ok: false, error: e.message, at: new Date().toLocaleTimeString(locale, { hour12: false }) });
+        toast(t('test.failed', { error: e.message }), 'error');
       }
     } finally {
       requestAbortRef.current = null;
@@ -107,13 +109,13 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
 
   return (
     <Modal
-      title={`▶ 试运行「${node.data.label || node.id}」`}
+      title={t('test.modalTitle', { label: node.data.label || node.id })}
       onClose={close}
       footer={(
         <>
-          <button className="btn" onClick={close}>关闭</button>
+          <button className="btn" onClick={close}>{t('action.close')}</button>
           <button className="btn btn-primary" disabled={running} onClick={run}>
-            {running ? '运行中…' : '▶ 执行'}
+            {running ? t('run.running') : `▶ ${t('action.execute')}`}
           </button>
         </>
       )}
@@ -121,7 +123,7 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
       {/* 上游假输入 */}
       {hasUpstream && (
         <div className="test-inputs">
-          <div className="test-sec-title">上游输入{running ? '' : '（可直接编辑）'}</div>
+          <div className="test-sec-title">{t('test.upstreamInput')}{running ? '' : `（${t('test.editable')}）`}</div>
           {upstreamNodes.map((u) => (
             <div key={u.id} className={`test-input-row ${inputs[u.id]?.enabled ? '' : 'test-input-off'}`}>
               <label className="test-input-head">
@@ -131,19 +133,19 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
                   onChange={(e) => setInputs((s) => ({ ...s, [u.id]: { ...s[u.id], enabled: e.target.checked } }))}
                 />
                 <span className="test-input-name">{`{{${u.label}}}`}</span>
-                {upstreamPreviews[u.label] != null && <span className="test-from">来自上次运行</span>}
+                {upstreamPreviews[u.label] != null && <span className="test-from">{t('test.fromLastRun')}</span>}
               </label>
               <textarea
                 rows={3}
                 value={inputs[u.id]?.text || ''}
-                placeholder="填入该上游的模拟输出…"
+                placeholder={t('test.mockOutputPlaceholder')}
                 onChange={(e) => setInputs((s) => ({ ...s, [u.id]: { ...s[u.id], text: e.target.value } }))}
               />
             </div>
           ))}
           <div className="test-input-row">
             <div className="test-input-head"><span className="test-input-name">{'{{$trigger}}'}</span></div>
-            <textarea rows={2} value={trigger} placeholder="触发输入（可选）"
+            <textarea rows={2} value={trigger} placeholder={t('test.triggerPlaceholder')}
               onChange={(e) => setTrigger(e.target.value)} />
           </div>
         </div>
@@ -152,7 +154,7 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
       {/* 流式进度 */}
       {running && progress && (
         <div className="test-progress">
-          <div className="test-sec-title">执行中 · 第 {progress.turns || '?'} 轮</div>
+          <div className="test-sec-title">{t('test.progress', { turns: progress.turns || '?' })}</div>
           {progress.preview && <pre>{String(progress.preview).slice(-400)}</pre>}
         </div>
       )}
@@ -161,24 +163,26 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
       {result && (
         <div className={`test-result ${result.ok ? '' : 'test-result-err'}`}>
           <div className="test-sec-title">
-            {result.ok ? `✓ 结果（${result.at}${result.turns ? ` · ${result.turns} 轮` : ''}${result.model ? ` · ${result.model}` : ''}）` : `✕ 失败（${result.at}）`}
+            {result.ok ? t('test.result', { at: result.at }) : t('test.failedAt', { at: result.at })}
+            {result.ok && result.turns ? ` · ${t('status.roundsCount', { count: result.turns })}` : ''}
+            {result.ok && result.model ? ` · ${result.model}` : ''}
           </div>
           <pre>{result.ok ? result.output : result.error}</pre>
           {result.ok && result.input !== undefined && (
             <details className="test-structured">
-              <summary>解析后的 JSON 入参</summary>
+              <summary>{t('test.parsedJsonInput')}</summary>
               <pre>{JSON.stringify(result.input, null, 2)}</pre>
             </details>
           )}
           {result.ok && result.structuredOutput?.type === 'json' && (
             <details className="test-structured" open>
-              <summary>结构化输出预览</summary>
+              <summary>{t('test.structuredPreview')}</summary>
               <pre>{JSON.stringify(result.structuredOutput.value, null, 2)}</pre>
             </details>
           )}
           {result.ok && result.artifacts?.length > 0 && (
             <details className="test-structured" open>
-              <summary>工作区产物（{result.artifacts.length}）</summary>
+              <summary>{t('test.workspaceArtifacts', { count: result.artifacts.length })}</summary>
               <ul className="test-artifact-list">
                 {result.artifacts.map((artifact) => <li key={artifact}>{artifact}</li>)}
               </ul>
@@ -191,13 +195,13 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
       {history.length > 1 && (
         <div className="test-history">
           <button className="btn btn-sm" onClick={() => setShowDiff((v) => !v)}>
-            {showDiff ? '收起' : `对比最近 ${history.length} 次`}
+            {showDiff ? t('test.collapse') : t('test.compareRecent', { count: history.length })}
           </button>
           {showDiff && (
             <div className="test-hist-list">
               {history.map((h, i) => (
                 <div key={i} className={`test-hist-item ${h.ok ? '' : 'test-result-err'}`}>
-                  <div className="test-hist-meta">{h.at} {h.ok ? '✓' : '✕'} {h.turns ? `${h.turns}轮` : ''}</div>
+                  <div className="test-hist-meta">{h.at} {h.ok ? '✓' : '✕'} {h.turns ? t('status.roundsCount', { count: h.turns }) : ''}</div>
                   <pre>{String(h.ok ? h.output : h.error).slice(0, 600)}</pre>
                 </div>
               ))}
@@ -223,7 +227,7 @@ async function fetchTrialJson(url, request) {
         contentType: response.headers.get('content-type') || '',
         url: candidate,
       });
-      if (!response.ok) throw new Error(data.error || `试运行请求失败（HTTP ${response.status}）`);
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       return data;
     } catch (error) {
       lastError = error;
@@ -240,7 +244,7 @@ async function fetchTrialJson(url, request) {
             contentType: response.headers.get('content-type') || '',
             url: candidate,
           });
-          if (!response.ok) throw new Error(data.error || `试运行请求失败（HTTP ${response.status}）`);
+          if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
           return data;
         } catch (retryError) {
           lastError = retryError;
