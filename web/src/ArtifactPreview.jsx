@@ -7,6 +7,7 @@ import {
 } from 'dsh-ccpg-document-preview/react';
 import 'dsh-ccpg-document-preview/styles.css';
 import { apiUrl } from './api.js';
+import { useI18n } from './i18n/index.js';
 
 function normalizeArtifact(artifact) {
   const name = artifact?.name || artifact?.path || 'document';
@@ -41,29 +42,32 @@ export function runArtifact(runId, nodeId, file) {
 }
 
 export function ArtifactPreviewModal({ artifact, onClose }) {
-  return <DocumentPreviewDialog document={normalizeArtifact(artifact)} onClose={onClose} title="文件预览" />;
+  const { t } = useI18n();
+  return <DocumentPreviewDialog document={normalizeArtifact(artifact)} onClose={onClose} title={t('artifact.filePreview')} />;
 }
 
-export function ArtifactPreviewButton({ artifact, className = 'artifact-action', children = '预览' }) {
+export function ArtifactPreviewButton({ artifact, className = 'artifact-action', children }) {
+  const { t } = useI18n();
   const normalized = normalizeArtifact(artifact);
   if (!normalized.previewUrl || !documentPreviewKind(normalized.name, normalized.mimeType)) return null;
-  return <DocumentPreviewButton document={normalized} className={className} title={`预览 ${normalized.name}`}>{children}</DocumentPreviewButton>;
+  return <DocumentPreviewButton document={normalized} className={className} title={t('artifact.previewTitle', { name: normalized.name })}>{children ?? t('action.preview')}</DocumentPreviewButton>;
 }
 
 /** 文件名本体可点击：可预览→开预览弹窗；不可预览→退化为下载链接；无地址→纯文本 */
 export function ArtifactNameLink({ artifact, className = 'artifact-name', children }) {
+  const { t } = useI18n();
   const normalized = normalizeArtifact(artifact);
   const label = children ?? normalized.name;
   if (normalized.previewUrl && documentPreviewKind(normalized.name, normalized.mimeType)) {
     return (
-      <DocumentPreviewButton document={normalized} className={`${className} ${className}-link`} title={`预览 ${normalized.name}`}>
+      <DocumentPreviewButton document={normalized} className={`${className} ${className}-link`} title={t('artifact.previewTitle', { name: normalized.name })}>
         {label}
       </DocumentPreviewButton>
     );
   }
   if (normalized.downloadUrl) {
     return (
-      <a className={`${className} ${className}-link`} href={normalized.downloadUrl} download title={`下载 ${normalized.name}`}>
+      <a className={`${className} ${className}-link`} href={normalized.downloadUrl} download title={t('artifact.downloadTitle', { name: normalized.name })}>
         {label}
       </a>
     );
@@ -84,6 +88,7 @@ export function findArtifactByName(files = [], name) {
 }
 
 export function ArtifactLinks({ nodeLabel, runId, nodeId, artifacts = [] }) {
+  const { t } = useI18n();
   const files = artifacts.filter((file) => file && !file.endsWith('/'));
   const dirs = artifacts.filter((file) => file?.endsWith('/'));
   const artifactFor = (file) => (
@@ -101,7 +106,7 @@ export function ArtifactLinks({ nodeLabel, runId, nodeId, artifacts = [] }) {
               <ArtifactPreviewButton artifact={artifact}>
                 <Eye size={14} aria-hidden="true" />
               </ArtifactPreviewButton>
-              <a className="artifact-action" href={artifact.downloadUrl} download title={`下载 ${file}`} aria-label={`下载 ${file}`}>
+              <a className="artifact-action" href={artifact.downloadUrl} download title={t('artifact.downloadTitle', { name: file })} aria-label={t('artifact.downloadTitle', { name: file })}>
                 <Download size={14} aria-hidden="true" />
               </a>
             </span>
