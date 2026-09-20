@@ -649,6 +649,7 @@ export default {
     'docwall.processOrder': 'Process · execution order',
     'docwall.documentCount': '{count, plural, one {# document} other {# documents}}',
     'docwall.linkCount': '{count, plural, one {# link} other {# links}}',
+    'docwall.linkLabel': '{node} link',
     'docwall.cardDensity': 'Card density',
     'docwall.searchPlaceholder': 'Search file names… (/)',
     'docwall.searchLabel': 'Search file names',

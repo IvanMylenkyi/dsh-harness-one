@@ -589,7 +589,7 @@ export function DocWallView({
                   commenting={commentDoc && feedbackKey(commentDoc) === feedbackKey(doc)} /></LazyMount>;
               })}
               {model.finals.links.map((link) => (
-                <a key={link.url} className="docwall-card docwall-card-link" href={link.url} target="_blank" rel="noreferrer">🔗 {link.label}</a>
+                <a key={link.url} className="docwall-card docwall-card-link" href={link.url} target="_blank" rel="noreferrer">🔗 {link.labelKey ? t(link.labelKey, link.labelVariables) : link.label}</a>
               ))}
               {!model.finals.docs.length && !model.finals.links.length && <div className="docwall-strip-empty">{t('docwall.noOutputArtifacts')}</div>}
             </div>

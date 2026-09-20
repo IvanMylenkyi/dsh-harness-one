@@ -303,7 +303,7 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
                       {row.workflowMissing && <span className="badge badge-danger">{t('schedule.workflowMissing')}</span>}
                     </div>
                     <div className="sch-row-meta">
-                      <span title={row.cron}>{describeCron(row.cron) || row.cron}</span>
+                      <span title={row.cron}>{localizeCronDescription(row.cron, t) || row.cron}</span>
                       <span>{t('schedule.nextAt', { time: formatNextInZone(row.nextAt, row.timezone, locale) })}</span>
                       <span>{row.timezone ? t('schedule.timezone', { timezone: row.timezone }) : t('schedule.followHost', { timezone: hostTimezone() })}</span>
                       <span>{t('schedule.fired', { count: row.fireCount ?? 0 })}{row.skippedCount ? ` (${t('schedule.skipped', { count: row.skippedCount })})` : ''}{row.misfireCount ? ` (${t('schedule.misfires', { count: row.misfireCount })})` : ''}</span>

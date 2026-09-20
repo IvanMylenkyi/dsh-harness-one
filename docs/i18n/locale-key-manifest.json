@@ -129,6 +129,7 @@
     "docwall.generatingMarkdown",
     "docwall.intermediateFiles",
     "docwall.linkCount",
+    "docwall.linkLabel",
     "docwall.liveOutput",
     "docwall.loading",
     "docwall.noFiles",

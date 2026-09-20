@@ -37,6 +37,9 @@ assert.equal(model.finals.docs[0].kind, 'doc');
 assert.equal(model.finals.docs[1].kind, 'image');
 assert.deepEqual(model.finals.links, []);
 
+const linked = buildDocWallModel({ runResults: { runId: 'links', links: [{ nodeLabel: 'Source node', url: 'https://example.test/report' }] } });
+assert.deepEqual(linked.finals.links, [{ label: undefined, labelKey: 'docwall.linkLabel', labelVariables: { node: 'Source node' }, url: 'https://example.test/report' }]);
+
 // —— kind 分发 ——
 assert.equal(fileKind({ name: 'a.MD' }), 'doc');
 assert.equal(fileKind({ name: 'v.mp4' }), 'video');
