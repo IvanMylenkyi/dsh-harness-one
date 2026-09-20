@@ -562,7 +562,7 @@ export function DocWallView({
             <option value="image">{t('docwall.typeImage')}</option>
             <option value="video">{t('docwall.typeVideo')}</option>
           </select>
-          <div className="docwall-density" role="group" aria-label="卡片密度">
+          <div className="docwall-density" role="group" aria-label={t('docwall.cardDensity')}>
             {['s', 'm', 'l'].map((d) => (
               <button key={d} type="button" className={`docwall-density-btn ${density === d ? 'docwall-density-on' : ''}`}
                 title={t(DENSITY_KEY[d])} aria-pressed={density === d}
@@ -578,7 +578,7 @@ export function DocWallView({
 
         {selected === 'finals' ? (
           <section className="docwall-strip" aria-label={t('docwall.results')}>
-            <header className="docwall-strip-head docwall-strip-head-final"><strong>◆ {t('docwall.results')}</strong><span className="docwall-strip-meta">{t('docwall.resultsMeta', { docs: model.finals.docs.length, links: model.finals.links.length })}</span></header>
+            <header className="docwall-strip-head docwall-strip-head-final"><strong>◆ {t('docwall.results')}</strong><span className="docwall-strip-meta">{t('docwall.documentCount', { count: model.finals.docs.length })} · {t('docwall.linkCount', { count: model.finals.links.length })}</span></header>
             <div className="docwall-strip-cards">
               {model.finals.docs.map((doc) => {
                 const entry = feedback.byArtifact.get(feedbackKey(doc));

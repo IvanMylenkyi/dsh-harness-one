@@ -475,6 +475,8 @@ export default {
     'docwall.results': '成果',
     'docwall.processOrder': '过程 · 执行顺序',
     'docwall.documentCount': '{count} 份文稿',
+    'docwall.linkCount': '{count} 链接',
+    'docwall.cardDensity': '卡片密度',
     'docwall.searchPlaceholder': '搜索文件名…（/）',
     'docwall.searchLabel': '搜索文件名',
     'docwall.filterLabel': '按类型过滤',
