@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Embedded host fixture</title>
+  </head>
+  <body>
+    <div id="host-state">waiting</div>
+    <iframe id="canvas" title="embedded canvas" src="/"></iframe>
+    <script>
+      const state = document.getElementById('host-state');
+      window.addEventListener('message', (event) => {
+        if (event.origin !== window.location.origin || event.data?.type !== 'wf1-ready') return;
+        state.textContent = 'ready';
+        event.source.postMessage({ type: 'wf1-session', sessionId: 'embedded-smoke' }, event.origin);
+      });
+    </script>
+  </body>
+</html>

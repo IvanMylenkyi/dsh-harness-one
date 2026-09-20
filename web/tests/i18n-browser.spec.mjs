@@ -83,5 +83,28 @@ test('localized modal, toast, empty status, and lint error stay reactive', async
   await expect(page.locator('.lint-item.lint-error')).toHaveCount(1);
   await language.selectOption('en');
   await expect(page.locator('.lint-bar strong')).toHaveText('Graph check (1)');
+  await page.evaluate(() => window.postMessage({ type: 'wf1-theme', theme: 'dark' }, window.location.origin));
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.evaluate(() => window.postMessage({ type: 'wf1-command-result', ok: true, text: 'run inspection' }, window.location.origin));
+  await expect(page.locator('.toast').last()).toContainText('Sent to conversation: run inspection');
+  await language.selectOption('zh-CN');
+  await page.evaluate(() => window.postMessage({ type: 'wf1-theme', theme: 'light' }, window.location.origin));
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.evaluate(() => window.postMessage({ type: 'wf1-command-result', ok: true, text: 'run inspection' }, window.location.origin));
+  await expect(page.locator('.toast').last()).toContainText('已发送到对话：run inspection');
   expect(pageErrors, `browser page errors: ${pageErrors.join('; ')}`).toEqual([]);
+});
+
+test('embedded host completes ready/session handshake', async ({ page }) => {
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    const body = url.pathname.endsWith('/graph') ? { nodes: [], edges: [] } : {};
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.goto('/test-pages/host.html');
+  await expect(page.locator('#host-state')).toHaveText('ready');
+  const frame = page.frameLocator('#canvas');
+  await expect(frame.locator('html')).toHaveAttribute('lang', 'en');
+  await page.locator('#canvas').evaluate((iframe) => iframe.contentWindow.postMessage({ type: 'wf1-theme', theme: 'dark' }, window.location.origin));
+  await expect(frame.locator('html')).toHaveAttribute('data-theme', 'dark');
 });

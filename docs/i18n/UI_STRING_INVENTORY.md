@@ -17,9 +17,8 @@ command are excluded from migration scope.
 | Feedback and rich document editing | Migrated for audited drawer/editor chrome | `web/src/docwall-feedback.jsx` and `web/src/RichDocEditor.jsx` use stable keys for modal-adjacent controls, empty, validation, revision, accessibility, and editor-toolbar copy. Document names, comment bodies, revision summaries, and server errors remain data. | `feedback-browser.spec.mjs` and `editors-browser.spec.mjs` cover both language directions |
 | Cross-cutting adapters and validation | Migrated for first-party fallback boundary | `web/src/json-response.js`, `web/src/workflow-serialization.js`, `web/src/patch-confirm.js`, `web/src/result-adapter.js`, and variable validation return stable error/status descriptors; React callers localize descriptors and preserve server-provided text. | Unit contracts, manifest parity, scanner, build, and browser smoke |
 | Compatibility and locale infrastructure | Intentional / maintained | `web/src/i18n/legacy.js` remains the legacy lookup table for unmigrated surfaces; `web/src/i18n/messages/*.js`, `web/src/i18n/index.js`, and `docs/i18n/locale-key-manifest.json` are the stable-key boundary. | Dictionary/manifest parity, source scanner, and browser language smoke |
-| Host integration and recovery | Partially covered | `CanvasCommandBar` in `web/src/App.jsx` and `web/src/NodeDetailModal.jsx` use stable keys for local chrome/status/trace labels. Host-provided chat/session data, node labels, trace text, server errors, and command result text remain dynamic data. | Standalone browser smoke and node-detail polling tests; embedded-host/recovery journey remains |
+| Host integration and recovery | Migrated for local chrome; boundary coverage added | `CanvasCommandBar` in `web/src/App.jsx` and `web/src/NodeDetailModal.jsx` use stable keys for local chrome/status/trace labels. Host-provided chat/session data, node labels, trace text, server errors, and command result text remain dynamic data. | Embedded iframe handshake, theme/command messages, recovery boundary browser smoke, and node-detail polling tests; deeper open-run/patch-confirm journeys remain |
 
-The next migration batch should add browser coverage for embedded-host/recovery
-journeys around `NodeDetailModal.jsx` and `DocWallView.jsx`, including live,
-empty, load-error, and server-error boundaries. Do not translate node labels,
-documents, filenames, trace text, or server data.
+The next migration batch should cover deeper embedded-host journeys such as
+`wf1-open-run` and `wf1-patch-confirm`, plus live SSE reconnect behavior. Do not
+translate node labels, documents, filenames, trace text, or server data.
