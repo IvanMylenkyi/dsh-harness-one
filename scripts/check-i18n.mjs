@@ -18,7 +18,7 @@ function isSourceFile(file) {
   const normalized = normalizedPath(file);
   if (!sourceRoots.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`))) return false;
   if (!sourceExtensions.has(path.extname(normalized))) return false;
-  if (/(^|\/)(node_modules|dist|web-dist|coverage)(\/|$)/.test(normalized)) return false;
+  if (/(^|\/)(node_modules|dist|web-dist|coverage|lib)(\/|$)/.test(normalized)) return false;
   if (/(^|\/)(__tests__|test|tests)(\/|$)/.test(normalized) || /(?:\.test|\.spec)\.[^.]+$/.test(normalized)) return false;
   if (normalized.startsWith('web/src/i18n/')) return false;
   if (normalized === 'dsh-plugins/dsh-ccpg-document-preview/src/i18n.js') return false;
@@ -68,6 +68,14 @@ function scanContent(content, file, { checkKeys = true } = {}) {
   const invalidKeys = [];
   const state = { block: false };
   for (const [index, original] of String(content).split(/\r?\n/).entries()) {
+    if (original.includes('@i18n-dictionary:start')) {
+      state.dictionary = true;
+      continue;
+    }
+    if (state.dictionary) {
+      if (original.includes('@i18n-dictionary:end')) state.dictionary = false;
+      continue;
+    }
     const line = stripComments(original, state);
     if (checkKeys) {
       const calls = line.matchAll(/\b(?:t|tx)\s*\(\s*(['"`])([^'"`]*)\1/g);

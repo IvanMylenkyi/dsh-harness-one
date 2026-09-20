@@ -32,6 +32,7 @@ const context = {
     },
   },
   document: {
+    documentElement: { lang: "zh-CN" },
     head: { appendChild() {} },
     createElement() {
       return {};
@@ -50,6 +51,10 @@ vm.runInNewContext(bundle, context, {
 });
 
 assert.deepEqual([...client.inject], ["slots", "inputTriggers"]);
+assert.equal(client.__test.canvasTranslate("en", "canvas.patch.applied"), "Applied");
+assert.equal(client.__test.canvasTranslate("zh-CN", "canvas.patch.applied"), "已应用");
+assert.equal(client.__test.canvasTranslate("en", "canvas.binding.label", { name: "User workflow", count: 1 }), "Bound: User workflow · 1 nodes");
+assert.equal(client.__test.canvasTranslate("zh-CN", "canvas.binding.label", { name: "用户流程", count: 1 }), "已绑定：用户流程 · 1 节点");
 assert.equal(bundle.includes('name: "conversation.view"'), false);
 assert.equal(
   bundle.includes('title: function () { return "对话记录"; }'),
@@ -384,6 +389,7 @@ const cardContext = {
     },
   },
   document: {
+    documentElement: { lang: "zh-CN" },
     head: { appendChild() {} },
     createElement() { return {}; },
     getElementById() { return null; },
@@ -522,6 +528,7 @@ function loadClientInContext(overrides) {
   let scoped;
   const ctx = {
     document: {
+      documentElement: { lang: "zh-CN" },
       createElement: () => ({}),
       getElementById: () => null,
       head: { appendChild() {} },
@@ -726,7 +733,7 @@ for (const [body, expected] of [
   const { claim: claimNoTarget } = source.onPick({ candidate: null, session });
   const out4 = await claimNoTarget.submit("");
   assert.equal(out4.kind, "error");
-  assert.match(out4.text, /缺少工作流/);
+  assert.match(out4.text, /缺少工作流|Workflow id or name/);
   assert.equal(fetchCalls.length, before, "缺目标不发请求");
 }
 
@@ -849,6 +856,7 @@ for (const [body, expected] of [
     setInterval: setIntervalStub,
     clearInterval: clearIntervalStub,
     document: {
+      documentElement: { lang: "zh-CN" },
       head: { appendChild() {} },
       createElement: () => ({}),
       getElementById: () => null,
@@ -958,11 +966,13 @@ for (const [body, expected] of [
       const slot = slots[i];
       return [slot.value, (v) => { slot.value = typeof v === "function" ? v(slot.value) : v; }];
     },
+    useEffect() {},
   };
   let expandClient;
   const expandContext = {
     console,
     document: {
+      documentElement: { lang: "zh-CN" },
       head: { appendChild() {} },
       createElement: () => ({}),
       getElementById: () => null,
@@ -1068,6 +1078,7 @@ for (const [body, expected] of [
   const confirmContext = {
     console,
     document: {
+      documentElement: { lang: "zh-CN" },
       head: { appendChild() {} },
       createElement: () => ({}),
       getElementById: () => null,
@@ -1217,6 +1228,7 @@ for (const [body, expected] of [
     setInterval: () => 0,
     clearInterval: () => {},
     document: {
+      documentElement: { lang: "zh-CN" },
       head: { appendChild() {} },
       createElement: () => ({}),
       getElementById: () => null,
@@ -1368,7 +1380,7 @@ for (const [body, expected] of [
   assert.equal(guide[0].value.kind, "guide");
   const guideClaim = atSource.onPick({ candidate: guide[0], session: atSession }).claim;
   assert.equal(guideClaim.token, "");
-  assert.match(guideClaim.hint, /工作流标签页/);
+  assert.match(guideClaim.hint, /工作流标签页|Workflow tab/);
 }
 
 // ---- 指令注入降级链（#109）：无 conversation 服务→填输入框+回执；有则直达聊天 ----
@@ -1396,6 +1408,7 @@ for (const [body, expected] of [
     setInterval: () => 0,
     clearInterval: () => {},
     document: {
+      documentElement: { lang: "zh-CN" },
       head: { appendChild() {} },
       createElement: () => ({}),
       getElementById: () => null,

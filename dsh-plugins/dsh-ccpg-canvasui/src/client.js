@@ -19,6 +19,184 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
     let react = require("react");
 
+    // Canvas UI is loaded as an independent host bundle, so it cannot import the
+    // web app's React context. It follows the same document language boundary and
+    // only translates first-party copy; workflow names, prompts, labels and API
+    // messages remain caller-owned data.
+    // @i18n-dictionary:start
+    var CANVAS_MESSAGES = {
+      en: {
+        "canvas.workflow": "Workflow",
+        "canvas.open": "Open canvas ↗",
+        "canvas.openAria": "Open workflow canvas",
+        "canvas.run.title": "Workflow run",
+        "canvas.run.draft": "Draft graph",
+        "canvas.run.notStarted": "Not started",
+        "canvas.run.ready": "Ready",
+        "canvas.run.archived": "Archived",
+        "canvas.run.loading": "Loading",
+        "canvas.run.unbound": "Canvas is not bound to this session",
+        "canvas.run.notOpen": "Canvas is not open or not bound to a session",
+        "canvas.run.archivedMeta": "Run {id}… record is not in this workspace",
+        "canvas.run.loadingMeta": "Run {id}…",
+        "canvas.run.running": "Running",
+        "canvas.run.success": "Completed",
+        "canvas.run.error": "Failed",
+        "canvas.run.canceled": "Canceled",
+        "canvas.run.interrupted": "Interrupted",
+        "canvas.run.skipped": "Skipped",
+        "canvas.run.waiting": "Waiting for approval",
+        "canvas.run.queued": "Queued",
+        "canvas.run.pending": "Not started",
+        "canvas.run.stopping": "Stopping, waiting for nodes…",
+        "canvas.run.executing": "Executing",
+        "canvas.run.completed": "Completed",
+        "canvas.run.stop": "Stop",
+        "canvas.run.stopAria": "Stop this run",
+        "canvas.run.stopPending": "Stopping…",
+        "canvas.run.nodeExecuting": "{label} executing",
+        "canvas.node.input": "Input",
+        "canvas.node.agent": "Agent",
+        "canvas.node.condition": "Condition",
+        "canvas.node.script": "Script",
+        "canvas.node.output": "Output",
+        "canvas.node.notify": "Notification",
+        "canvas.node.note": "Note",
+        "canvas.node.subworkflow": "Subworkflow",
+        "canvas.node.unknown": "Node",
+        "canvas.graph.mainPath": "Main path {count} steps",
+        "canvas.graph.otherNodes": " · {count} other nodes",
+        "canvas.graph.omitted": "Omitted {count} steps",
+        "canvas.graph.ariaSeparator": ": ", "canvas.graph.listSeparator": ", ",
+        "canvas.patch.addNode": "Add node",
+        "canvas.patch.updateNode": "Update node",
+        "canvas.patch.renameNode": "Rename node",
+        "canvas.patch.deleteNode": "Delete node",
+        "canvas.patch.connect": "Connect",
+        "canvas.patch.deleteEdge": "Delete edge",
+        "canvas.patch.updateEdge": "Update edge",
+        "canvas.patch.noOperations": "No operations",
+        "canvas.patch.applying": "Applying",
+        "canvas.patch.applied": "Applied",
+        "canvas.patch.appliedWarnings": "Applied · warnings",
+        "canvas.patch.rejected": "Rejected",
+        "canvas.patch.rejectedBatch": "Entire batch rejected",
+        "canvas.patch.lintWarning": " · lint warnings",
+        "canvas.patch.collapse": "Collapse",
+        "canvas.patch.expand": "Expand {count} items",
+        "canvas.example.try": "Try:",
+        "canvas.binding.label": "Bound: {name} · {count} nodes",
+        "canvas.binding.draft": "Draft graph",
+        "canvas.binding.openTitle": "Open workflow canvas",
+        "canvas.patch.confirm": "AI canvas edit awaiting confirmation: {summary}",
+        "canvas.patch.apply": "Apply",
+        "canvas.patch.discard": "Discard",
+        "canvas.patch.autoApply": "Auto-applies in {seconds}s",
+        "canvas.iframe.title": "Workflow canvas",
+        "canvas.iframe.loading": "Loading canvas…",
+        "canvas.settings.notInstalled": "Not installed",
+        "canvas.settings.source": "Source",
+        "canvas.settings.offline": "Offline package",
+        "canvas.settings.unknown": "Unknown",
+        "canvas.settings.aggregateNpm": "Aggregate install (npm {spec})",
+        "canvas.settings.aggregateSource": "Aggregate install (source link)",
+        "canvas.settings.aggregateOffline": "Aggregate install (offline package)",
+        "canvas.settings.timeoutError": "Timeout must be a non-negative integer (seconds); 0 uses the built-in default",
+        "canvas.settings.saved": "Saved; new runs take effect immediately",
+        "canvas.settings.saveFailed": "Save failed",
+        "canvas.settings.serviceUnavailable": "Cannot connect to the local service; make sure dsh is running",
+        "canvas.settings.followDsh": "Follow dsh default",
+        "canvas.settings.channelModel": "Channel preferred model",
+        "canvas.settings.followChannel": "Follow channel",
+        "canvas.settings.unavailable": " (unavailable in catalog)",
+        "canvas.settings.followModel": "Follow model default",
+        "canvas.settings.unsupported": " (not supported by model)",
+        "canvas.settings.effective": "Currently active: {provider} / {model}",
+        "canvas.settings.effectiveEffort": " / reasoning effort {effort}",
+        "canvas.settings.agentDefaults": "Agent node defaults",
+        "canvas.settings.agentHelp": "When an agent node has no channel, model, reasoning level, or timeout configured, it uses these defaults; if no model-level value exists, it follows the global dsh selection. Timeout 0 uses the built-in default (node 500s / single call 300s).",
+        "canvas.settings.loadingChannels": "Loading channel catalog…",
+        "canvas.settings.noChannels": "No model channels are available; configure dsh settings first.",
+        "canvas.settings.channel": "Channel",
+        "canvas.settings.model": "Model",
+        "canvas.settings.reasoning": "Reasoning level",
+        "canvas.settings.nodeTimeout": "Node timeout (sec)",
+        "canvas.settings.modelTimeout": "Single-call timeout (sec)",
+        "canvas.settings.default500": "Default 500",
+        "canvas.settings.default300": "Default 300",
+        "canvas.settings.systemPrompt": "System prompt",
+        "canvas.settings.systemPromptHelp": "Behavior constraints appended to every agent node prompt; leave empty to disable",
+        "canvas.settings.upgrading": "Upgrading…", "canvas.settings.newVersion": "New version v{version} available", "canvas.settings.latest": "Up to date", "canvas.settings.checking": "Checking…", "canvas.settings.updateUnavailable": "Update service unavailable",
+        "canvas.trigger.opened": "Canvas opened: {value}", "canvas.trigger.started": "Run started: {value}", "canvas.trigger.fillPromptSuffix": " · click to fill, then press Enter to send", "canvas.trigger.openFailed": "Open failed", "canvas.trigger.runFailed": "Run failed to start", "canvas.trigger.workflowRef": "Reference a workflow · describe what to do after picking", "canvas.trigger.bindName": "Bind the canvas before referencing a node", "canvas.trigger.bindDescription": "Open the Workflow tab to bind the current session", "canvas.trigger.bindHint": "The Workflow tab is open; bind it before using @ node references", "canvas.trigger.workflowHint": "Workflow referenced · describe what to do next and press Enter", "canvas.trigger.nodeHint": "Node referenced · describe what to do next and press Enter", "canvas.trigger.run": "Run this workflow (Workflow One)", "canvas.trigger.open": "Open in the bound canvas (Workflow One)", "canvas.trigger.auto": "Enter to open/run · append run or open to choose (Workflow One)", "canvas.trigger.promptHint": "Example filled in · edit it and press Enter to send", "canvas.trigger.executeHint": "Enter to execute · append run/open to choose an action", "canvas.trigger.missingId": "Workflow id or name is required",
+        "canvas.settings.upgradeHintRunning": "The upgrade is finishing automatically; you can leave this window and return for the result.", "canvas.settings.upgradeHintAvailable": "Click the button below to upgrade; everything else is automatic.", "canvas.settings.upgradeHintLatest": "A notice will appear here when a new version is released.", "canvas.settings.upgradeHintCheck": "Check for a new version with one click.",
+        "canvas.settings.confirmUpgrade": "Click again to confirm upgrade", "canvas.settings.upgrade": "Upgrade now", "canvas.settings.checkUpdate": "Check for updates", "canvas.settings.upgradeDone": "Upgrade complete! Fully quit and restart dsh (HMR may cache the old module) for the new version to take effect.", "canvas.settings.viewUpgradeLog": "View upgrade log", "canvas.settings.upgradeFailed": "Upgrade failed: {message}. Try again; if it keeps failing, share this message with an administrator.", "canvas.settings.readingInstall": "Reading installation information…", "canvas.settings.noInstall": "No installed Workflow One was found on this machine.", "canvas.settings.installDetails": "Installation details (useful with multiple profiles or for troubleshooting)", "canvas.settings.offlineInfo": "The Offline package marker means this directory came from a release archive without Git metadata; one-click upgrade can only provide overwrite guidance. npm and source installs can be automated.", "canvas.settings.safety": "Your workflows, run history, scheduled tasks, and Feishu login are not changed by an upgrade; no backup or migration is needed. If you prefer the command line, npm users can rerun npx dsh-harness-one with the same effect.",
+        "canvas.trigger.referenceSource": "Reference", "canvas.trigger.nodeSection": "Workflow One nodes", "canvas.trigger.exampleSection": "Workflow One examples",
+        "canvas.settings.save": "Save",
+        "canvas.settings.saving": "Saving…",
+      },
+      "zh-CN": {
+        "canvas.workflow": "工作流", "canvas.open": "打开画布 ↗", "canvas.openAria": "打开工作流画布",
+        "canvas.run.title": "工作流运行", "canvas.run.draft": "草稿图", "canvas.run.notStarted": "未启动",
+        "canvas.run.ready": "就绪", "canvas.run.archived": "已归档", "canvas.run.loading": "加载中",
+        "canvas.run.unbound": "会话未绑定画布", "canvas.run.notOpen": "画布尚未打开或未绑定会话",
+        "canvas.run.archivedMeta": "运行 {id}… 记录不在当前工作区", "canvas.run.loadingMeta": "运行 {id}…", "canvas.run.running": "运行中",
+        "canvas.run.success": "已完成", "canvas.run.error": "失败", "canvas.run.canceled": "已取消",
+        "canvas.run.interrupted": "异常中断", "canvas.run.skipped": "已跳过", "canvas.run.waiting": "等待审批",
+        "canvas.run.queued": "等待中", "canvas.run.pending": "未开始", "canvas.run.stopping": "停止中，等待节点中断…",
+        "canvas.run.executing": "执行中", "canvas.run.completed": "完成", "canvas.run.stop": "停止",
+        "canvas.run.stopAria": "停止该运行", "canvas.run.stopPending": "停止中…", "canvas.run.nodeExecuting": "「{label}」执行中",
+        "canvas.node.input": "输入", "canvas.node.agent": "智能体", "canvas.node.condition": "条件", "canvas.node.script": "脚本",
+        "canvas.node.output": "输出", "canvas.node.notify": "通知", "canvas.node.note": "注释", "canvas.node.subworkflow": "子工作流", "canvas.node.unknown": "节点",
+        "canvas.graph.mainPath": "主流程 {count} 步", "canvas.graph.otherNodes": " · 另有 {count} 个节点", "canvas.graph.omitted": "省略 {count} 步", "canvas.graph.ariaSeparator": "：", "canvas.graph.listSeparator": "，",
+        "canvas.patch.addNode": "加节点", "canvas.patch.updateNode": "改节点", "canvas.patch.renameNode": "重命名", "canvas.patch.deleteNode": "删节点",
+        "canvas.patch.connect": "连线", "canvas.patch.deleteEdge": "删线", "canvas.patch.updateEdge": "改线", "canvas.patch.noOperations": "无操作",
+        "canvas.patch.applying": "应用中", "canvas.patch.applied": "已应用", "canvas.patch.appliedWarnings": "已应用·有告警", "canvas.patch.rejected": "被拒绝",
+        "canvas.patch.rejectedBatch": "整批被拒绝", "canvas.patch.lintWarning": " · lint 有告警", "canvas.patch.collapse": "收起", "canvas.patch.expand": "展开 {count} 条",
+        "canvas.example.try": "试试：", "canvas.binding.label": "已绑定：{name} · {count} 节点", "canvas.binding.draft": "草稿图", "canvas.binding.openTitle": "点击打开工作流画布",
+        "canvas.patch.confirm": "AI 修改画布待确认：{summary}", "canvas.patch.apply": "应用", "canvas.patch.discard": "放弃", "canvas.patch.autoApply": "{seconds}s 后自动应用",
+        "canvas.iframe.title": "工作流画布", "canvas.iframe.loading": "画布加载中…", "canvas.settings.notInstalled": "未安装", "canvas.settings.source": "源码",
+        "canvas.settings.offline": "离线包", "canvas.settings.unknown": "未知", "canvas.settings.aggregateNpm": "聚合安装（npm {spec}）", "canvas.settings.aggregateSource": "聚合安装（源码 link）",
+        "canvas.settings.aggregateOffline": "聚合安装（离线包）", "canvas.settings.timeoutError": "超时必须是不小于 0 的整数（秒），0 表示用内置默认",
+        "canvas.settings.saved": "已保存，新发起的运行立即生效", "canvas.settings.saveFailed": "保存失败", "canvas.settings.serviceUnavailable": "连接不上本地服务，请确认 dsh 正在运行",
+        "canvas.settings.followDsh": "跟随 dsh 默认", "canvas.settings.channelModel": "渠道首选模型", "canvas.settings.followChannel": "跟随渠道", "canvas.settings.unavailable": "（目录中不可用）",
+        "canvas.settings.followModel": "跟随模型默认", "canvas.settings.unsupported": "（模型不支持）", "canvas.settings.effective": "当前生效：{provider} / {model}", "canvas.settings.effectiveEffort": " / 思考级别 {effort}",
+        "canvas.settings.agentDefaults": "Agent 节点默认值", "canvas.settings.agentHelp": "节点没有单独配置渠道/模型/思考级别/超时时，按这里的默认值运行；模型层都没有时跟随 dsh 全局选择，超时 0 = 内置默认（节点 500s / 单次 300s）。",
+        "canvas.settings.loadingChannels": "正在读取渠道目录…", "canvas.settings.noChannels": "还没有可用的模型渠道，请先在 dsh 设置里完成配置。", "canvas.settings.channel": "渠道", "canvas.settings.model": "模型", "canvas.settings.reasoning": "思考级别",
+        "canvas.settings.nodeTimeout": "节点超时(秒)", "canvas.settings.modelTimeout": "单次超时(秒)", "canvas.settings.default500": "默认 500", "canvas.settings.default300": "默认 300",
+        "canvas.settings.systemPrompt": "通用提示词", "canvas.settings.systemPromptHelp": "注入所有 agent 节点提示词末尾的行为约束；留空不注入", "canvas.settings.save": "保存", "canvas.settings.saving": "保存中…",
+        "canvas.settings.upgrading": "升级中…", "canvas.settings.newVersion": "发现新版本 v{version}", "canvas.settings.latest": "已是最新", "canvas.settings.checking": "检查中…", "canvas.settings.updateUnavailable": "暂时连不上更新服务",
+        "canvas.trigger.referenceSource": "引用", "canvas.trigger.nodeSection": "Workflow One 节点", "canvas.trigger.exampleSection": "Workflow One 示例",
+        "canvas.settings.upgradeHintRunning": "正在自动完成升级，窗口可以离开，回来再看结果就行。", "canvas.settings.upgradeHintAvailable": "点下面的按钮即可升级，剩余的事全自动。", "canvas.settings.upgradeHintLatest": "有新版本发布时会在这里提示，不用常来点。", "canvas.settings.upgradeHintCheck": "看看有没有新版本？点一下就知道。",
+        "canvas.settings.confirmUpgrade": "再点一次确认开始升级", "canvas.settings.upgrade": "一键升级", "canvas.settings.checkUpdate": "检查更新", "canvas.settings.upgradeDone": "升级完成！请彻底退出并重新启动 dsh（HMR 会缓存旧模块），新版即刻生效。", "canvas.settings.viewUpgradeLog": "查看升级过程", "canvas.settings.upgradeFailed": "升级没成功：{message}。可以再试一次；反复失败请把这段话截图给管理员。", "canvas.settings.readingInstall": "正在读取安装信息…", "canvas.settings.noInstall": "本机没有发现已安装的 Workflow One。", "canvas.settings.installDetails": "安装详情（有多个 profile 或排查问题时才需要看）", "canvas.settings.offlineInfo": "「离线包」标记表示该目录来自 release 解包且没有 git 元数据，一键升级对它只给覆盖指引；npm 与源码来源可全自动。", "canvas.settings.safety": "你的工作流、运行记录、定时任务和飞书登录都不会被升级改动，无需备份迁移。偏好转命令行的话：npm 安装的用户重跑一次 npx dsh-harness-one 效果等同。",
+      },
+    };
+    // @i18n-dictionary:end
+    function canvasLocale() {
+      var lang = document.documentElement && document.documentElement.lang || "en";
+      return String(lang).toLowerCase().indexOf("zh") === 0 ? "zh-CN" : "en";
+    }
+    function canvasTranslate(locale, key, vars) {
+      var table = CANVAS_MESSAGES[locale] || CANVAS_MESSAGES.en;
+      var value = table[key] || CANVAS_MESSAGES.en[key] || key;
+      return String(value).replace(/\{(\w+)\}/g, function (_, name) {
+        return vars && vars[name] != null ? String(vars[name]) : "{" + name + "}";
+      });
+    }
+    function useCanvasI18n() {
+      var pair = react.useState(canvasLocale());
+      var locale = pair[0], setLocale = pair[1];
+      react.useEffect(function () {
+        var root = document.documentElement;
+        if (!root || typeof MutationObserver !== "function") return undefined;
+        var update = function () { setLocale(canvasLocale()); };
+        update();
+        var observer = new MutationObserver(update);
+        observer.observe(root, { attributes: true, attributeFilter: ["lang"] });
+        return function () { observer.disconnect(); };
+      }, []);
+      return { locale: locale, t: function (key, vars) { return canvasTranslate(locale, key, vars); } };
+    }
+
     var CANVAS_URL = "/wf1/";
     var WORKFLOW_TAB_TYPE = "ccpg:workflow";
     var LEGACY_CHAT_TAB_TYPE = "ccpg:chat";
@@ -283,7 +461,7 @@ window.__ModuleLoader__.load({
       if (!betterSidebarRef.svc) return false;
       betterSidebarRef.svc.openTab({
         type: WORKFLOW_TAB_TYPE,
-        title: "工作流",
+        title: canvasTranslate(canvasLocale(), "canvas.workflow"),
         path: "ccpg-workflow",
       });
       return true;
@@ -377,10 +555,10 @@ window.__ModuleLoader__.load({
       }
     }
 
-    var RUN_STATUS_CN = {
-      running: "运行中", success: "已完成", error: "失败",
-      canceled: "已取消", interrupted: "异常中断", skipped: "已跳过", waiting: "等待审批",
-      queued: "等待中", pending: "未开始",
+    var RUN_STATUS_KEYS = {
+      running: "canvas.run.running", success: "canvas.run.success", error: "canvas.run.error",
+      canceled: "canvas.run.canceled", interrupted: "canvas.run.interrupted", skipped: "canvas.run.skipped", waiting: "canvas.run.waiting",
+      queued: "canvas.run.queued", pending: "canvas.run.pending",
     };
     function runDotState(run, fallback) {
       var s = run ? run.status : fallback;
@@ -416,10 +594,10 @@ window.__ModuleLoader__.load({
       return Boolean(run.canvasId && run.canvasId === candidate.canvasId);
     }
 
-    var NODE_TYPE_CN = {
-      input: "输入", agent: "智能体", condition: "条件", http: "HTTP",
-      script: "脚本", output: "输出",
-      notify: "通知", note: "注释", subworkflow: "子工作流",
+    var NODE_TYPE_KEYS = {
+      input: "canvas.node.input", agent: "canvas.node.agent", condition: "canvas.node.condition", http: "canvas.node.unknown",
+      script: "canvas.node.script", output: "canvas.node.output",
+      notify: "canvas.node.notify", note: "canvas.node.note", subworkflow: "canvas.node.subworkflow",
     };
 
     // 取 DAG 最长路径作为卡片主流程；运行态排除明确跳过的节点。
@@ -491,7 +669,8 @@ window.__ModuleLoader__.load({
 
     // 语义化流程摘要：真实主路径 + 连续序号，比缩小整张画布更适合消息卡片。
     // viewBox 宽度随卡片可用宽自适应：宽屏多展示节点，窄屏退回 5 项以内。
-    function graphThumbnail(graph, run, opts) {
+    function graphThumbnail(graph, run, opts, translate) {
+      var t = translate || function (key, vars) { return canvasTranslate(canvasLocale(), key, vars); };
       var options = opts && typeof opts === "object" ? opts : {};
       var W = Number(options.width) > 320 ? Math.floor(Number(options.width)) : 360;
       var capacity = Number(options.capacity) > 0 ? Math.floor(Number(options.capacity)) : 0;
@@ -560,20 +739,20 @@ window.__ModuleLoader__.load({
         elements.push(react.createElement("text", {
           key: "type-" + item.id, x: x + 13, y: y + 34,
           fill: "var(--dsw-alias-label-caption)", "font-size": 9,
-        }, NODE_TYPE_CN[item.type] || item.type || "节点"));
+        }, NODE_TYPE_KEYS[item.type] ? t(NODE_TYPE_KEYS[item.type]) : item.type || t("canvas.node.unknown")));
       });
       var omitted = model.pathLength - model.items.filter(Boolean).length;
-      var summary = "主流程 " + model.pathLength + " 步" + (model.otherNodeCount ? " · 另有 " + model.otherNodeCount + " 个节点" : "");
+      var summary = t("canvas.graph.mainPath", { count: model.pathLength }) + (model.otherNodeCount ? t("canvas.graph.otherNodes", { count: model.otherNodeCount }) : "");
       elements.push(react.createElement("text", {
         key: "summary", x: 12, y: 94, fill: "var(--dsw-alias-label-tertiary)", "font-size": 10,
       }, summary));
       return react.createElement(
         "svg", {
           className: "wf1-card-map", viewBox: "0 0 " + W + " " + H, role: "img",
-          "aria-label": summary + "：" + model.items.map(function (item) {
+          "aria-label": summary + t("canvas.graph.ariaSeparator") + model.items.map(function (item) {
             var status = item && states[item.id] && states[item.id].status || "pending";
-            return item ? item.number + " " + item.label + " " + RUN_STATUS_CN[status] : "省略 " + omitted + " 步";
-          }).join("，"),
+            return item ? item.number + " " + item.label + " " + (RUN_STATUS_KEYS[status] ? t(RUN_STATUS_KEYS[status]) : status) : t("canvas.graph.omitted", { count: omitted });
+          }).join(t("canvas.graph.listSeparator")),
         },
         elements,
       );
@@ -638,7 +817,7 @@ window.__ModuleLoader__.load({
             props.meta,
           ),
           props.action || null,
-          react.createElement("span", { className: "wf1-card-open" }, "打开画布 ↗"),
+          react.createElement("span", { className: "wf1-card-open" }, props.t ? props.t("canvas.open") : canvasTranslate(canvasLocale(), "canvas.open")),
         ),
         props.footer || null,
       );
@@ -647,6 +826,8 @@ window.__ModuleLoader__.load({
     // 运行卡：canvas_run_workflow / canvas_run_status / workflow_run(_status) 共用。
     // SSE 实时更新，2s 详情轮询只作断线兜底；失败续跑后自动切到同工作流的新 run。
     function WorkflowRunCard(props) {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var block = props.block || {};
       var text = toolText(block);
       // 缩略图宽度自适应：宿主卡片宽度未知（消息栏宽随窗口/侧栏布局变），
@@ -757,38 +938,41 @@ window.__ModuleLoader__.load({
         // 起跑失败（画布未开/lint 拒绝）或会话未绑定：文本降级 + 保留跳转；
         // 未绑定场景追加输入引导（#101），让用户知道下一步可以直接在输入框说话
         return workflowCardShell({
-          title: "工作流运行",
+          title: t("canvas.run.title"),
           dotState: text && block.isError ? "error" : "pending",
-          stateText: block.isError ? "未启动" : "就绪",
+          stateText: block.isError ? t("canvas.run.notStarted") : t("canvas.run.ready"),
           meta: (text || "").slice(0, 60)
             || (wfBoundState === false
-              ? "会话未绑定画布——可在输入框说「帮我搭一个工作流」或输入 / 选工作流"
-              : "画布尚未打开或未绑定会话"),
+              ? t("canvas.run.unbound")
+              : t("canvas.run.notOpen")),
           metaError: Boolean(block.isError),
           thumbnail: null,
           hostRef: attachHost,
+          t: t,
         });
       }
       if (missing && !run) {
         return workflowCardShell({
-          title: "工作流运行",
+          title: t("canvas.run.title"),
           dotState: "pending",
-          stateText: "已归档",
-          meta: "运行 " + trackedRunId.slice(0, 8) + "… 记录不在当前工作区",
+          stateText: t("canvas.run.archived"),
+          meta: t("canvas.run.archivedMeta", { id: trackedRunId.slice(0, 8) }),
           thumbnail: null,
           hostRef: attachHost,
+          t: t,
         });
       }
       if (!run) {
         // runId 已解析、首次详情未返回的窗口（真实环境 <2s）：渲染加载态，
         // 不读 run.status（此前这里直接空指针）
         return workflowCardShell({
-          title: "工作流运行",
+          title: t("canvas.run.title"),
           dotState: "running",
-          stateText: "加载中",
-          meta: "运行 " + trackedRunId.slice(0, 8) + "…",
+          stateText: t("canvas.run.loading"),
+          meta: t("canvas.run.loadingMeta", { id: trackedRunId.slice(0, 8) }),
           thumbnail: null,
           hostRef: attachHost,
+          t: t,
         });
       }
 
@@ -820,14 +1004,14 @@ window.__ModuleLoader__.load({
       var meta;
       if (dot === "running") {
         meta = canceling
-          ? "停止中，等待节点中断…"
-          : (currentLabel ? "「" + currentLabel + "」执行中" : "执行中") + (secs ? " · " + secs : "");
+          ? t("canvas.run.stopping")
+          : (currentLabel ? t("canvas.run.nodeExecuting", { label: currentLabel }) : t("canvas.run.executing")) + (secs ? " · " + secs : "");
       } else if (dot === "error") {
-        meta = errText || run.status && (RUN_STATUS_CN[run.status] || run.status) || "运行失败";
+        meta = errText || run.status && (RUN_STATUS_KEYS[run.status] ? t(RUN_STATUS_KEYS[run.status]) : run.status) || t("canvas.run.error");
       } else if (dot === "success") {
-        meta = "完成" + (secs ? " · " + secs : "");
+        meta = t("canvas.run.completed") + (secs ? " · " + secs : "");
       } else {
-        meta = RUN_STATUS_CN[run.status] || run.status || "";
+        meta = RUN_STATUS_KEYS[run.status] ? t(RUN_STATUS_KEYS[run.status]) : run.status || "";
       }
       var stopAction = dot === "running" ? react.createElement(
         "span",
@@ -835,25 +1019,26 @@ window.__ModuleLoader__.load({
           className: "wf1-card-action",
           role: "button",
           tabIndex: 0,
-          "aria-label": "停止该运行",
+          "aria-label": t("canvas.run.stopAria"),
           onClick: function (e) { e.stopPropagation(); stopRun(); },
           onKeyDown: function (e) {
             if (e.key !== "Enter" && e.key !== " ") return;
             e.stopPropagation(); e.preventDefault(); stopRun();
           },
         },
-        canceling ? "停止中…" : "停止",
+        canceling ? t("canvas.run.stopPending") : t("canvas.run.stop"),
       ) : null;
       return workflowCardShell({
-        title: "工作流 · " + (run && run.workflowName ? run.workflowName : "草稿图"),
+        title: t("canvas.run.title") + " · " + (run && run.workflowName ? run.workflowName : t("canvas.run.draft")),
         dotState: dot,
-        stateText: nodeTotal ? nodeDone + "/" + nodeTotal : (RUN_STATUS_CN[run.status] || run.status || "运行中"),
+        stateText: nodeTotal ? nodeDone + "/" + nodeTotal : (RUN_STATUS_KEYS[run.status] ? t(RUN_STATUS_KEYS[run.status]) : run.status || t("canvas.run.running")),
         meta: meta,
         metaError: dot === "error",
         thumbnail: graphThumbnail(run && run.graph, run, {
           width: thumbW, capacity: capacity,
-        }),
+        }, t),
         hostRef: attachHost,
+        t: t,
         action: stopAction,
         // 点击定位到卡片正在跟踪的 run（续跑换 run 后也指向最新）
         target: { runId: trackedRunId },
@@ -869,11 +1054,13 @@ window.__ModuleLoader__.load({
 
     // 建图卡：canvas_graph_patch 的每次调用渲染一批操作 + 应用后的图快照。
     // args.ops 来自调用参数（running 时就有），结果文本（已应用 N 个操作 / 整批拒绝）settle 后补状态。
-    var OP_CN = {
-      addNode: "加节点", updateNode: "改节点", renameNode: "重命名", deleteNode: "删节点",
-      connect: "连线", deleteEdge: "删线", updateEdge: "改线",
+    var OP_KEYS = {
+      addNode: "canvas.patch.addNode", updateNode: "canvas.patch.updateNode", renameNode: "canvas.patch.renameNode", deleteNode: "canvas.patch.deleteNode",
+      connect: "canvas.patch.connect", deleteEdge: "canvas.patch.deleteEdge", updateEdge: "canvas.patch.updateEdge",
     };
     function GraphPatchCard(props) {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var block = props.block || {};
       var settled = "kind" in block;
       var text = settled ? toolText(block) : null;
@@ -886,17 +1073,17 @@ window.__ModuleLoader__.load({
       } catch (e) { /* 非法参数不炸卡片 */ }
       var opCount = {};
       ops.forEach(function (op) {
-        var key = OP_CN[op.op] || op.op;
+        var key = OP_KEYS[op.op] ? t(OP_KEYS[op.op]) : op.op;
         opCount[key] = (opCount[key] || 0) + 1;
       });
       var opSummary = Object.keys(opCount)
         .map(function (k) { return opCount[k] + " " + k; })
-        .join("、") || "无操作";
+        .join(i18n.locale === "zh-CN" ? "、" : ", ") || t("canvas.patch.noOperations");
 
       var ok = settled ? !block.isError : true;
       var lintOk = ok && text ? text.indexOf("lint: 通过") >= 0 : false;
       var dotState = !settled ? "running" : ok ? (lintOk ? "success" : "pending") : "error";
-      var stateText = !settled ? "应用中" : ok ? (lintOk ? "已应用" : "已应用·有告警") : "被拒绝";
+      var stateText = !settled ? t("canvas.patch.applying") : ok ? (lintOk ? t("canvas.patch.applied") : t("canvas.patch.appliedWarnings")) : t("canvas.patch.rejected");
       // 完整详情（#104）：被拒的全部错误行 / 已应用时的 lint 告警行，默认收起，
       // 点击展开（超 3 条区域内滚动）；服务端已在行尾附「修复建议」
       var [expanded, setExpanded] = react.useState(false);
@@ -906,8 +1093,8 @@ window.__ModuleLoader__.load({
       var hasDetail = settled && detailLines.length > 1 && (!ok || !lintOk);
       var meta;
       if (!settled) meta = opSummary;
-      else if (!ok) meta = detailLines[0] ? detailLines[0].slice(0, 60) : "整批被拒绝";
-      else meta = opSummary + (lintOk ? "" : " · lint 有告警");
+      else if (!ok) meta = detailLines[0] ? detailLines[0].slice(0, 60) : t("canvas.patch.rejectedBatch");
+      else meta = opSummary + (lintOk ? "" : t("canvas.patch.lintWarning"));
 
       var toggle = hasDetail ? react.createElement(
         "span",
@@ -922,7 +1109,7 @@ window.__ModuleLoader__.load({
             e.stopPropagation(); e.preventDefault(); setExpanded(!expanded);
           },
         },
-        expanded ? "收起" : "展开 " + (detailLines.length - 1) + " 条",
+        expanded ? t("canvas.patch.collapse") : t("canvas.patch.expand", { count: detailLines.length - 1 }),
       ) : null;
       var detail = expanded && hasDetail ? react.createElement(
         "div",
@@ -931,7 +1118,7 @@ window.__ModuleLoader__.load({
       ) : null;
 
       return workflowCardShell({
-        title: "建图 · " + opSummary.slice(0, 40),
+        title: t("canvas.patch.applied") + " · " + opSummary.slice(0, 40),
         dotState: dotState,
         stateText: stateText,
         meta: meta,
@@ -939,6 +1126,7 @@ window.__ModuleLoader__.load({
         thumbnail: null,
         action: toggle,
         detail: detail,
+        t: t,
         // #107 suggestion：已应用（含告警）态的下一步指令；运行中/被拒不显示
         footer: settled && ok
           ? cardSuggestRow(["撤销刚才那批修改", "运行这个工作流", "保存为工作流"])
@@ -948,6 +1136,8 @@ window.__ModuleLoader__.load({
 
 
     function WorkflowOpenButton(props) {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var [sidebarReady, setSidebarReady] = react.useState(
         Boolean(betterSidebarRef.svc),
       );
@@ -971,8 +1161,8 @@ window.__ModuleLoader__.load({
           type: "button",
           className: "wf1-open-btn",
           disabled: disabled,
-          title: "打开工作流画布",
-          "aria-label": "打开工作流画布",
+          title: t("canvas.openAria"),
+          "aria-label": t("canvas.openAria"),
 
           onClick: openWorkflow,
         },
@@ -1049,6 +1239,8 @@ window.__ModuleLoader__.load({
       );
     }
     function WorkflowExampleBar(props) {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       // 仅绑定画布后展示（owner 决策：未绑定时不显示示例条，绑定引导交给画布侧栏）。
       // 绑定态走订阅（轮询刷新后重渲染），不赌宿主槽位随模块变量重渲染
       var [bound, setBound] = react.useState(wfBoundState);
@@ -1073,7 +1265,7 @@ window.__ModuleLoader__.load({
         react.createElement(
           "span",
           { className: "wf1-example-lead" },
-          "试试：",
+          t("canvas.example.try"),
         ),
         prompts.map(function (p) {
           return react.createElement(
@@ -1095,6 +1287,8 @@ window.__ModuleLoader__.load({
     // （打开画布即自动绑定会话）。2s 轮询 + 触发源 warm 双路刷新，切换画布/保存
     // 后胶囊 ≤2s 跟上（服务端 cv 由画布上报同步，无新接口）。
     function WorkflowBindCapsule() {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var [info, setInfo] = react.useState(wfBoundInfo);
       react.useEffect(function () {
         var stopped = false;
@@ -1108,7 +1302,7 @@ window.__ModuleLoader__.load({
         return function () { stopped = true; window.clearInterval(timer); };
       }, []);
       if (!info || !info.bound) return null; // 首拉前/未绑定不渲染（未绑定不展示引导，owner 决策）
-      var label = "已绑定：" + (info.workflowName || "草稿图") + " · " + (info.nodeCount || 0) + " 节点";
+      var label = t("canvas.binding.label", { name: info.workflowName || t("canvas.binding.draft"), count: info.nodeCount || 0 });
       return react.createElement(
         "div",
         { className: "wf1-bind-dock-row" },
@@ -1118,7 +1312,7 @@ window.__ModuleLoader__.load({
             type: "button",
             className: "wf1-bind-pill",
             "data-bound": true,
-            title: "点击打开工作流画布",
+            title: t("canvas.binding.openTitle"),
             onClick: function () { try { openWorkflowSidebar(); } catch (e) { /* 无侧栏服务时静默 */ } },
           },
           react.createElement("span", { className: "wf1-bind-dot", "data-s": "on" }),
@@ -1131,6 +1325,8 @@ window.__ModuleLoader__.load({
     // 常驻展示「将删除 N 个节点（…）」摘要 + 应用/放弃 + 30s 倒计时；
     // App 30s 自动应用，倒计时归零后本条自行收起等状态消息。onDecide 可注入（测试）。
     function PatchConfirmBar(props) {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var onDecide = props && props.onDecide || postToCanvas;
       var [state, setState] = react.useState(patchConfirmState);
       var [, forceTick] = react.useState(0);
@@ -1156,17 +1352,17 @@ window.__ModuleLoader__.load({
         { className: "wf1-example-bar wf1-confirm-bar", role: "alert" },
         react.createElement(
           "span", { className: "wf1-confirm-summary" },
-          "AI 修改画布待确认：" + (state.summary || ""),
+          t("canvas.patch.confirm", { summary: state.summary || "" }),
         ),
         react.createElement(
-          "button", { type: "button", className: "wf1-confirm-btn", onClick: function () { decide(true); } }, "应用",
+          "button", { type: "button", className: "wf1-confirm-btn", onClick: function () { decide(true); } }, t("canvas.patch.apply"),
         ),
         react.createElement(
-          "button", { type: "button", className: "wf1-confirm-btn wf1-confirm-discard", onClick: function () { decide(false); } }, "放弃",
+          "button", { type: "button", className: "wf1-confirm-btn wf1-confirm-discard", onClick: function () { decide(false); } }, t("canvas.patch.discard"),
         ),
         react.createElement(
           "span", { className: "wf1-confirm-countdown", "aria-live": "off" },
-          remaining + "s 后自动应用",
+          t("canvas.patch.autoApply", { seconds: remaining }),
         ),
       );
     }
@@ -1221,7 +1417,7 @@ window.__ModuleLoader__.load({
       persistentHost.style.cssText = "width:100%;height:100%;display:flex;";
       var frame = document.createElement("iframe");
       frame.src = CANVAS_URL;
-      frame.title = "工作流画布";
+      frame.title = canvasTranslate(canvasLocale(), "canvas.iframe.title");
       frame.allow = "clipboard-write";
       frame.style.cssText =
         "width:100%;height:100%;border:0;display:block;flex:1;";
@@ -1234,6 +1430,8 @@ window.__ModuleLoader__.load({
     var canvasReady = false;
 
     function CanvasPane(props) {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var sessionId = props.sessionId;
       var mountRef = react.useRef(null);
       var frameRef = react.useRef(null);
@@ -1351,7 +1549,7 @@ window.__ModuleLoader__.load({
                   pointerEvents: "none",
                 },
               },
-              "画布加载中…",
+              t("canvas.iframe.loading"),
             ),
       );
     }
@@ -1427,14 +1625,14 @@ window.__ModuleLoader__.load({
       });
     }
 
-    function sourceMeta(pkg) {
-      if (!pkg) return { label: "未安装", bg: "rgba(148,163,184,.18)" };
+    function sourceMeta(pkg, t) {
+      if (!pkg) return { label: t("canvas.settings.notInstalled"), bg: "rgba(148,163,184,.18)" };
       if (pkg.kind === "registry") return { label: "npm", bg: "rgba(56,189,248,.16)" };
       if (pkg.kind === "link")
         return pkg.gitRoot
-          ? { label: "源码", bg: "rgba(52,211,153,.16)" }
-          : { label: "离线包", bg: "rgba(251,191,36,.16)" };
-      return { label: "未知", bg: "rgba(148,163,184,.18)" };
+          ? { label: t("canvas.settings.source"), bg: "rgba(52,211,153,.16)" }
+          : { label: t("canvas.settings.offline"), bg: "rgba(251,191,36,.16)" };
+      return { label: t("canvas.settings.unknown"), bg: "rgba(148,163,184,.18)" };
     }
 
     var s2 = react.useState;
@@ -1458,7 +1656,7 @@ window.__ModuleLoader__.load({
       );
     }
 
-    function ProfileBlock(profile) {
+    function ProfileBlock(profile, t) {
       var agg = profile.packages.find(function (p) { return p.name === "dsh-harness-one"; })
         || profile.packages.find(function (p) { return p.name === "dsh-ccpg-one"; }) || null;
       return react.createElement(
@@ -1479,21 +1677,21 @@ window.__ModuleLoader__.load({
           agg ? react.createElement(
             "span",
             { style: { marginLeft: "8px", fontWeight: 400, color: "var(--dsw-alias-text-secondary)", fontSize: "12px" } },
-            AGG_SPEC_TEXT(agg),
+            AGG_SPEC_TEXT(agg, t),
           ) : null,
         ),
         profile.packages.map(function (p) {
           // link 目标缺版本时用占位符（整条 link: 路径太长不可读）
           var shown = p.version || (p.kind === "registry" ? p.spec : "—");
-          return VersionRow(p.name, shown, sourceMeta(p));
+          return VersionRow(p.name, shown, sourceMeta(p, t));
         }),
       );
     }
 
-    function AGG_SPEC_TEXT(entry) {
-      if (entry.kind === "registry") return "聚合安装（npm " + (entry.spec || "") + "）";
-      if (entry.gitRoot) return "聚合安装（源码 link）";
-      return "聚合安装（离线包）";
+    function AGG_SPEC_TEXT(entry, t) {
+      if (entry.kind === "registry") return t("canvas.settings.aggregateNpm", { spec: entry.spec || "" });
+      if (entry.gitRoot) return t("canvas.settings.aggregateSource");
+      return t("canvas.settings.aggregateOffline");
     }
 
     // ================= Agent 节点默认值（渠道 / 模型 / 思考级别） =================
@@ -1543,6 +1741,8 @@ window.__ModuleLoader__.load({
     }
 
     function AgentDefaultsCard() {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var a = s2(null), llmConfig = a[0], setLlmConfig = a[1];
       var b = s2(null), saved = b[0], setSaved = b[1]; // GET/PUT 回包 {defaults, effective, dsh}
       var c = s2({ provider: "", model: "", reasoningEffort: "", nodeTimeoutSec: 0, modelTimeoutSec: 0, systemPrompt: "" }), draft = c[0], setDraft = c[1];
@@ -1589,7 +1789,7 @@ window.__ModuleLoader__.load({
         if (draft.nodeTimeoutSec !== "" && (!Number.isFinite(Number(draft.nodeTimeoutSec)) || Number(draft.nodeTimeoutSec) < 0)
           || draft.modelTimeoutSec !== "" && (!Number.isFinite(Number(draft.modelTimeoutSec)) || Number(draft.modelTimeoutSec) < 0)) {
           setSaving(false);
-          setMessage({ kind: "err", text: "超时必须是不小于 0 的整数（秒），0 表示用内置默认" });
+          setMessage({ kind: "err", text: t("canvas.settings.timeoutError") });
           return;
         }
         fetch(AGENT_DEFAULTS_API, {
@@ -1602,41 +1802,40 @@ window.__ModuleLoader__.load({
             if (r2 && r2.ok) {
               setSaved(r2);
               setDraft(Object.assign({ provider: "", model: "", reasoningEffort: "", nodeTimeoutSec: 0, modelTimeoutSec: 0, systemPrompt: "" }, r2.defaults));
-              setMessage({ kind: "ok", text: "已保存，新发起的运行立即生效" });
+              setMessage({ kind: "ok", text: t("canvas.settings.saved") });
             } else {
-              setMessage({ kind: "err", text: (r2 && r2.error) || "保存失败" });
+              setMessage({ kind: "err", text: (r2 && r2.error) || t("canvas.settings.saveFailed") });
             }
           })
-          .catch(function () { setMessage({ kind: "err", text: "连接不上本地服务，请确认 dsh 正在运行" }); })
+          .catch(function () { setMessage({ kind: "err", text: t("canvas.settings.serviceUnavailable") }); })
           .finally(function () { setSaving(false); });
       };
 
       // —— 选项装配 ——
       var dshProvider = saved && saved.dsh && saved.dsh.provider;
-      var providerOptions = [{ value: "", label: "跟随 dsh 默认" + (dshProvider ? "（" + providerNameOf(llmConfig, dshProvider) + "）" : "") }]
+      var providerOptions = [{ value: "", label: t("canvas.settings.followDsh") + (dshProvider ? "（" + providerNameOf(llmConfig, dshProvider) + "）" : "") }]
         .concat(providers.map(function (p) { return { value: p.id, label: p.name || p.id }; }));
 
       var models = modelOptionsFor(llmConfig, draft.provider);
-      var modelOptions = [{ value: "", label: draft.provider ? "渠道首选模型" : "跟随渠道" }]
+      var modelOptions = [{ value: "", label: draft.provider ? t("canvas.settings.channelModel") : t("canvas.settings.followChannel") }]
         .concat(models.map(function (m) { return { value: m.id, label: (m.name || m.id) + (m.vision ? " 👁" : "") }; }));
       // 已保存的模型从目录下线时保留原值展示，避免静默改写用户配置
       if (draft.model && !models.some(function (m) { return m.id === draft.model; })) {
-        modelOptions.push({ value: draft.model, label: draft.model + "（目录中不可用）" });
+        modelOptions.push({ value: draft.model, label: draft.model + t("canvas.settings.unavailable") });
       }
 
       var efforts = effortOptionsFor(llmConfig, draft.provider, draft.model);
-      var effortOptions = [{ value: "", label: "跟随模型默认" }]
+      var effortOptions = [{ value: "", label: t("canvas.settings.followModel") }]
         .concat(efforts.map(function (e2) { return { value: e2.id, label: e2.name || e2.id }; }));
       if (draft.reasoningEffort && !efforts.some(function (e2) { return e2.id === draft.reasoningEffort; })) {
-        effortOptions.push({ value: draft.reasoningEffort, label: draft.reasoningEffort + "（模型不支持）" });
+        effortOptions.push({ value: draft.reasoningEffort, label: draft.reasoningEffort + t("canvas.settings.unsupported") });
       }
 
       var effective = saved && saved.effective;
       var effectiveText = !effective || !effective.provider
         ? null
-        : "当前生效：" + providerNameOf(llmConfig, effective.provider)
-          + " / " + (effective.model || "渠道首选模型")
-          + (effective.reasoningEffort ? " / 思考级别 " + effective.reasoningEffort : "");
+        : t("canvas.settings.effective", { provider: providerNameOf(llmConfig, effective.provider), model: effective.model || t("canvas.settings.channelModel") })
+          + (effective.reasoningEffort ? t("canvas.settings.effectiveEffort", { effort: effective.reasoningEffort }) : "");
 
       var mkTimeoutInput = function (key, placeholder) {
         return react.createElement("input", {
@@ -1673,31 +1872,31 @@ window.__ModuleLoader__.load({
             flexDirection: "column", gap: "10px",
           },
         },
-        react.createElement("div", { style: { fontSize: "13px", fontWeight: 600 } }, "Agent 节点默认值"),
+        react.createElement("div", { style: { fontSize: "13px", fontWeight: 600 } }, t("canvas.settings.agentDefaults")),
         react.createElement(
           "div",
           { style: { fontSize: "12px", color: "var(--dsw-alias-text-secondary)", lineHeight: "18px" } },
-          "节点没有单独配置渠道/模型/思考级别/超时时，按这里的默认值运行；模型层都没有时跟随 dsh 全局选择，超时 0 = 内置默认（节点 500s / 单次 300s）。",
+          t("canvas.settings.agentHelp"),
         ),
         !llmConfig
-          ? react.createElement("div", { style: { fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } }, "正在读取渠道目录…")
+            ? react.createElement("div", { style: { fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } }, t("canvas.settings.loadingChannels"))
           : !providers.length
-            ? react.createElement("div", { style: { fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } }, "还没有可用的模型渠道，请先在 dsh 设置里完成配置。")
+            ? react.createElement("div", { style: { fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } }, t("canvas.settings.noChannels"))
             : [
-                defaultsField("渠道", mkSelect(draft.provider, providerOptions, saving, function (v) {
+                defaultsField(t("canvas.settings.channel"), mkSelect(draft.provider, providerOptions, saving, function (v) {
                   patchDraft({ provider: v, model: "", reasoningEffort: "" });
                 })),
-                defaultsField("模型", mkSelect(draft.model, modelOptions, saving || !draft.provider, function (v) {
+                defaultsField(t("canvas.settings.model"), mkSelect(draft.model, modelOptions, saving || !draft.provider, function (v) {
                   patchDraft({ model: v, reasoningEffort: "" });
                 })),
-                defaultsField("思考级别", mkSelect(
+                defaultsField(t("canvas.settings.reasoning"), mkSelect(
                   draft.reasoningEffort,
                   effortOptions,
                   saving || !draft.model || !efforts.length,
                   function (v) { patchDraft({ reasoningEffort: v }); },
                 )),
-                defaultsField("节点超时(秒)", mkTimeoutInput("nodeTimeoutSec", "默认 500")),
-                defaultsField("单次超时(秒)", mkTimeoutInput("modelTimeoutSec", "默认 300")),
+                defaultsField(t("canvas.settings.nodeTimeout"), mkTimeoutInput("nodeTimeoutSec", t("canvas.settings.default500"))),
+                defaultsField(t("canvas.settings.modelTimeout"), mkTimeoutInput("modelTimeoutSec", t("canvas.settings.default300"))),
                 // 通用提示词：跨节点行为约束，注入所有 agent 节点系统提示词的末尾。
                 // 独立成块放在字段行之后（多行文本不适合 72px 标签行的紧凑布局）
                 react.createElement(
@@ -1706,11 +1905,11 @@ window.__ModuleLoader__.load({
                   react.createElement(
                     "div",
                     { style: { fontSize: "13px", color: "var(--dsw-alias-text-secondary)" } },
-                    "通用提示词",
+                    t("canvas.settings.systemPrompt"),
                     react.createElement(
                       "span",
                       { style: { marginLeft: "6px", fontSize: "11px", opacity: 0.75 } },
-                      "注入所有 agent 节点提示词末尾的行为约束；留空不注入",
+                      t("canvas.settings.systemPromptHelp"),
                     ),
                   ),
                   react.createElement("textarea", {
@@ -1746,7 +1945,7 @@ window.__ModuleLoader__.load({
                   disabled: !dirty || saving,
                   onClick: save,
                 },
-                saving ? "保存中…" : "保存",
+                saving ? t("canvas.settings.saving") : t("canvas.settings.save"),
               )
             : null,
           message
@@ -1763,6 +1962,8 @@ window.__ModuleLoader__.load({
     }
 
     function WorkflowOneSection() {
+      var i18n = useCanvasI18n();
+      var t = i18n.t;
       var a = s2(null), info = a[0], setInfo = a[1];
       var b = s2(null), check = b[0], setCheck = b[1];
       var c = s2(false), loading = c[0], setLoading = c[1];
@@ -1782,7 +1983,7 @@ window.__ModuleLoader__.load({
       var doCheck = function () {
         setCheck({ pending: true });
         systemPost(SYSTEM_CHECK_API).then(setCheck).catch(function () {
-          setCheck({ ok: false, error: "网络失败" });
+        setCheck({ ok: false, error: t("canvas.settings.updateUnavailable") });
         });
       };
 
@@ -1801,18 +2002,18 @@ window.__ModuleLoader__.load({
               var resultLog = r.log || [];
               var hasFailure = resultLog.some(function (line) { return /^\s*✗/.test(String(line)); });
               if (hasFailure) {
-                setUpgradeState({ phase: "failed", message: resultLog.filter(function (line) { return /^\s*✗/.test(String(line)); }).join("；") || "升级失败" });
+                setUpgradeState({ phase: "failed", message: resultLog.filter(function (line) { return /^\s*✗/.test(String(line)); }).join("；") || t("canvas.settings.saveFailed") });
                 return;
               }
               setUpgradeState({ phase: "done", log: resultLog });
               load();
               setCheck(null);
             } else {
-              setUpgradeState({ phase: "failed", message: r.error || "升级失败" });
+              setUpgradeState({ phase: "failed", message: r.error || t("canvas.settings.saveFailed") });
             }
           })
           .catch(function () {
-            setUpgradeState({ phase: "failed", message: "连接不上本地服务，请确认 dsh 正在运行" });
+            setUpgradeState({ phase: "failed", message: t("canvas.settings.serviceUnavailable") });
           });
       };
 
@@ -1825,15 +2026,15 @@ window.__ModuleLoader__.load({
       var checkFailed = !!check && check.ok === false;
 
       var status = running
-        ? { text: "正在升级…", bg: "rgba(56,189,248,.18)" }
+        ? { text: t("canvas.settings.upgrading"), bg: "rgba(56,189,248,.18)" }
         : available
-          ? { text: "发现新版本 v" + check.latest, bg: "rgba(79,70,229,.22)" }
+          ? { text: t("canvas.settings.newVersion", { version: check.latest }), bg: "rgba(79,70,229,.22)" }
           : upToDate
-            ? { text: "已是最新", bg: "rgba(52,211,153,.18)" }
+            ? { text: t("canvas.settings.latest"), bg: "rgba(52,211,153,.18)" }
             : pendingCheck
-              ? { text: "检查中…", bg: "rgba(148,163,184,.2)" }
+              ? { text: t("canvas.settings.checking"), bg: "rgba(148,163,184,.2)" }
               : checkFailed
-                ? { text: "暂时连不上更新服务", bg: "rgba(148,163,184,.2)" }
+                ? { text: t("canvas.settings.updateUnavailable"), bg: "rgba(148,163,184,.2)" }
                 : { text: "", bg: "transparent" };
 
       var btnBase = {
@@ -1880,13 +2081,13 @@ window.__ModuleLoader__.load({
           "div",
           { style: { fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } },
           running
-            ? "正在自动完成升级，窗口可以离开，回来再看结果就行。"
+            ? t("canvas.settings.upgradeHintRunning")
             : available
-              ? "点下面的按钮即可升级，剩余的事全自动。"
+              ? t("canvas.settings.upgradeHintAvailable")
               : currentV
                 ? upToDate
-                  ? "有新版本发布时会在这里提示，不用常来点。"
-                  : "看看有没有新版本？点一下就知道。"
+                  ? t("canvas.settings.upgradeHintLatest")
+                  : t("canvas.settings.upgradeHintCheck")
                 : "",
         ),
 
@@ -1895,17 +2096,17 @@ window.__ModuleLoader__.load({
           "div",
           { style: { display: "flex", gap: "8px" } },
           running
-            ? react.createElement("button", { style: btnBase, disabled: true }, "升级中…")
+            ? react.createElement("button", { style: btnBase, disabled: true }, t("canvas.settings.upgrading"))
             : available
               ? react.createElement(
                   "button",
                   { style: primaryBtn, onClick: doUpgrade },
-                  confirming ? "再点一次确认开始升级" : "一键升级",
+                  confirming ? t("canvas.settings.confirmUpgrade") : t("canvas.settings.upgrade"),
                 )
               : react.createElement(
                   "button",
                   { style: btnBase, onClick: doCheck, disabled: pendingCheck },
-                  pendingCheck ? "检查中…" : "检查更新",
+                  pendingCheck ? t("canvas.settings.checking") : t("canvas.settings.checkUpdate"),
                 ),
         ),
 
@@ -1920,7 +2121,7 @@ window.__ModuleLoader__.load({
                   border: "1px solid rgba(52,211,153,.35)",
                 },
               },
-              "✓ 升级完成！请彻底退出并重新启动 dsh（HMR 会缓存旧模块），新版即刻生效。",
+              "✓ " + t("canvas.settings.upgradeDone"),
               (upgradeState.log || []).length
                 ? react.createElement(
                     "details",
@@ -1928,7 +2129,7 @@ window.__ModuleLoader__.load({
                     react.createElement(
                       "summary",
                       { style: { cursor: "pointer", fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } },
-                      "查看升级过程",
+                      t("canvas.settings.viewUpgradeLog"),
                     ),
                     react.createElement(
                       "pre",
@@ -1956,7 +2157,7 @@ window.__ModuleLoader__.load({
                   border: "1px solid rgba(248,113,113,.35)",
                 },
               },
-              "✗ 升级没成功：" + upgradeState.message + "。可以再试一次；反复失败请把这段话截图给管理员。",
+              "✗ " + t("canvas.settings.upgradeFailed", { message: upgradeState.message }),
             )
           : null,
 
@@ -1965,7 +2166,7 @@ window.__ModuleLoader__.load({
           ? react.createElement(
               "div",
               { style: { fontSize: "13px", color: "var(--dsw-alias-text-secondary)" } },
-              loading ? "正在读取安装信息…" : "本机没有发现已安装的 Workflow One。",
+              loading ? t("canvas.settings.readingInstall") : t("canvas.settings.noInstall"),
             )
           : null,
 
@@ -1977,16 +2178,16 @@ window.__ModuleLoader__.load({
               react.createElement(
                 "summary",
                 { style: { cursor: "pointer", fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } },
-                "安装详情（有多个 profile 或排查问题时才需要看）",
+                t("canvas.settings.installDetails"),
               ),
               react.createElement(
                 "div",
                 { style: { display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" } },
-                profiles.map(ProfileBlock),
+                profiles.map(function (profile) { return ProfileBlock(profile, t); }),
                 react.createElement(
                   "div",
                   { style: { fontSize: "12px", color: "var(--dsw-alias-text-secondary)" } },
-                  "「离线包」标记表示该目录来自 release 解包且没有 git 元数据，一键升级对它只给覆盖指引；npm 与源码来源可全自动。",
+                  t("canvas.settings.offlineInfo"),
                 ),
               ),
             )
@@ -2002,7 +2203,7 @@ window.__ModuleLoader__.load({
               paddingTop: "8px",
             },
           },
-          "你的工作流、运行记录、定时任务和飞书登录都不会被升级改动，无需备份迁移。偏好转命令行的话：npm 安装的用户重跑一次 npx dsh-harness-one 效果等同。",
+          t("canvas.settings.safety"),
         ),
       );
     }
@@ -2131,10 +2332,10 @@ window.__ModuleLoader__.load({
       if (result.ok) {
         var done = result.data.action || action; // auto 回退后以服务端实际动作为准
         return done === "open"
-          ? "画布已打开：" + (result.data.name || result.data.workflowId || "")
-          : "已发起运行：" + (result.data.name || result.data.runId || "");
+          ? canvasTranslate(canvasLocale(), "canvas.trigger.opened", { value: result.data.name || result.data.workflowId || "" })
+          : canvasTranslate(canvasLocale(), "canvas.trigger.started", { value: result.data.name || result.data.runId || "" });
       }
-      return result.data.error || (action === "open" ? "打开失败" : "运行发起失败");
+      return result.data.error || canvasTranslate(canvasLocale(), action === "open" ? "canvas.trigger.openFailed" : "canvas.trigger.runFailed");
     }
 
     function fetchWorkflows(sessionId) {
@@ -2170,7 +2371,7 @@ window.__ModuleLoader__.load({
 
       var source = {
         trigger: "@",
-        name: "引用",
+        name: canvasTranslate(canvasLocale(), "canvas.trigger.referenceSource"),
         order: 4,
         warm: function (session) {
           fetchBoundNodes(session.sessionId);
@@ -2187,7 +2388,7 @@ window.__ModuleLoader__.load({
                 .map(function (wf) {
                   return {
                     name: wf.name,
-                    description: "引用工作流 · Pick 后继续描述",
+                    description: canvasTranslate(canvasLocale(), "canvas.trigger.workflowRef"),
                     icon: "⇥",
                     section: "Workflow One",
                     value: { kind: "workflow", name: wf.name },
@@ -2198,8 +2399,8 @@ window.__ModuleLoader__.load({
           return fetchBoundNodes(session.sessionId).then(function (result) {
             if (!result.bound) {
               return [{
-                name: "先绑定画布再引用节点",
-                description: "打开「工作流」标签页即可绑定当前会话",
+                name: canvasTranslate(canvasLocale(), "canvas.trigger.bindName"),
+                description: canvasTranslate(canvasLocale(), "canvas.trigger.bindDescription"),
                 icon: "⚠",
                 section: "Workflow One",
                 value: { kind: "guide" },
@@ -2215,9 +2416,9 @@ window.__ModuleLoader__.load({
               .map(function (n) {
                 return {
                   name: n.label,
-                  description: (NODE_TYPE_CN[n.type] || n.type || "节点") + " · " + n.id,
+                  description: (NODE_TYPE_KEYS[n.type] ? canvasTranslate(canvasLocale(), NODE_TYPE_KEYS[n.type]) : n.type || canvasTranslate(canvasLocale(), "canvas.node.unknown")) + " · " + n.id,
                   icon: "⊙",
-                  section: "Workflow One 节点",
+                  section: canvasTranslate(canvasLocale(), "canvas.trigger.nodeSection"),
                   value: { kind: "node", id: n.id, type: n.type, label: n.label },
                 };
               });
@@ -2227,21 +2428,21 @@ window.__ModuleLoader__.load({
           var v = pick.candidate && pick.candidate.value || {};
           if (v.kind === "guide") {
             try { openWorkflowSidebar(); } catch (e) { /* 无侧栏服务静默 */ }
-            return { claim: { token: "", hint: "已打开工作流标签页，绑定后即可用 @ 引用节点" } };
+            return { claim: { token: "", hint: canvasTranslate(canvasLocale(), "canvas.trigger.bindHint") } };
           }
           if (v.kind === "workflow") {
             return {
               claim: {
                 token: readableRef(v.name, "工作流"),
-                hint: "已引用工作流 · 继续说要做的事，Enter 发送",
+                hint: canvasTranslate(canvasLocale(), "canvas.trigger.workflowHint"),
                 submit: function () { return Promise.resolve({ kind: "success", text: "" }); },
               },
             };
           }
           return {
             claim: {
-              token: readableRef(v.label, NODE_TYPE_CN[v.type] || v.type || "节点"),
-              hint: "已引用节点 · 继续说要做的事，Enter 发送",
+              token: readableRef(v.label, NODE_TYPE_KEYS[v.type] ? canvasTranslate(canvasLocale(), NODE_TYPE_KEYS[v.type]) : v.type || canvasTranslate(canvasLocale(), "canvas.node.unknown")),
+              hint: canvasTranslate(canvasLocale(), "canvas.trigger.nodeHint"),
               submit: function () { return Promise.resolve({ kind: "success", text: "" }); },
             },
           };
@@ -2301,10 +2502,10 @@ window.__ModuleLoader__.load({
                 return {
                   name: wf.name,
                   description: forced === "run"
-                    ? "运行该工作流（Workflow One）"
+                    ? canvasTranslate(canvasLocale(), "canvas.trigger.run")
                     : forced === "open"
-                      ? "在绑定画布打开（Workflow One）"
-                      : "Enter 打开/运行 · 追加 run 或 open 定动作（Workflow One）",
+                      ? canvasTranslate(canvasLocale(), "canvas.trigger.open")
+                      : canvasTranslate(canvasLocale(), "canvas.trigger.auto"),
                   icon: "⇥",
                   section: "Workflow One",
                   value: wf.id,
@@ -2316,9 +2517,9 @@ window.__ModuleLoader__.load({
             return examplePromptsFor(wfBoundState === true).map(function (p) {
               return {
                 name: p.name,
-                description: p.description + " · 点击填入后 Enter 发送",
+                description: p.description + canvasTranslate(canvasLocale(), "canvas.trigger.fillPromptSuffix"),
                 icon: "✦",
-                section: "Workflow One 示例",
+                section: canvasTranslate(canvasLocale(), "canvas.trigger.exampleSection"),
                 value: "prompt:" + p.name,
               };
             });
@@ -2335,7 +2536,7 @@ window.__ModuleLoader__.load({
             return {
               claim: {
                 token: promptText,
-                hint: "已填入示例 · 可编辑后 Enter 发送",
+                hint: canvasTranslate(canvasLocale(), "canvas.trigger.promptHint"),
                 submit: function () {
                   // claim 阶段 Enter：官方机直接把草稿文本当普通消息提交，
                   // 触发源无需接管——返回 error-outcome 会打断，这里给空实现
@@ -2346,7 +2547,7 @@ window.__ModuleLoader__.load({
           }
           var claim = {
             token: "/" + WF_TRIGGER_NAME + " ",
-            hint: "Enter 执行 · 追加 run/open 定动作",
+            hint: canvasTranslate(canvasLocale(), "canvas.trigger.executeHint"),
             submit: function (args) {
               var sessionId = (pick.session && pick.session.sessionId) || currentDshSessionId(null);
               var text = String(args || "").trim();
@@ -2361,7 +2562,7 @@ window.__ModuleLoader__.load({
                 id = workflowId;
               }
               if (!id) {
-                return Promise.resolve({ kind: "error", text: "缺少工作流 id 或名称" });
+                return Promise.resolve({ kind: "error", text: canvasTranslate(canvasLocale(), "canvas.trigger.missingId") });
               }
               var exec = action === "auto"
                 ? wfTriggerAction(sessionId, id, "run").then(function (runResult) {
@@ -2529,7 +2730,7 @@ window.__ModuleLoader__.load({
             return scope.betterSidebar.registerTab({
               id: WORKFLOW_TAB_TYPE,
               title: function () {
-                return "工作流";
+                return canvasTranslate(canvasLocale(), "canvas.workflow");
               },
               icon: function (size) {
                 return react.createElement(
@@ -2617,6 +2818,9 @@ window.__ModuleLoader__.load({
       setWfBoundInfoForTest: function (v) { wfBoundInfo = v; },
       renderCardMarkdown: renderCardMarkdown,
       WorkflowExampleBar: WorkflowExampleBar,
+      AgentDefaultsCard: AgentDefaultsCard,
+      canvasTranslate: canvasTranslate,
+      canvasLocale: canvasLocale,
       examplePromptsFor: examplePromptsFor,
       setWfBoundState: function (v) { wfBoundState = v; },
       modelOptionsFor: modelOptionsFor,

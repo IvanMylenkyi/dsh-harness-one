@@ -19,13 +19,14 @@ command are excluded from migration scope.
 | Cross-cutting adapters and validation | Migrated for first-party fallback boundary | `web/src/json-response.js`, `web/src/workflow-serialization.js`, `web/src/patch-confirm.js`, `web/src/result-adapter.js`, and variable validation return stable error/status descriptors; React callers localize descriptors and preserve server-provided text. | Unit contracts, manifest parity, scanner, build, and browser smoke |
 | Compatibility and locale infrastructure | Explicit compatibility only | `web/src/i18n/legacy.js` and the exported `translateText()`/`tx()` APIs remain available for external legacy callers, but the production call-site audit found no `tx()`/`translateText()` calls outside `web/src/i18n/index.js`; `createTranslator().t()` no longer falls back to legacy text lookup. `web/src/i18n/messages/*.js`, plugin `src/i18n.js`, and `docs/i18n/locale-key-manifest.json` are the locale boundary. | Dictionary/manifest parity, stable-key scanner, and browser language smoke |
 | Host integration and recovery | Migrated and browser-covered | `CanvasCommandBar` in `web/src/App.jsx` and `web/src/NodeDetailModal.jsx` use stable keys for local chrome/status/trace labels. Host-provided chat/session data, node labels, trace text, server errors, and command result text remain dynamic data. | Embedded iframe handshake, theme/command messages, `wf1-open-run`, patch confirmation, DocWall recovery boundaries, and SSE reconnect browser smoke |
-| Host-side canvas plugin cards and settings | Not migrated; next batch | `dsh-plugins/dsh-ccpg-canvasui/src/client.js` still contains first-party workflow-card status/action/error/ARIA strings and Workflow One settings validation/status copy. Workflow names, prompts, node labels, server errors, command results, and example prompts remain data and must stay untranslated. `dsh-plugins/dsh-ccpg-brand/lib/index.js` is intentional branding, not locale UI. | Needs stable-key adapter for the host bundle plus browser coverage of workflow cards, patch confirmation, and settings states |
+| Host-side canvas plugin cards and settings | Migrated in this batch | `dsh-plugins/dsh-ccpg-canvasui/src/client.js` now owns a stable `canvas.*` message table and reactive `html.lang` bridge for workflow cards, graph ARIA summaries, patch confirmation, binding/example bars, iframe loading, Agent defaults, package status, and upgrade states. `lib/client.js` is regenerated from source. Workflow names, prompts, node labels, server errors, command results, example prompts, and upgrade logs remain data. `dsh-plugins/dsh-ccpg-brand/lib/index.js` is intentional branding, not locale UI. | `dsh-plugins/dsh-ccpg-canvasui/test/client.test.mjs`; `web/tests/canvasui-browser.spec.mjs` covers cards, confirmation, settings and both language directions |
 
 The source audit found no remaining unexcluded first-party UI literals in the
-migrated web surfaces or document-preview plugin. Remaining CJK source is
-limited to the explicit web/plugin locale dictionaries and comments; generated
-production chunks are still scanned by strict mode and are not blanket-excluded.
-The next migration target is the host-side canvas bundle listed above.
+migrated web surfaces, document-preview plugin, or audited canvas host surfaces.
+Remaining CJK source is limited to explicit web/plugin locale dictionaries,
+intentional prompt/data payloads, and comments; generated production chunks are
+still scanned by strict mode and are not blanket-excluded. The next audit should
+cover other first-party plugin entrypoints and any newly added host slots.
 The root test entry is now Node-based and Windows-portable; optional plugin
 dependency/symlink tests still depend on their package install and Windows
 developer-mode prerequisites. Do not translate node labels, documents,
