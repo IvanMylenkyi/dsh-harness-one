@@ -72,7 +72,7 @@ export function FlowNode({ data, selected, id, onAddChild }) {
         <p className="flow-node-hint">{clip(meta.summary(data, t), 60)}</p>
         {badges.length > 0 && (
           <p className="flow-node-badges">
-          {badges.map((b, i) => <span key={i} className={`badge ${b.cls || ''}`} title={b.title}>{t(b.textKey || b.text, b.variables)}</span>)}
+          {badges.map((b, i) => <span key={i} className={`badge ${b.cls || ''}`} title={b.titleKey ? t(b.titleKey, b.variables) : b.title}>{t(b.textKey || b.text, b.variables)}</span>)}
           </p>
         )}
         {status === 'running' && data.livePreview && (

@@ -28,7 +28,7 @@ export const NODE_REGISTRY = [
     preset: (t = (value) => value) => ({ label: t('node.newAgent'), prompt: '', tools: [] }),
     summary: (d, t = (value) => value) => `${t('node.prompt')}：${d.prompt || t('node.defaultAssistant')}`,
     badges: (d) => [
-      d.model && { text: shortModel(d.model), cls: 'badge-model', title: `模型：${d.model}` },
+      d.model && { text: shortModel(d.model), cls: 'badge-model', titleKey: 'node.modelLabel', variables: { model: d.model } },
       d.maxRounds && { text: `↻${d.maxRounds}` },
       (d.tools || []).length > 0 && { textKey: 'node.tools' },
       (d.skills || []).length > 0 && { textKey: 'node.skillsCount', variables: { count: d.skills.length } },
@@ -55,7 +55,7 @@ export const NODE_REGISTRY = [
     summary: (d, t = (value) => value) => `main(input, workspace) · ${(d.inputs || []).length} ${t('node.parameters')}`,
     badges: (d) => [
       (d.inputs || []).length > 0 && { textKey: 'node.parametersCount', variables: { count: d.inputs.length } },
-      d.outputSchema && { text: 'Schema' },
+      d.outputSchema && { textKey: 'node.schema' },
     ].filter(Boolean),
   },
   {

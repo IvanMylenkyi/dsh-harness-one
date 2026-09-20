@@ -407,6 +407,8 @@ export default {
     'node.emptyResult': '(empty result)',
     'node.structuredPreview': 'Structured output preview',
     'node.outputPreview': 'Output preview · {label}',
+    'node.modelLabel': 'Model: {model}',
+    'node.schema': 'Schema',
     'node.urlNotConfigured': 'URL not configured',
     'node.noChannel': 'No channel selected',
     'status.charsCount': '{count, plural, one {# char} other {# chars}}',

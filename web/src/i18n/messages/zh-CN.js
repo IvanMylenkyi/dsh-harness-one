@@ -407,6 +407,8 @@ export default {
     'node.emptyResult': '（空结果）',
     'node.structuredPreview': '结构化输出预览',
     'node.outputPreview': '输出预览 · {label}',
+    'node.modelLabel': '模型：{model}',
+    'node.schema': 'Schema',
     'node.urlNotConfigured': '未配置 URL',
     'node.noChannel': '未选渠道',
     'status.charsCount': '{count} 字',
