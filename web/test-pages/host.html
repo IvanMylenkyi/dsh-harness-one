@@ -10,9 +10,17 @@
     <script>
       const state = document.getElementById('host-state');
       window.addEventListener('message', (event) => {
-        if (event.origin !== window.location.origin || event.data?.type !== 'wf1-ready') return;
-        state.textContent = 'ready';
-        event.source.postMessage({ type: 'wf1-session', sessionId: 'embedded-smoke' }, event.origin);
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type === 'wf1-ready') {
+          state.textContent = 'ready';
+          event.source.postMessage({ type: 'wf1-session', sessionId: 'embedded-smoke' }, event.origin);
+        }
+        if (event.data?.type === 'wf1-patch-confirm-state') {
+          state.textContent = `patch:${event.data.state}:${event.data.summary || ''}`;
+          if (event.data.state === 'pending') {
+            event.source.postMessage({ type: 'wf1-patch-confirm', canvasId: event.data.canvasId, version: event.data.version, approve: false }, event.origin);
+          }
+        }
       });
     </script>
   </body>

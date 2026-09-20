@@ -108,3 +108,90 @@ test('embedded host completes ready/session handshake', async ({ page }) => {
   await page.locator('#canvas').evaluate((iframe) => iframe.contentWindow.postMessage({ type: 'wf1-theme', theme: 'dark' }, window.location.origin));
   await expect(frame.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
+
+test('embedded host routes open-run and resolves a pending patch confirmation', async ({ page }) => {
+  await page.addInitScript(() => {
+    const patch = { version: 1, workflowId: null, patch: [{ op: 'updateNode', id: 'missing-node', data: { label: 'Server node' } }] };
+    window.EventSource = class FakeEventSource {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      static CLOSED = 2;
+      constructor(url) {
+        this.url = url;
+        this.readyState = FakeEventSource.CONNECTING;
+        this.listeners = new Map();
+        setTimeout(() => {
+          this.readyState = FakeEventSource.OPEN;
+          this.emit('open', {});
+          this.emit('assistant-patch', { data: JSON.stringify(patch) });
+        }, 0);
+      }
+      addEventListener(type, listener) { this.listeners.set(type, listener); }
+      removeEventListener(type, listener) { if (this.listeners.get(type) === listener) this.listeners.delete(type); }
+      emit(type, event) { this.listeners.get(type)?.(event); }
+      close() { this.readyState = FakeEventSource.CLOSED; }
+    };
+  });
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    const body = url.pathname.endsWith('/graph') ? { nodes: [], edges: [] } : {};
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.route('**/api/runs/detail?id=open-run', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ runId: 'open-run', status: 'success', graph: { nodes: [], edges: [] }, nodeStates: {} }),
+  }));
+  const detailRequest = page.waitForRequest((request) => request.url().includes('/api/runs/detail?id=open-run'));
+  await page.goto('/test-pages/host.html');
+  const frame = page.locator('#canvas');
+  await expect(page.locator('#host-state')).toContainText('patch:discarded', { timeout: 10_000 });
+  await frame.evaluate((iframe) => iframe.contentWindow.postMessage({ type: 'wf1-open-run', runId: 'open-run' }, window.location.origin));
+  await detailRequest;
+});
+
+test('embedded document wall reloads after an SSE reconnect', async ({ page }) => {
+  await page.addInitScript(() => {
+    const realNow = Date.now.bind(Date);
+    window.EventSource = class ReconnectEventSource {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      static CLOSED = 2;
+      constructor(url) {
+        this.url = url;
+        this.readyState = ReconnectEventSource.CONNECTING;
+        this.listeners = new Map();
+        setTimeout(() => this.emitOpen(), 0);
+        setTimeout(() => {
+          Date.now = () => realNow() + 12_000;
+          this.emitOpen();
+        }, 2_500);
+      }
+      addEventListener(type, listener) { this.listeners.set(type, listener); }
+      removeEventListener(type, listener) { if (this.listeners.get(type) === listener) this.listeners.delete(type); }
+      emitOpen() { this.readyState = ReconnectEventSource.OPEN; this.listeners.get('open')?.({}); }
+      close() { this.readyState = ReconnectEventSource.CLOSED; }
+    };
+  });
+  let resultLoads = 0;
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    let body = {};
+    if (url.pathname.endsWith('/graph')) body = { nodes: [], edges: [] };
+    else if (url.pathname.endsWith('/runs') && route.request().method() === 'GET') {
+      body = { runs: [{ runId: 'live-doc-run', status: 'success', startedAt: '2026-09-20T10:00:00.000Z', workflowName: 'Recovered workflow' }] };
+    } else if (url.pathname.endsWith('/runs/detail')) {
+      body = { runId: 'live-doc-run', status: 'success', graph: { nodes: [], edges: [] }, nodeStates: {} };
+    } else if (url.pathname.endsWith('/run-results')) {
+      resultLoads += 1;
+      body = { runId: 'live-doc-run', workflowName: 'Recovered workflow', status: 'success', finalFiles: [], processFiles: [], nodeTimeline: [] };
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.goto('/test-pages/host.html');
+  const frame = page.frameLocator('#canvas');
+  await expect(page.locator('#host-state')).toHaveText('ready');
+  await frame.getByRole('button', { name: 'Documents', exact: true }).click();
+  await expect(frame.getByText('Recovered workflow')).toBeVisible();
+  await expect.poll(() => resultLoads, { timeout: 10_000 }).toBeGreaterThan(1);
+});
