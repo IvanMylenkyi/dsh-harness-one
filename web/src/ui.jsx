@@ -2,6 +2,7 @@
 // 替换 alert/confirm/prompt（原生对话框阻塞且与整体 UI 割裂）。
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useI18n } from './i18n/index.js';
 
 // ---------------- Toast ----------------
 
@@ -21,7 +22,7 @@ export function ToastProvider({ children }) {
       {children}
       <div className="toast-wrap">
         {toasts.map((t) => (
-          <div key={t.id} className={`toast toast-${t.kind}`}>{t.text}</div>
+          <div key={t.id} className={`toast toast-${t.kind}`} role="status" aria-live="polite">{t.text}</div>
         ))}
       </div>
     </ToastCtx.Provider>
@@ -31,6 +32,7 @@ export function ToastProvider({ children }) {
 // ---------------- Modal ----------------
 
 export function Modal({ title, children, onClose, footer, className = '' }) {
+  const { t } = useI18n();
   const maskRef = useRef(null);
   useEffect(() => {
     const onKey = (e) => {
@@ -45,7 +47,7 @@ export function Modal({ title, children, onClose, footer, className = '' }) {
       <div className="modal-box">
         <header className="modal-head">
           <strong>{title}</strong>
-          <button className="btn-icon" onClick={onClose}>✕</button>
+          <button className="btn-icon" onClick={onClose} title={t('action.close')} aria-label={t('action.close')}>✕</button>
         </header>
         <div className="modal-body">{children}</div>
         {footer && <footer className="modal-foot">{footer}</footer>}
@@ -55,16 +57,19 @@ export function Modal({ title, children, onClose, footer, className = '' }) {
 }
 
 /** 通用输入弹窗（替代 prompt） */
-export function PromptModal({ title, initial = '', placeholder = '', confirmText = '确定', onCancel, onConfirm }) {
+export function PromptModal({ title, initial = '', placeholder, confirmText, onCancel, onConfirm }) {
+  const { t } = useI18n();
   const [value, setValue] = useState(initial);
+  const resolvedPlaceholder = placeholder ?? t('modal.inputPlaceholder');
+  const resolvedConfirmText = confirmText ?? t('action.confirm');
   return (
     <Modal title={title} onClose={onCancel} footer={(
       <>
-        <button className="btn" onClick={onCancel}>取消</button>
-        <button className="btn btn-primary" onClick={() => onConfirm(value)} disabled={!value.trim()}>{confirmText}</button>
+        <button className="btn" onClick={onCancel}>{t('action.cancel')}</button>
+        <button className="btn btn-primary" onClick={() => onConfirm(value)} disabled={!value.trim()}>{resolvedConfirmText}</button>
       </>
     )}>
-      <input className="modal-input" autoFocus value={value} placeholder={placeholder}
+      <input className="modal-input" autoFocus value={value} placeholder={resolvedPlaceholder} aria-label={title}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && value.trim()) onConfirm(value); }} />
     </Modal>
@@ -72,12 +77,14 @@ export function PromptModal({ title, initial = '', placeholder = '', confirmText
 }
 
 /** 确认弹窗（替代 confirm） */
-export function ConfirmModal({ title, message, danger = false, confirmText = '确定', onCancel, onConfirm }) {
+export function ConfirmModal({ title, message, danger = false, confirmText, onCancel, onConfirm }) {
+  const { t } = useI18n();
+  const resolvedConfirmText = confirmText ?? t('action.confirm');
   return (
     <Modal title={title} onClose={onCancel} footer={(
       <>
-        <button className="btn" onClick={onCancel}>取消</button>
-        <button className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>{confirmText}</button>
+        <button className="btn" onClick={onCancel}>{t('action.cancel')}</button>
+        <button className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>{resolvedConfirmText}</button>
       </>
     )}>
       <p className="modal-message">{message}</p>

@@ -25,7 +25,15 @@ import { useThemePalette } from './theme.js';
 import { useToast, PromptModal, ConfirmModal, Modal } from './ui.jsx';
 import { useI18n } from './i18n/index.js';
 
-const STATUS_CN = { running: '运行中', success: '成功', error: '失败', canceled: '已取消', interrupted: '异常中断', skipped: '跳过', waiting: '等待审批' };
+const STATUS_KEYS = {
+  running: 'status.running',
+  success: 'status.success',
+  error: 'status.error',
+  canceled: 'status.canceled',
+  interrupted: 'status.interrupted',
+  skipped: 'status.skipped',
+  waiting: 'status.waiting',
+};
 
 import { FlowNode } from './FlowNode.jsx';
 import { EdgeLine } from './EdgeLine.jsx';
@@ -47,7 +55,8 @@ import { TEMPLATES, TemplateModal } from './templates.jsx';
 
 export default function App() {
   const toast = useToast();
-  const { locale, setLocale, t } = useI18n();
+  const { locale, setLocale, t, formatDateTime } = useI18n();
+  const statusText = useCallback((status) => t(STATUS_KEYS[status] || 'run.statusUnknown', { status }), [t]);
   const palette = useThemePalette();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -211,7 +220,7 @@ export default function App() {
             })),
           {
             t: Date.now(), kind: 'run', runId, status: detail.status,
-            text: detail.status === 'running' ? '运行进行中' : `运行：${STATUS_CN[detail.status] || detail.status}`,
+            text: detail.status === 'running' ? t('run.inProgress') : t('run.statusLabel', { status: statusText(detail.status) }),
           },
         ],
       }));
@@ -219,13 +228,13 @@ export default function App() {
     const cached = runDetailsRef.current[runId];
     if (cached) applyDetail(cached);
     fetch(apiUrl(`/runs/detail?id=${encodeURIComponent(runId)}`))
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error('运行记录不存在'))))
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(t('run.recordMissing')))))
       .then((detail) => {
         setRunDetails((current) => ({ ...current, [runId]: detail }));
         applyDetail(detail);
       })
       .catch(() => { /* 缓存兜底已投影 */ });
-  }, [inspectRun, setNodes]);
+  }, [inspectRun, setNodes, statusText, t]);
   const markDirty = useCallback(() => setDirty(true), []);
   // 撤销/重做栈：结构变更前快照 {nodes, edges}（引用当前不可变数组即可）
   const undoStack = useRef([]);
@@ -249,8 +258,8 @@ export default function App() {
     setSelectedEdgeId(null);
     markDirty();
     setUndoInfo({ canUndo: undoStack.current.length > 0, canRedo: true });
-    toast('已撤销', 'info', 1400);
-  }, [setNodes, setEdges, markDirty, toast]);
+    toast(t('toast.undo'), 'info', 1400);
+  }, [setNodes, setEdges, markDirty, toast, t]);
 
   const redo = useCallback(() => {
     const next = redoStack.current.pop();
@@ -262,8 +271,8 @@ export default function App() {
     setSelectedEdgeId(null);
     markDirty();
     setUndoInfo({ canUndo: true, canRedo: redoStack.current.length > 0 });
-    toast('已重做', 'info', 1400);
-  }, [setNodes, setEdges, markDirty, toast]);
+    toast(t('toast.redo'), 'info', 1400);
+  }, [setNodes, setEdges, markDirty, toast, t]);
 
   // 初始加载：官方宿主注入 sessionId 后再读取工作区级数据。
   useEffect(() => {
@@ -360,11 +369,11 @@ export default function App() {
       body: JSON.stringify({ workflowId: workflow.id, triggerInput: input.triggerInput || '', runInputs: input.runInputs || {} }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `启动失败（HTTP ${res.status}）`);
-    toast(`已启动「${workflow.name}」`, 'success');
+    if (!res.ok) throw new Error(data.error || t('run.startHttpFailed', { status: res.status }));
+    toast(t('toast.workflowStarted', { workflow: workflow.name }), 'success');
     refreshRunList();
     return data.runId;
-  }, [refreshRunList, toast]);
+  }, [refreshRunList, toast, t]);
 
   const cancelRunById = useCallback(async (runId) => {
     if (!runId) return false;
@@ -372,11 +381,11 @@ export default function App() {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ runId }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) throw new Error(data.error || '运行已结束或取消失败');
-    toast('已发送取消请求', 'warn');
+    if (!res.ok || !data.ok) throw new Error(data.error || t('run.cancelFailed'));
+    toast(t('toast.cancelRequested'), 'warn');
     refreshRunList();
     return true;
-  }, [refreshRunList, toast]);
+  }, [refreshRunList, toast, t]);
 
   const inspectWorkflowRun = useCallback(async (workflow, runId) => {
     if (currentWfIdRef.current !== workflow.id) await openWorkflowRef.current?.(workflow);
@@ -510,7 +519,7 @@ export default function App() {
           nodeLabel: labelOf(nodesRef.current, p.nodeId).replace(/\(.*\)$/, ''),
           startedAt: p.startedAt,
           text: p.error ? p.error : undefined,
-          meta: p.retrying ? `第 ${p.attempt} 次尝试` : p.toleratedError ? '失败后继续' : undefined,
+          meta: p.retrying ? t('run.retryAttempt', { attempt: p.attempt }) : p.toleratedError ? t('run.toleratedError') : undefined,
           chars: p.chars, durationMs: p.durationMs,
         });
       }
@@ -584,7 +593,7 @@ export default function App() {
       if (!targetId || targetId === currentWfIdRef.current) return;
       const open = async () => {
         const res = await fetch(apiUrl(`/workflows/detail?id=${encodeURIComponent(targetId)}`));
-        if (!res.ok) { toast('AI 切换工作流：目标不存在或已删除', 'error'); return; }
+        if (!res.ok) { toast(t('toast.workflowSwitchFailed'), 'error'); return; }
         const wf = await res.json();
         await openWorkflowRef.current?.(wf);
       };
@@ -600,10 +609,10 @@ export default function App() {
       // 只跟随本画布发起的运行（手动/续跑/助手）；定时/webhook 触发不抢占视图
       if (!shouldFollowRunStart(p, { canvasId: canvasIdRef.current, workflowId: currentWfIdRef.current })) {
         if (belongsToCurrentCanvas(p) && p.workflowId === currentWfIdRef.current) {
-          const label = p.source === 'schedule' ? '⏰ 定时任务已触发'
-            : p.source === 'catch-up' ? '⏱ 定时补跑已启动（停机错过触发点）'
-              : '🪝 Webhook 已触发';
-          toast(`${label}「${p.workflowName || '当前工作流'}」，可在底部切换查看`, 'info', 3600);
+          const label = p.source === 'schedule' ? t('run.trigger.schedule')
+            : p.source === 'catch-up' ? t('run.trigger.catchUp')
+              : t('run.trigger.webhook');
+          toast(t('run.triggered', { label, workflow: p.workflowName || t('run.currentWorkflow') }), 'info', 3600);
         }
         return;
       }
@@ -612,7 +621,7 @@ export default function App() {
       terminalNodesByRunRef.current.set(p.runId, new Set());
       inspectRun(p.runId);
       setRunStatus((s) => ({ ...s, running: true, runId: p.runId, done: 0, total: p.nodeIds.length }));
-      pushEntry({ kind: 'run', runId: p.runId, status: 'start', text: `运行开始 · ${p.nodeIds.length} 个节点` });
+      pushEntry({ kind: 'run', runId: p.runId, status: 'start', text: t('run.started', { count: p.nodeIds.length }) });
     });
     es.addEventListener('run-end', (e) => {
       const p = JSON.parse(e.data);
@@ -622,7 +631,7 @@ export default function App() {
       runningRef.current = false;
       setRunStatus((s) => (s.runId === p.runId ? { ...s, running: false, last: p.status } : s));
       setProgress({}); // 文稿墙流卡随运行终止退场（落卡由 results-ready 重载投影接管）
-      pushEntry({ kind: 'run', runId: p.runId, status: p.status, text: `运行结束：${STATUS_CN[p.status] || p.status}${p.durationMs ? ` · ${(p.durationMs / 1000).toFixed(1)}s` : ''}` });
+      pushEntry({ kind: 'run', runId: p.runId, status: p.status, text: t('run.finished', { status: statusText(p.status), duration: p.durationMs ? ` · ${(p.durationMs / 1000).toFixed(1)}s` : '' }) });
       const completedScopeEpoch = workflowScopeEpochRef.current;
       const hydrateRunDetail = async () => {
         for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -650,16 +659,16 @@ export default function App() {
         }
       };
       hydrateRunDetail().catch(() => {});
-      if (p.status === 'success') toast('运行完成 ✓', 'success');
-      else if (p.status === 'canceled') toast('运行已取消', 'warn');
-      else toast('运行结束：有节点失败', 'error');
+      if (p.status === 'success') toast(t('run.completed'), 'success');
+      else if (p.status === 'canceled') toast(t('run.canceled'), 'warn');
+      else toast(t('run.finishedWithErrors'), 'error');
     });
     es.addEventListener('run-results-ready', (e) => {
       const p = JSON.parse(e.data);
       if (!appliesToActiveRun(p)) return;
       setResultsReadyByRunId((current) => ({ ...current, [p.runId]: Date.now() }));
       fetch(apiUrl(`/runs/detail?id=${encodeURIComponent(p.runId)}`))
-        .then((response) => response.ok ? response.json() : Promise.reject(new Error('成果尚未就绪')))
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error(t('run.resultsNotReady'))))
         .then((detail) => setRunDetails((current) => ({ ...current, [p.runId]: detail })))
         .catch(() => {});
     });
@@ -671,8 +680,8 @@ export default function App() {
     es.addEventListener('run-persist-error', (e) => {
       const p = JSON.parse(e.data);
       if (!appliesToActiveRun(p)) return;
-      pushEntry({ kind: 'sys', runId: p.runId, status: 'error', text: '成果保存失败，请稍后重试' });
-      toast('成果保存失败，请稍后重试', 'error');
+      pushEntry({ kind: 'sys', runId: p.runId, status: 'error', text: t('run.resultsSaveFailed') });
+      toast(t('run.resultsSaveFailed'), 'error');
     });
     es.addEventListener('run-error', (e) => {
       const p = JSON.parse(e.data);
@@ -683,7 +692,7 @@ export default function App() {
       runningRef.current = false;
       setRunStatus((s) => ({ ...s, running: false, runId: p.runId || s.runId, last: 'error' }));
       setProgress({}); // 启动失败的流卡同样要退场
-      toast(`启动失败：${p.error}`, 'error');
+      toast(t('run.startFailedWithError', { error: p.error }), 'error');
       pushEntry({ kind: 'sys', runId: p.runId, status: 'error', text: p.error });
     });
     es.addEventListener('snapshot', (e) => {
@@ -745,13 +754,13 @@ export default function App() {
           ...current,
           [p.runId]: [...restored, {
             t: Date.now(), kind: 'run', runId: p.runId, status: p.status,
-            text: p.status === 'running' ? '运行已恢复' : `最近运行：${STATUS_CN[p.status] || p.status}`,
+            text: p.status === 'running' ? t('run.restored') : t('run.latest', { status: statusText(p.status) }),
           }],
         }));
       }
     });
     return () => es.close();
-  }, [canvasScopeReady, setNodes, toast, inspectRun, refreshRunList]);
+  }, [canvasScopeReady, setNodes, toast, inspectRun, refreshRunList, statusText, t]);
 
   // Esc 关闭面板；Cmd+S 保存；Cmd+Z 撤销 / Shift 重做；Delete 删除选中；Cmd+D 复制选中；F 定位错误
   const isTypingTarget = (e) => {
@@ -828,16 +837,16 @@ export default function App() {
     }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const message = data.error || `保存失败（HTTP ${response.status}）`;
+      const message = data.error || t('save.httpFailed', { status: response.status });
       if (!silent) toast(message, 'error');
       throw new Error(message);
     }
     if (document) setCurrentWf({ ...document, updatedAt: data.updatedAt || document.updatedAt });
     setDirty(false);
     await doLint(graph);
-    if (!silent) toast(currentWf ? `已保存「${currentWf.name}」` : '已保存草稿', 'success');
+    if (!silent) toast(currentWf ? t('toast.workflowSaved', { workflow: currentWf.name }) : t('toast.draftSaved'), 'success');
     return { graph, graphFingerprint: data.graphFingerprint || null };
-  }, [toGraph, currentWf, toast, doLint]);
+  }, [toGraph, currentWf, toast, doLint, t]);
 
   // 自动保存：有改动 2.5s 静默保存；同一节流窗内同步画布状态给 AI 助手工具。
   // 注意依赖只有 dirty：save() 内部经 nodesRef/edgesRef 读最新图，若把 nodes/edges
@@ -847,10 +856,10 @@ export default function App() {
     const t = setTimeout(() => {
       save({ silent: true })
         .then(() => reportCanvasStateRef.current?.())
-        .catch((error) => toast(error?.message || '自动保存失败', 'error'));
+        .catch((error) => toast(error?.message || t('save.autoFailed'), 'error'));
     }, 2500);
     return () => clearTimeout(t);
-  }, [dirty, save, toast]);
+  }, [dirty, save, toast, t]);
 
   // 离开页面前提醒未保存
   useEffect(() => {
@@ -874,7 +883,7 @@ export default function App() {
       inspectRun(latest.runId);
       if (!latest.live) {
         fetch(apiUrl(`/runs/detail?id=${encodeURIComponent(latest.runId)}`))
-          .then((r) => (r.ok ? r.json() : Promise.reject(new Error('运行记录不存在'))))
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(t('run.recordMissing')))))
           .then((detail) => {
             if ((currentWfIdRef.current || null) !== (workflowId || null)) return;
             setRunDetails((current) => ({ ...current, [latest.runId]: detail }));
@@ -888,7 +897,7 @@ export default function App() {
       activeRunIdRef.current = adoptedRunId;
       terminalNodesByRunRef.current.set(adoptedRunId, seedTerminalNodeIds(latest.nodeStates));
       fetch(apiUrl(`/runs/detail?id=${encodeURIComponent(adoptedRunId)}`))
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('运行记录不存在'))))
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(t('run.recordMissing')))))
         .then((detail) => {
           if ((currentWfIdRef.current || null) !== (workflowId || null)) return;
           runningRef.current = detail.status === 'running';
@@ -908,18 +917,18 @@ export default function App() {
                 })),
               {
                 t: Date.now(), kind: 'run', runId: adoptedRunId, status: detail.status,
-                text: detail.status === 'running' ? '运行进行中' : `运行：${STATUS_CN[detail.status] || detail.status}`,
+                text: detail.status === 'running' ? t('run.inProgress') : t('run.statusLabel', { status: statusText(detail.status) }),
               },
             ],
           }));
         })
         .catch(() => { /* 列表摘要兜底；SSE node-status 仍会持续更新 */ });
     }).catch(() => { /* 列表拉不到就维持现状 */ });
-  }, [inspectRun, setNodes]);
+  }, [inspectRun, setNodes, statusText, t]);
 
   const openWorkflow = useCallback(async (wf) => {
     const res = await fetch(apiUrl(`/workflows/detail?id=${encodeURIComponent(wf.id)}`));
-    if (!res.ok) { toast(`打开失败：${wf.name}`, 'error'); return; }
+    if (!res.ok) { toast(t('toast.workflowOpenFailed', { workflow: wf.name }), 'error'); return; }
     const data = normalizeWorkflowDocument(await res.json());
     workflowScopeEpochRef.current += 1;
     activeRunIdRef.current = null;
@@ -940,8 +949,8 @@ export default function App() {
     }).catch(() => {});
     // 运行面板跟随：切到哪条工作流就显示哪条的最近一次运行；没跑过则清空面板
     syncRunPanelToWorkflow(data.id);
-    toast(`已打开「${data.name}」`);
-  }, [setNodes, setEdges, toast, syncRunPanelToWorkflow, inspectRun]);
+    toast(t('toast.workflowOpened', { workflow: data.name }));
+  }, [setNodes, setEdges, toast, syncRunPanelToWorkflow, inspectRun, t]);
   openWorkflowRef.current = openWorkflow; // SSE assistant-open-workflow 桥（effect 依赖不含它，经 ref 取最新）
   saveRef.current = save;
 
@@ -981,15 +990,16 @@ export default function App() {
     setEdges(edges);
     setTemplateOpen(false);
     markDirty();
-    toast(`已应用模板「${tpl.name}」`, 'success');
-  }, [setNodes, setEdges, toast, markDirty, snapshot]);
+    toast(t('toast.templateApplied', { template: tpl.name }), 'success');
+  }, [setNodes, setEdges, toast, markDirty, snapshot, t]);
 
   const resetGraph = useCallback(async () => {
     setModal({
       type: 'confirm',
-      title: '重置为示例工作流',
-      message: currentWf ? `将用示例图覆盖当前工作流「${currentWf.name}」，确定？` : '将用示例图覆盖当前草稿，确定？',
-      confirmText: '重置',
+      titleKey: 'modal.resetTitle',
+      messageKey: currentWf ? 'modal.resetWorkflowMessage' : 'modal.resetDraftMessage',
+      messageVars: currentWf ? { workflow: currentWf.name } : {},
+      confirmKey: 'action.reset',
       danger: true,
       onConfirm: async () => {
         setModal(null);
@@ -999,10 +1009,10 @@ export default function App() {
         setNodes(g.nodes.map(toFlowNode));
         setEdges(g.edges.map(toFlowEdge));
         setDirty(false);
-        toast('已重置为示例工作流', 'success');
+        toast(t('toast.resetSuccess'), 'success');
       },
     });
-  }, [setNodes, setEdges, currentWf, toast, snapshot]);
+  }, [setNodes, setEdges, currentWf, toast, snapshot, t]);
 
   // 启动运行全流程（lint → 保存 → 续跑决策 → 启动 → 跟随）。
   // 并发运行：不因「已有运行在跑」而拒绝，每次调用都会新开一个 run。
@@ -1013,14 +1023,14 @@ export default function App() {
     const check = await doLint(graph);
     if (!check.ok) {
       const bad = check.issues.find((i) => i.level === 'error');
-      toast(`无法运行：${bad?.message || '图有错误'}`, 'error');
+      toast(t('run.cannotRun', { error: bad?.message || t('run.graphHasErrors') }), 'error');
       return;
     }
     let saved;
     try {
       saved = await save({ silent: true });
     } catch (error) {
-      toast(`无法运行：${error?.message || '保存失败'}`, 'error');
+      toast(t('run.cannotRun', { error: error?.message || t('save.failed') }), 'error');
       return;
     }
     // 断点续跑：上次运行失败/取消且图未变时，让用户选重新跑还是接着跑
@@ -1042,10 +1052,10 @@ export default function App() {
       })
         .then((res) => res.json().then((data) => ({ res, data })))
         .then(({ res, data }) => {
-          if (!res.ok) { toast(`启动失败：${data.error}`, 'error'); return null; }
+          if (!res.ok) { toast(t('run.startFailedWithError', { error: data.error }), 'error'); return null; }
           return data.runId;
         })
-        .catch(() => { toast('启动失败：网络错误', 'error'); return null; });
+        .catch(() => { toast(t('run.startNetworkFailed'), 'error'); return null; });
     };
     const startResume = async () => {
       const res = await fetch(apiUrl('/runs/resume'), {
@@ -1053,7 +1063,7 @@ export default function App() {
         body: JSON.stringify({ runId: resumeCandidate.runId, canvasId: canvasIdRef.current }),
       });
       const data = await res.json();
-      if (!res.ok) { toast(`续跑失败：${data.error}`, 'error'); return null; }
+      if (!res.ok) { toast(t('run.resumeFailedWithError', { error: data.error }), 'error'); return null; }
       return data.runId;
     };
     // 找上次可续跑运行：同工作流（或同草稿）、非 live、resumable
@@ -1102,8 +1112,8 @@ export default function App() {
             const reused = plan?.reusableNodes?.length ?? resumeCandidate.progress?.succeeded ?? '?';
             const rerunCount = plan?.rerunNodes?.length ?? 0;
             toast(rerunCount > 0
-              ? `已续跑：复用 ${reused} 个已完成节点，${rerunCount} 个因画布修改将重跑`
-              : `已续跑：复用上次 ${reused} 个已完成节点`, 'success');
+              ? t('run.resumedWithRerun', { reused, rerun: rerunCount })
+              : t('run.resumedWithReuse', { reused }), 'success');
           }
         } else {
           runId = await startFresh();
@@ -1122,7 +1132,7 @@ export default function App() {
       setRunStatus((current) => ({ ...current, running: true, runId, done: 0, total: graph.nodes.filter((node) => node.type !== 'notify').length }));
     }
     refreshRunList();
-  }, [save, setNodes, toGraph, triggerInput, runInputs, currentWf, toast, doLint, inspectRun, refreshRunList]);
+  }, [save, setNodes, toGraph, triggerInput, runInputs, currentWf, toast, doLint, inspectRun, refreshRunList, t]);
 
   // 启动请求 in-flight 门：请求发出→返回 runId 期间忽略重复点击（防双击开两个相同运行）。
   // 不按「是否有运行在跑」互斥——多运行并发是本版本的核心能力。
@@ -1144,15 +1154,15 @@ export default function App() {
     try {
       window.parent.postMessage({ type: 'wf1-command', text, canvasId: canvasIdRef.current }, window.location.origin);
     } catch {
-      toast('发送失败：宿主通道不可用', 'error');
+      toast(t('command.sendFailed'), 'error');
     }
-  }, [toast]);
+  }, [toast, t]);
   const showCmdbarStatus = useCallback(() => {
     const latest = runList[0];
     toast(latest
-      ? `最近运行：${latest.workflowName || '草稿'} · ${STATUS_CN[latest.status] || latest.status}`
-      : '还没有运行记录', latest?.status === 'error' ? 'error' : 'info');
-  }, [runList, toast]);
+      ? t('run.latestSummary', { workflow: latest.workflowName || t('run.draft'), status: statusText(latest.status) })
+      : t('run.noHistory'), latest?.status === 'error' ? 'error' : 'info');
+  }, [runList, toast, statusText, t]);
 
   const cancelRun = useCallback(async () => {
     const runId = inspectedRunIdRef.current;
@@ -1162,8 +1172,8 @@ export default function App() {
       body: JSON.stringify({ runId }),
     });
     const d = await res.json();
-    if (d.ok) toast('已发送取消请求', 'warn');
-  }, [toast]);
+    if (d.ok) toast(t('toast.cancelRequested'), 'warn');
+  }, [toast, t]);
 
   // 单节点试运行
   const openTestNode = useCallback((node) => setTestNode(node), []);
@@ -1263,7 +1273,7 @@ export default function App() {
           }
           return changed ? { ...n, data } : n;
         });
-        if (replaced > 0) toast(`已同步更新 ${replaced} 处下游变量引用「${oldLabel}」→「${newLabel}」`, 'info', 3600);
+        if (replaced > 0) toast(t('toast.referencesUpdated', { count: replaced, oldLabel, newLabel }), 'info', 3600);
         return next;
       });
       markDirty();
@@ -1274,7 +1284,7 @@ export default function App() {
     panelEditCommit();
     setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)));
     markDirty();
-  }, [setNodes, markDirty, toast, panelSnapshot, panelEditCommit]);
+  }, [setNodes, markDirty, toast, panelSnapshot, panelEditCommit, t]);
 
   const deleteNode = useCallback((id) => {
     const n = nodesRef.current.find((x) => x.id === id);
@@ -1294,10 +1304,12 @@ export default function App() {
     }
     setModal({
       type: 'confirm',
-      title: '删除节点',
-      message: `删除节点「${n?.data?.label || id}」及其连线？`
-        + (refCount > 0 ? `\n\n⚠ 有 ${refCount} 个下游模板引用了 {{${label}}}，删除后这些变量将失效。` : ''),
-      confirmText: '删除',
+      titleKey: 'modal.deleteNodeTitle',
+      messageKey: 'modal.deleteNodeMessage',
+      messageVars: { label: n?.data?.label || id },
+      warningKey: refCount > 0 ? 'modal.deleteNodeWarning' : null,
+      warningVars: { count: refCount, label },
+      confirmKey: 'action.delete',
       danger: true,
       onConfirm: () => {
         setModal(null);
@@ -1306,10 +1318,10 @@ export default function App() {
         setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
         if (selectedId === id) setSelectedId(null);
         markDirty();
-        toast('节点已删除（Cmd+Z 撤销）', 'warn', 2600);
+        toast(t('toast.nodeDeleted'), 'warn', 2600);
       },
     });
-  }, [setNodes, setEdges, selectedId, markDirty, toast, snapshot]);
+  }, [setNodes, setEdges, selectedId, markDirty, toast, snapshot, t]);
 
   const deleteEdge = useCallback((id) => {
     snapshot();
@@ -1331,15 +1343,17 @@ export default function App() {
       setEdges((eds) => eds.filter((e) => !set.has(e.source) && !set.has(e.target)));
       setSelectedId(null);
       markDirty();
-      toast('注释已删除（Cmd+Z 撤销）', 'info', 2200);
+      toast(t('toast.notesDeleted'), 'info', 2200);
       return;
     }
     const hasNote = targets.some((n) => n.data.nodeType === 'note');
     setModal({
       type: 'confirm',
-      title: `删除 ${targets.length} 个节点`,
-      message: `删除所选 ${targets.length} 个节点及其连线？${hasNote ? '（含注释节点）' : ''}`,
-      confirmText: '删除',
+      titleKey: 'modal.deleteNodesTitle',
+      titleVars: { count: targets.length },
+      messageKey: 'modal.deleteNodesMessage',
+      messageVars: { count: targets.length, noteSuffix: hasNote ? t('modal.noteSuffix') : '' },
+      confirmKey: 'action.delete',
       danger: true,
       onConfirm: () => {
         setModal(null);
@@ -1348,15 +1362,15 @@ export default function App() {
         setEdges((eds) => eds.filter((e) => !set.has(e.source) && !set.has(e.target)));
         setSelectedId(null);
         markDirty();
-        toast(`已删除 ${targets.length} 个节点（Cmd+Z 撤销）`, 'warn', 2600);
+        toast(t('toast.nodesDeleted', { count: targets.length }), 'warn', 2600);
       },
     });
-  }, [setNodes, setEdges, markDirty, toast, snapshot, deleteNode]);
+  }, [setNodes, setEdges, markDirty, toast, snapshot, deleteNode, t]);
 
   // Cmd+D 复制选中节点（偏移放置，注释节点也支持）
   const duplicateSelection = useCallback(() => {
     const sel = nodesRef.current.filter((n) => n.selected || n.id === selectedId);
-    if (!sel.length) { toast('先选中一个节点再复制', 'info', 1800); return; }
+    if (!sel.length) { toast(t('toast.selectNodeToDuplicate'), 'info', 1800); return; }
     snapshot();
     const idMap = new Map();
     const now = Date.now().toString(36);
@@ -1368,7 +1382,7 @@ export default function App() {
         id,
         selected: false,
         position: { x: n.position.x + 60, y: n.position.y + 60 + i * 24 },
-        data: { ...n.data, label: `${n.data.label || n.id} 副本`, runStatus: 'idle', runOutput: undefined, runError: null, livePreview: undefined },
+        data: { ...n.data, label: `${n.data.label || n.id} ${t('node.copySuffix')}`, runStatus: 'idle', runOutput: undefined, runError: null, livePreview: undefined },
       };
     });
     const innerEdges = edgesRef.current
@@ -1377,8 +1391,8 @@ export default function App() {
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), ...copies]);
     setEdges((eds) => [...eds, ...innerEdges]);
     markDirty();
-    toast(`已复制 ${copies.length} 个节点${innerEdges.length ? `（含 ${innerEdges.length} 条内部连线）` : ''}`, 'success', 2200);
-  }, [selectedId, setNodes, setEdges, markDirty, toast, snapshot]);
+    toast(t('toast.nodesDuplicated', { count: copies.length, edgeSuffix: innerEdges.length ? t('toast.duplicateEdges', { count: innerEdges.length }) : '' }), 'success', 2200);
+  }, [selectedId, setNodes, setEdges, markDirty, toast, snapshot, t]);
 
   // F 键 / lint 点击：定位第一个错误节点（视口居中 + 选中打开面板）
   const focusNode = useCallback((nodeId) => {
@@ -1391,10 +1405,10 @@ export default function App() {
   const focusFirstError = useCallback(() => {
     const bad = nodesRef.current.find((n) => n.data.runStatus === 'error' && n.data.nodeType !== 'note')
       || (lint?.issues || []).map((i) => nodesRef.current.find((n) => n.id === i.nodeId && n.data.nodeType !== 'note')).find(Boolean);
-    if (!bad) { toast('当前没有错误节点', 'info', 1600); return; }
+    if (!bad) { toast(t('toast.noErrorNodes'), 'info', 1600); return; }
     focusNode(bad.id);
-    toast(`已定位：${bad.data.label || bad.id}`, 'info', 2200);
-  }, [lint, focusNode, toast]);
+    toast(t('toast.errorNodeFocused', { label: bad.data.label || bad.id }), 'info', 2200);
+  }, [lint, focusNode, toast, t]);
 
   // 快捷键 ref 桥：每次渲染同步最新实现
   shortcutOpsRef.current = { deleteNodes, duplicateSelection, focusFirstError, deleteEdge };
@@ -1416,7 +1430,7 @@ export default function App() {
       seen.add(id);
       stack.push(...(adj.get(id) || []));
     }
-    if (cyclic) { toast('连接被拒绝：会形成环', 'error'); return; }
+    if (cyclic) { toast(t('edge.cycleRejected'), 'error'); return; }
     snapshot();
     // 条件节点第二条出边自动标 false 分支
     const srcNode = nodesRef.current.find((n) => n.id === params.source);
@@ -1477,8 +1491,8 @@ export default function App() {
     setSelectedEdgeId(null);
     markDirty();
     setTimeout(() => fitView({ duration: 350, padding: 0.2 }), 100);
-    if (notify) toast('已同步 AI 最新画布', 'success', 2600);
-  }, [setNodes, setEdges, snapshot, markDirty, fitView, toast]);
+    if (notify) toast(t('toast.aiCanvasSynced'), 'success', 2600);
+  }, [setNodes, setEdges, snapshot, markDirty, fitView, toast, t]);
   assistantGraphRef.current = applyAssistantGraph;
 
   // AI 补丁 → 画布落图：一批 ops 一次快照（一次 Cmd+Z 撤销整批）
@@ -1509,7 +1523,7 @@ export default function App() {
       setSelectedId(lastAdded);
       setTimeout(() => fitView({ nodes: [{ id: lastAdded }], duration: 400, padding: 3 }), 120);
     }
-    toast('✨ AI 已修改画布（Cmd+Z 可撤销）', 'success', 3200);
+    toast(t('toast.aiCanvasChanged'), 'success', 3200);
     // 落图后立即上报（不等节流），AI 的下一次校验拿到的一定是新图
     setTimeout(() => reportCanvasState(true), 250);
   }, [setNodes, setEdges, snapshot, markDirty, toast, fitView, reportCanvasState, t]);
@@ -1537,9 +1551,9 @@ export default function App() {
     markDirty();
     Promise.resolve(saveRef.current?.({ silent: true })).catch(() => {});
     reportCanvasState(true);
-    toast('已放弃 AI 本批修改', 'warn', 3000);
+    toast(t('toast.aiChangesDiscarded'), 'warn', 3000);
     notifyPatchConfirm('discarded', pending.version, via);
-  }, [applyAssistantOps, markDirty, reportCanvasState, toast]);
+  }, [applyAssistantOps, markDirty, reportCanvasState, toast, t]);
   resolvePendingConfirmRef.current = resolvePendingConfirm;
   notifyPatchConfirmRef.current = notifyPatchConfirm;
   // 卸载：只停掉计时器。服务端状态已先行，重开后经 bind/整图恢复自然落地，
@@ -1564,7 +1578,7 @@ export default function App() {
         (async () => {
           try {
             const res = await fetch(apiUrl(`/runs/detail?id=${encodeURIComponent(String(d.runId))}`));
-            if (!res.ok) { toast('打开画布：运行不存在或已清理', 'error'); return; }
+            if (!res.ok) { toast(t('toast.openRunFailed'), 'error'); return; }
             const detail = await res.json();
             const wfId = detail.workflowId || null;
             if (wfId && wfId !== currentWfIdRef.current) {
@@ -1573,7 +1587,7 @@ export default function App() {
             }
             inspectRun(String(d.runId));
             setView('canvas');
-          } catch { toast('打开画布：定位运行失败', 'error'); }
+          } catch { toast(t('toast.openRunLocateFailed'), 'error'); }
         })();
       }
       if (d.type === 'wf1-patch-confirm' && d.canvasId === canvasIdRef.current) {
@@ -1585,7 +1599,7 @@ export default function App() {
       }
       if (d.type === 'wf1-command-result' && d.text != null) {
         // 指令送达回执（#109）：直达聊天成功 / 降级填入宿主输入框
-        toast(d.ok ? `已发送到对话：${d.text}` : '官方会话通道不可用，指令已填入聊天输入框，请切到对话发送', d.ok ? 'success' : 'warn', 3200);
+        toast(d.ok ? t('command.sent', { text: d.text }) : t('command.fallbackSent'), d.ok ? 'success' : 'warn', 3200);
       }
       if (d.type === 'wf1-session' && d.sessionId) {
         hostSessionRef.current = d.sessionId;
@@ -1604,7 +1618,7 @@ export default function App() {
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [toGraph, currentWf]);
+  }, [toGraph, currentWf, t]);
 
   // 被嵌入官方 UI 时：加载即上报 ready + 初始图；定时补拉权威版本，恢复 SSE 漏包。
   const embedded = window.parent !== window;
@@ -1690,7 +1704,7 @@ export default function App() {
         type: 'insertable',
         // onInsert 直接注入边 data：styledEdges 随 [edges,statusKey] 重建，insertNodeOnEdge 引用稳定
         data: { onInsert: insertNodeOnEdge, branch },
-        label: branch ? (branch === 'true' ? '是' : '否') : undefined,
+          label: branch ? (branch === 'true' ? t('edge.branchYesShort') : t('edge.branchNoShort')) : undefined,
         labelStyle: { fill: palette.labelFill, fontSize: 11 },
         labelBgStyle: { fill: palette.labelBg },
         animated: src === 'running',
@@ -1698,7 +1712,7 @@ export default function App() {
         markerEnd: { type: MarkerType.ArrowClosed, color },
       };
     });
-  }, [edges, edgeStatusKey, insertNodeOnEdge, palette]);
+  }, [edges, edgeStatusKey, insertNodeOnEdge, palette, t]);
 
   const upstreamNodes = useMemo(() => {
     if (!selectedNode) return [];
@@ -1750,6 +1764,12 @@ export default function App() {
 
   const businessNodeCount = useMemo(() => nodes.filter((node) => node.data?.nodeType !== 'notify').length, [nodes]);
   const doneCount = useMemo(() => nodes.filter((n) => n.data?.nodeType !== 'notify' && ['success', 'error', 'skipped', 'canceled'].includes(n.data.runStatus)).length, [nodes]);
+  const activeModalMessage = modal?.messageKey
+    ? t(modal.messageKey, {
+      ...(modal.messageVars || {}),
+      warning: modal.warningKey ? t(modal.warningKey, modal.warningVars) : modal.messageVars?.warning || '',
+    })
+    : '';
 
   return (
     <div className="app">
@@ -1761,10 +1781,10 @@ export default function App() {
           <button className={`view-tab ${view === 'workflows' ? 'view-tab-on' : ''}`} onClick={() => setView('workflows')}>{t('nav.workflows')}</button>
           <button className={`view-tab ${historyOpen ? 'view-tab-on' : ''}`} onClick={() => setHistoryOpen(true)}>{t('nav.history')}</button>
         </nav>
-        {view === 'canvas' && currentWf && <span className="mode-badge toolbar-workflow-badge" title={`当前编辑的工作流：${currentWf.name}`}>{currentWf.name}{dirty ? ' •' : ''}</span>}
+        {view === 'canvas' && currentWf && <span className="mode-badge toolbar-workflow-badge" title={t('canvas.currentWorkflow', { workflow: currentWf.name })}>{currentWf.name}{dirty ? ' •' : ''}</span>}
         {runtime && (
-          <span className={`mode-badge toolbar-runtime-badge ${runtime.available ? 'mode-glm' : ''}`} title={runtime.available ? 'agent 节点默认由 dsh (DeepSeek Harness) 驱动' : (runtime.reasons || []).join('；')}>
-            {runtime.available ? '⚡ dsh 底座' : '内置循环（dsh 不可用）'}
+          <span className={`mode-badge toolbar-runtime-badge ${runtime.available ? 'mode-glm' : ''}`} title={runtime.available ? t('runtime.availableTitle') : (runtime.reasons || []).join('；')}>
+            {runtime.available ? t('runtime.available') : t('runtime.fallback')}
           </span>
         )}
         <div className="toolbar-spacer" />
@@ -1777,24 +1797,24 @@ export default function App() {
         </label>
         {view === 'canvas' && (
           <>
-            {runStatus.running && <span className="mode-badge mode-glm toolbar-progress-badge">{doneCount}/{runStatus.total || businessNodeCount} 节点</span>}
-            <button className="btn tb-refresh-btn toolbar-compact-hide" onClick={() => window.location.reload()} title="重新加载当前画布" aria-label="刷新画布"><span aria-hidden="true">⟳</span> 刷新</button>
+            {runStatus.running && <span className="mode-badge mode-glm toolbar-progress-badge">{t('canvas.progress', { done: doneCount, total: runStatus.total || businessNodeCount })}</span>}
+            <button className="btn tb-refresh-btn toolbar-compact-hide" onClick={() => window.location.reload()} title={t('canvas.reload')} aria-label={t('action.refresh')}><span aria-hidden="true">⟳</span> {t('action.refresh')}</button>
             <AddNodeMenu onPick={(type) => addNode(type)} />
-            <button className="btn tb-icon-btn toolbar-compact-hide" onClick={undo} disabled={!undoInfo.canUndo} title="撤销（Cmd+Z）" aria-label="撤销">↩</button>
-            <button className="btn tb-icon-btn toolbar-compact-hide" onClick={redo} disabled={!undoInfo.canRedo} title="重做（Cmd+Shift+Z）" aria-label="重做">↪</button>
-            <button className="btn tb-icon-btn" onClick={save} title={dirty ? '保存（Cmd+S）· 有未保存改动' : '保存（Cmd+S）'} aria-label="保存">
+            <button className="btn tb-icon-btn toolbar-compact-hide" onClick={undo} disabled={!undoInfo.canUndo} title={t('canvas.undoHint')} aria-label={t('action.undo')}>↩</button>
+            <button className="btn tb-icon-btn toolbar-compact-hide" onClick={redo} disabled={!undoInfo.canRedo} title={t('canvas.redoHint')} aria-label={t('action.redo')}>↪</button>
+            <button className="btn tb-icon-btn" onClick={save} title={dirty ? t('canvas.saveDirtyHint') : t('canvas.saveHint')} aria-label={t('action.save')}>
               <span className={dirty ? 'save-dot' : ''}>💾</span>
             </button>
             <MoreMenu items={[
-              { key: 'refresh', icon: '⟳', label: '刷新画布', compactOnly: true, onClick: () => window.location.reload() },
-              { key: 'undo', icon: '↩', label: '撤销', hint: 'Cmd+Z', compactOnly: true, disabled: !undoInfo.canUndo, onClick: undo },
-              { key: 'redo', icon: '↪', label: '重做', hint: 'Cmd+Shift+Z', compactOnly: true, disabled: !undoInfo.canRedo, onClick: redo },
-              larkStatus?.installed ? { key: 'lark', icon: '◈', label: larkStatus.user?.tokenStatus === 'valid' ? `飞书已登录：${larkStatus.user.userName}` : '飞书登录 / 设置', onClick: () => { setFocusLark(true); setCredOpen(true); } } : null,
-              { key: 'variables', icon: '⌘', label: '变量与输入', hint: '实例变量 / 工作流变量 / 运行输入', onClick: () => setVariableCenterOpen(true) },
-              { key: 'schedules', icon: '⏰', label: '定时任务', hint: '按周期自动运行工作流', onClick: () => setScheduleCenterOpen(true) },
-              { key: 'settings', icon: '⚙', label: '设置', hint: '凭据 / 飞书', onClick: () => setCredOpen(true) },
-              { key: 'templates', icon: '▤', label: '模板库', onClick: () => setTemplateOpen(true) },
-              { key: 'reset', icon: '⟲', label: '重置为示例', danger: true, onClick: resetGraph },
+              { key: 'refresh', icon: '⟳', label: t('canvas.reload'), compactOnly: true, onClick: () => window.location.reload() },
+              { key: 'undo', icon: '↩', label: t('action.undo'), hint: 'Cmd+Z', compactOnly: true, disabled: !undoInfo.canUndo, onClick: undo },
+              { key: 'redo', icon: '↪', label: t('action.redo'), hint: 'Cmd+Shift+Z', compactOnly: true, disabled: !undoInfo.canRedo, onClick: redo },
+              larkStatus?.installed ? { key: 'lark', icon: '◈', label: larkStatus.user?.tokenStatus === 'valid' ? t('toolbar.larkLoggedIn', { user: larkStatus.user.userName }) : t('toolbar.larkSettings'), onClick: () => { setFocusLark(true); setCredOpen(true); } } : null,
+              { key: 'variables', icon: '⌘', label: t('menu.variables'), hint: t('toolbar.variablesHint'), onClick: () => setVariableCenterOpen(true) },
+              { key: 'schedules', icon: '⏰', label: t('menu.schedules'), hint: t('toolbar.schedulesHint'), onClick: () => setScheduleCenterOpen(true) },
+              { key: 'settings', icon: '⚙', label: t('menu.settings'), hint: t('toolbar.settingsHint'), onClick: () => setCredOpen(true) },
+              { key: 'templates', icon: '▤', label: t('menu.templates'), onClick: () => setTemplateOpen(true) },
+              { key: 'reset', icon: '⟲', label: t('canvas.resetExample'), danger: true, onClick: resetGraph },
             ]} />
             {/* 多运行并发：常驻「运行」随时可再开一轮；「取消」只作用于当前查看的运行 */}
             <button className="btn btn-primary tb-run-btn" onClick={run} aria-label={t('action.run')}><span aria-hidden="true">▶</span><span className="tb-run-label">{t('action.run')}</span></button>
@@ -1803,7 +1823,7 @@ export default function App() {
             )}
           </>
         )}
-        {runStatus.last && <span className="run-last">上次: {runStatus.last}</span>}
+        {runStatus.last && <span className="run-last">{t('run.lastStatus', { status: statusText(runStatus.last) })}</span>}
       </header>
 
       <div className="main">
@@ -1888,15 +1908,15 @@ export default function App() {
           </ReactFlow>
           {lint?.issues?.length > 0 && (
             <div className="lint-bar">
-              <strong>图检查（{lint.issues.length}）</strong>
+              <strong>{t('lint.title', { count: lint.issues.length })}</strong>
               {lint.issues.slice(0, 4).map((i, idx) => (
                 <button key={idx} className={`lint-item ${i.level === 'error' ? 'lint-error' : 'lint-warn'}`}
                   onClick={() => i.nodeId && focusNode(i.nodeId)}
-                  title={i.nodeId ? '点击定位到该节点' : undefined}>
+                  title={i.nodeId ? t('lint.focusNode') : undefined}>
                   {i.level === 'error' ? '✗' : '⚠'} {i.message}
                 </button>
               ))}
-              {lint.issues.length > 4 && <span className="sec-hint">…还有 {lint.issues.length - 4} 条</span>}
+              {lint.issues.length > 4 && <span className="sec-hint">{t('lint.more', { count: lint.issues.length - 4 })}</span>}
             </div>
           )}
         </div>
@@ -1932,30 +1952,30 @@ export default function App() {
         {selectedEdge && (
           <aside className="panel node-panel">
             <header className="node-panel-head">
-              <span className="type-chip type-edge">连线</span>
+              <span className="type-chip type-edge">{t('edge.connection')}</span>
               <span className="title-input">{selectedSourceNode?.data?.label || selectedEdge.source} → {nodes.find((n) => n.id === selectedEdge.target)?.data?.label || selectedEdge.target}</span>
-              <button className="btn-icon" title="删除连线" onClick={() => deleteEdge(selectedEdge.id)}>🗑</button>
+              <button className="btn-icon" title={t('edge.delete')} aria-label={t('edge.delete')} onClick={() => deleteEdge(selectedEdge.id)}>🗑</button>
             </header>
             {selectedSourceNode?.data.nodeType === 'condition' ? (
               <section className="panel-sec">
-                <h4>分支 <span className="sec-hint">条件节点命中哪侧走这条边</span></h4>
+                <h4>{t('edge.branch')} <span className="sec-hint">{t('edge.branchHint')}</span></h4>
                 <div className="tool-chips">
-                  {[['true', '命中（是）'], ['false', '未命中（否）']].map(([v, label]) => (
+                  {[['true', t('edge.branchYes')], ['false', t('edge.branchNo')]].map(([v, label]) => (
                     <button key={v} className={`chip ${(selectedEdge.branch || selectedEdge.data?.branch) === v ? 'chip-on' : ''}`}
                       onClick={() => updateEdgeBranch(selectedEdge.id, v)}>{label}</button>
                   ))}
                 </div>
               </section>
             ) : (
-              <section className="panel-sec"><p className="sec-hint">普通数据流连线。点击画布空白处关闭。</p></section>
+              <section className="panel-sec"><p className="sec-hint">{t('edge.dataFlowHint')}</p></section>
             )}
           </aside>
         )}
 
         <div className={`result-panel-shell ${logOpen ? '' : 'panel-collapsed'}`}>
           {!logOpen && (
-            <button className="btn btn-sm panel-toggle" onClick={() => setLogOpen(true)} aria-label="展开成果面板">
-              ◀ 展开
+            <button className="btn btn-sm panel-toggle" onClick={() => setLogOpen(true)} aria-label={t('result.expand')}>
+              ◀ {t('action.expand')}
             </button>
           )}
           {logOpen && <ResultPanel
@@ -1991,34 +2011,37 @@ export default function App() {
       )}
       {resumeChoice && (
         <Modal
-          title="检测到未完成的运行"
+          title={t('resume.detectedTitle')}
           onClose={() => { resumeChoice.startFresh(); }}
           footer={(
             <>
-              <button className="btn" onClick={resumeChoice.startFresh}>重新运行</button>
-              <button className="btn btn-primary" onClick={resumeChoice.startResume}>从上次继续</button>
+              <button className="btn" onClick={resumeChoice.startFresh}>{t('resume.startFresh')}</button>
+              <button className="btn btn-primary" onClick={resumeChoice.startResume}>{t('resume.continue')}</button>
             </>
           )}
         >
           <p className="panel-note" style={{ marginBottom: 8 }}>
-            上次运行（{new Date(resumeChoice.lastRun.startedAt).toLocaleString('zh-CN', { hour12: false })}）
-            {resumeChoice.lastRun.status === 'interrupted' ? '异常中断' : resumeChoice.lastRun.status === 'error' ? '失败' : '被取消'}，
-            已完成 <strong>{resumeChoice.lastRun.progress?.succeeded ?? '?'}/{resumeChoice.lastRun.progress?.total ?? '?'}</strong> 个节点。
+            {t('resume.lastRun', {
+              time: formatDateTime(resumeChoice.lastRun.startedAt),
+              status: statusText(resumeChoice.lastRun.status),
+              succeeded: resumeChoice.lastRun.progress?.succeeded ?? '?',
+              total: resumeChoice.lastRun.progress?.total ?? '?',
+            })}
           </p>
           {resumeChoice.plan ? (
             <>
               <p className="sec-hint">
-                「从上次继续」将复用 {resumeChoice.plan.reusableNodes.length} 个已完成节点的输出
+                {t('resume.planPrefix', { count: resumeChoice.plan.reusableNodes.length })}
                 {resumeChoice.plan.rerunNodes.length > 0 && (
-                  <>；<strong>{resumeChoice.plan.rerunNodes.length} 个因画布修改将重跑</strong>（{resumeChoice.plan.rerunNodes.join('、')}）</>
-                )}，其余未完成节点照常补跑。「重新运行」全部节点从头执行。
+                  <> {t('resume.rerun', { count: resumeChoice.plan.rerunNodes.length, nodes: resumeChoice.plan.rerunNodes.join(t('resume.nodeJoiner')) })}</>
+                )} {t('resume.planSuffix')}
               </p>
               {resumeChoice.plan.reusableNodes.length > 0 && (
-                <p className="sec-hint">复用节点：{resumeChoice.plan.reusableNodes.join('、')}</p>
+                <p className="sec-hint">{t('resume.reusedNodes', { nodes: resumeChoice.plan.reusableNodes.join(t('resume.nodeJoiner')) })}</p>
               )}
             </>
           ) : (
-            <p className="sec-hint">「从上次继续」复用已完成节点的输出，只补跑未完成部分。「重新运行」全部节点从头执行。</p>
+            <p className="sec-hint">{t('resume.noPlan')}</p>
           )}
         </Modal>
       )}
@@ -2031,8 +2054,8 @@ export default function App() {
           refreshRunList();
           const rerunCount = rerunNodes?.length ?? 0;
           toast(rerunCount > 0
-            ? `已从上次运行续跑（复用 ${resumedNodes} 个节点，${rerunCount} 个因画布修改重跑）`
-            : `已从上次运行续跑（复用 ${resumedNodes} 个已完成节点）`, 'success');
+            ? t('run.resumedWithRerun', { reused: resumedNodes, rerun: rerunCount })
+            : t('run.resumedWithReuse', { reused: resumedNodes }), 'success');
         }}
         onSelect={(runId) => {
         inspectRun(runId);
@@ -2063,19 +2086,19 @@ export default function App() {
             }));
           setEventsByRunId((current) => ({ ...current, [runId]: [...restored, {
             t: Date.now(), kind: 'run', runId, status: detail.status,
-            text: `历史运行：${STATUS_CN[detail.status] || detail.status}`,
+            text: t('run.historyLabel', { status: statusText(detail.status) }),
           }] }));
           setRunStatus((current) => ({ ...current, running: false, runId, last: detail.status }));
         };
         const cached = runDetails[runId];
         if (cached) applyDetail(cached);
         fetch(apiUrl(`/runs/detail?id=${encodeURIComponent(runId)}`))
-          .then((response) => response.ok ? response.json() : Promise.reject(new Error('运行记录不存在')))
+          .then((response) => response.ok ? response.json() : Promise.reject(new Error(t('run.recordMissing'))))
           .then((detail) => {
             setRunDetails((current) => ({ ...current, [runId]: detail }));
             applyDetail(detail);
           })
-          .catch(() => toast('加载历史运行失败', 'error'));
+          .catch(() => toast(t('run.historyLoadFailed'), 'error'));
       }} />}
       {nodeDetail && (
         <NodeDetailModal runId={nodeDetail.runId} nodeId={nodeDetail.nodeId} onClose={() => setNodeDetail(null)} />
@@ -2117,11 +2140,11 @@ export default function App() {
       )}
       {templateOpen && <TemplateModal onClose={() => setTemplateOpen(false)} onApply={applyTemplate} />}
       {modal?.type === 'confirm' && (
-        <ConfirmModal title={modal.title} message={modal.message} danger={modal.danger} confirmText={modal.confirmText}
+        <ConfirmModal title={t(modal.titleKey, modal.titleVars)} message={activeModalMessage} danger={modal.danger} confirmText={t(modal.confirmKey)}
           onCancel={() => setModal(null)} onConfirm={modal.onConfirm} />
       )}
       {modal?.type === 'prompt' && (
-        <PromptModal title={modal.title} initial={modal.initial} placeholder={modal.placeholder} confirmText={modal.confirmText}
+        <PromptModal title={modal.titleKey ? t(modal.titleKey, modal.titleVars) : modal.title} initial={modal.initial} placeholder={modal.placeholderKey ? t(modal.placeholderKey) : modal.placeholder} confirmText={modal.confirmKey ? t(modal.confirmKey) : modal.confirmText}
           onCancel={() => setModal(null)} onConfirm={modal.onConfirm} />
       )}
       {/* #109 画布内轻量指令条：快捷钮走纯 API，自由文本经宿主注入官方聊天（能力探测+降级） */}
@@ -2223,6 +2246,7 @@ function findFreeSpot(nodes) {
 // #109 画布内轻量指令条：右下角悬浮；快捷钮走纯 API（运行/最近状态），
 // 自由文本经宿主 conversation 通道注入官方聊天（不可用时宿主会填入输入框降级）。
 function CanvasCommandBar({ onRun, onStatus, onSend }) {
+  const { t } = useI18n();
   const [text, setText] = useState('');
   const submit = (e) => {
     e.preventDefault();
@@ -2231,18 +2255,18 @@ function CanvasCommandBar({ onRun, onStatus, onSend }) {
     setText('');
   };
   return (
-    <div className="wf1-cmdbar" role="toolbar" aria-label="画布快捷指令">
-      <button type="button" className="wf1-cmdbar-btn" onClick={onRun} title="运行当前工作流">▶ 跑一次</button>
-      <button type="button" className="wf1-cmdbar-btn" onClick={onStatus} title="查看最近一次运行状态">⏱ 最近状态</button>
+    <div className="wf1-cmdbar" role="toolbar" aria-label={t('command.toolbarLabel')}>
+      <button type="button" className="wf1-cmdbar-btn" onClick={onRun} title={t('command.runTitle')}>▶ {t('command.run')}</button>
+      <button type="button" className="wf1-cmdbar-btn" onClick={onStatus} title={t('command.statusTitle')}>⏱ {t('command.status')}</button>
       <form className="wf1-cmdbar-form" onSubmit={submit}>
         <input
           className="wf1-cmdbar-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="描述指令（复杂修改会由对话里的 AI 执行）"
-          aria-label="画布指令"
+          placeholder={t('command.placeholder')}
+          aria-label={t('command.inputLabel')}
         />
-        <button type="submit" className="wf1-cmdbar-btn wf1-cmdbar-send" disabled={!text.trim()}>发送</button>
+        <button type="submit" className="wf1-cmdbar-btn wf1-cmdbar-send" disabled={!text.trim()}>{t('command.send')}</button>
       </form>
     </div>
   );
