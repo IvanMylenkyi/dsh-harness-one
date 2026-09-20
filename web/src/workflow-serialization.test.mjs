@@ -126,7 +126,7 @@ assert.deepEqual(createWorkflowDocument(), {
 
 assert.throws(
   () => normalizeWorkflowDocument({ schemaVersion: WORKFLOW_SCHEMA_VERSION + 1 }),
-  /不支持的工作流文档版本/,
+  (error) => error.i18nKey === 'workflow.unsupportedSchemaVersion' && error.i18nVariables.version === WORKFLOW_SCHEMA_VERSION + 1,
 );
 
 console.log('workflow serialization tests: all pass');

@@ -12,32 +12,18 @@ const PRESET_KEY = {
   'weekly-mon-9': 'schedule.preset.weeklyMon9',
   'weekdays-9': 'schedule.preset.weekdays9',
 };
-const DAY_KEY = { '\u5468\u65e5': 'schedule.day.sun', '\u5468\u4e00': 'schedule.day.mon', '\u5468\u4e8c': 'schedule.day.tue', '\u5468\u4e09': 'schedule.day.wed', '\u5468\u56db': 'schedule.day.thu', '\u5468\u4e94': 'schedule.day.fri', '\u5468\u516d': 'schedule.day.sat' };
+const DAY_KEY = ['schedule.day.sun', 'schedule.day.mon', 'schedule.day.tue', 'schedule.day.wed', 'schedule.day.thu', 'schedule.day.fri', 'schedule.day.sat'];
 
 function localizeDays(value, t) {
-  return value.split('、').map((day) => t(DAY_KEY[day] || 'schedule.unknownDay', { day })).join(t('schedule.dayJoiner'));
+  return value.map((day) => t(DAY_KEY[day] || 'schedule.unknownDay', { day })).join(t('schedule.dayJoiner'));
 }
 
 function localizeCronDescription(cron, t) {
-  const raw = describeCron(cron);
-  if (!raw) return '';
-  let match = raw.match(/^\u6bcf\u5929 (\d{2}:\d{2})$/);
-  if (match) return t('schedule.everyDayAt', { time: match[1] });
-  match = raw.match(/^\u6bcf\u5c0f\u65f6\u7b2c (\d+) \u5206$/);
-  if (match) return t('schedule.hourlyAtMinute', { minute: match[1] });
-  if (raw === '\u6bcf\u5c0f\u65f6\u7b2c 0 \u5206\u8d77\u6bcf\u5206' || raw === '\u6bcf\u5206\u949f') return t('schedule.everyMinute');
-  match = raw.match(/^\u6bcf\u5c0f\u65f6\u6bcf (\d+) \u5206\u949f$/);
-  if (match) return t('schedule.everyMinutes', { count: match[1] });
-  match = raw.match(/^\u5de5\u4f5c\u65e5 (\d{2}:\d{2})$/);
-  if (match) return t('schedule.weekdaysAt', { time: match[1] });
-  if (raw === '\u6bcf\u4e2a\u5de5\u4f5c\u65e5') return t('schedule.everyWeekday');
-  match = raw.match(/^\u6bcf\u6708 (\d+) \u65e5(?: (\d{2}:\d{2}))?$/);
-  if (match) return match[2] ? t('schedule.monthlyAt', { day: match[1], time: match[2] }) : t('schedule.monthlyOn', { day: match[1] });
-  match = raw.match(/^(.+?) (\d{2}:\d{2})$/);
-  if (match && match[1].split('\u3001').every((day) => DAY_KEY[day])) return t('schedule.weekdaysAtNamed', { days: localizeDays(match[1], t), time: match[2] });
-  match = raw.match(/^\u6bcf(.+)$/);
-  if (match && match[1].split('、').every((day) => DAY_KEY[day])) return t('schedule.everyWeekdays', { days: localizeDays(match[1], t) });
-  return cron;
+  const descriptor = describeCron(cron);
+  if (!descriptor) return '';
+  const variables = { ...(descriptor.variables || {}) };
+  if (Array.isArray(variables.days)) variables.days = localizeDays(variables.days, t);
+  return t(descriptor.key, variables);
 }
 
 function validateRunInputsJson(text) {
@@ -54,7 +40,7 @@ function validateRunInputsJson(text) {
 }
 
 function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [workflowId, setWorkflowId] = useState(initial?.workflowId || (workflows[0]?.id || ''));
   const [cron, setCron] = useState(initial?.cron || CRON_PRESETS[0].cron);
   const [input, setInput] = useState(initial?.input || '');
@@ -134,7 +120,7 @@ function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
         {preview.state === 'ok' && (
           <p className="sch-preview">
             <strong>{localizeCronDescription(cron, t) || t('schedule.customCycle')}</strong>
-            {t('schedule.nextRuns')}: {preview.times.map((time) => formatNextInZone(time, timezone)).join(t('schedule.timeJoiner'))}
+            {t('schedule.nextRuns')}: {preview.times.map((time) => formatNextInZone(time, timezone, locale)).join(t('schedule.timeJoiner'))}
           </p>
         )}
         <div className="sch-tz">
@@ -204,7 +190,7 @@ function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
 }
 
 export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [schedules, setSchedules] = useState([]);
   const [workflows, setWorkflows] = useState([]);
   const [mode, setMode] = useState('list'); // list | create | edit
@@ -318,7 +304,7 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
                     </div>
                     <div className="sch-row-meta">
                       <span title={row.cron}>{describeCron(row.cron) || row.cron}</span>
-                      <span>{t('schedule.nextAt', { time: formatNextInZone(row.nextAt, row.timezone) })}</span>
+                      <span>{t('schedule.nextAt', { time: formatNextInZone(row.nextAt, row.timezone, locale) })}</span>
                       <span>{row.timezone ? t('schedule.timezone', { timezone: row.timezone }) : t('schedule.followHost', { timezone: hostTimezone() })}</span>
                       <span>{t('schedule.fired', { count: row.fireCount ?? 0 })}{row.skippedCount ? ` (${t('schedule.skipped', { count: row.skippedCount })})` : ''}{row.misfireCount ? ` (${t('schedule.misfires', { count: row.misfireCount })})` : ''}</span>
                       <span>{row.overlap === 'parallel' ? t('schedule.overlapParallelShort') : t('schedule.overlapSkipShort')}</span>

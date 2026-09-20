@@ -11,9 +11,9 @@ assert.throws(() => parseJsonResponseText('<!DOCTYPE html><html></html>', {
   status: 200,
   contentType: 'text/html; charset=utf-8',
   url: '/api/node/test',
-}), /返回了网页而不是 JSON.*\/api\/node\/test/);
+}), (error) => error.i18nKey === 'test.htmlResponse' && error.i18nVariables.url === '/api/node/test');
 
-assert.throws(() => parseJsonResponseText('', { status: 503 }), /空响应.*503/);
-assert.throws(() => parseJsonResponseText('not-json', { status: 502 }), /无效 JSON.*502/);
+assert.throws(() => parseJsonResponseText('', { status: 503 }), (error) => error.i18nKey === 'test.emptyResponse' && error.i18nVariables.status === '(HTTP 503)');
+assert.throws(() => parseJsonResponseText('not-json', { status: 502 }), (error) => error.i18nKey === 'test.invalidJsonResponse' && error.i18nVariables.status === '(HTTP 502)');
 
 console.log('json response tests: all pass');

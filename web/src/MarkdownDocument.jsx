@@ -4,6 +4,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { markdownRemarkPlugins, repairMissingTableDelimiter } from 'dsh-ccpg-document-preview/markdown';
 import { DocumentPreviewButton } from 'dsh-ccpg-document-preview/react';
 import { findArtifactByName } from './ArtifactPreview.jsx';
+import { useI18n } from './i18n/index.js';
 
 // agent 产出的文稿常见「markdown 套 HTML 表格」混合格式：不开 raw 解析时
 // <table>/<br/> 等标签整面转义成源码墙。rehype-raw 放行原始 HTML，
@@ -23,6 +24,7 @@ const sanitizeSchema = {
 // files：本次运行的产物清单。正文里用行内 code 引用的产物文件名（`xxx.md`）
 // 命中清单时渲染成可点击按钮，点击直接开预览弹窗。
 export default function MarkdownDocument({ content, files = [] }) {
+  const { t } = useI18n();
   return (
     <ReactMarkdown
       remarkPlugins={markdownRemarkPlugins}
@@ -37,7 +39,7 @@ export default function MarkdownDocument({ content, files = [] }) {
           const artifact = inline && files.length ? findArtifactByName(files, text) : null;
           if (artifact) {
             return (
-              <DocumentPreviewButton document={artifact} className="md-file-link" title={`预览 ${artifact.name}`}>
+              <DocumentPreviewButton document={artifact} className="md-file-link" title={t('artifact.previewTitle', { name: artifact.name })}>
                 <code {...props}>{text}</code>
               </DocumentPreviewButton>
             );

@@ -303,9 +303,9 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
   const templateProps = useMemo(() => ({
     variables: variableSchema.items,
     variableFallback: variableSchema.fallback,
-    variableMessage: variableSchema.message,
+    variableMessage: variableSchema.messageKey ? t(variableSchema.messageKey, variableSchema.messageVariables) : variableSchema.message,
     variableContext,
-  }), [variableContext, variableSchema]);
+  }), [t, variableContext, variableSchema]);
 
   const copyOutput = async () => {
     await navigator.clipboard?.writeText(d.runOutput || '');

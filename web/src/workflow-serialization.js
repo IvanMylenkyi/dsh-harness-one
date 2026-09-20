@@ -37,7 +37,10 @@ function assertSupportedSchemaVersion(value) {
   if (value === undefined || value === null) return;
   const version = Number(value);
   if (!Number.isInteger(version) || version < 0 || version > WORKFLOW_SCHEMA_VERSION) {
-    throw new Error(`不支持的工作流文档版本：${value}`);
+    const error = new Error('workflow.unsupportedSchemaVersion');
+    error.i18nKey = 'workflow.unsupportedSchemaVersion';
+    error.i18nVariables = { version: value };
+    throw error;
   }
 }
 

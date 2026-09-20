@@ -22,6 +22,10 @@ function formatTime(value, locale) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString(locale, { hour12: false });
 }
 
+function displayError(error, t) {
+  return error?.i18nKey ? t(error.i18nKey, error.i18nVariables) : String(error?.message || error || '');
+}
+
 const STEP_STATUS_META = {
   success: { statusKey: 'status.success', tone: 'success' },
   running: { statusKey: 'status.running', tone: 'running' },
@@ -132,7 +136,7 @@ function IssuesView({ issues, runId, onFocusNode, onOpenNodeDetail }) {
             <span>{issue.nodeLabel || issue.nodeId || t('result.runIssue')}</span>
             {issue.nodeId && <button onClick={() => onFocusNode?.(issue.nodeId)}>{t('result.focusNode')}</button>}
           </div>
-          <p>{issue.message}</p>
+          <p>{issue.messageKey ? t(issue.messageKey, issue.messageVariables) : issue.message}</p>
           {issue.nodeId && runId && (
             <button className="result-detail-link" onClick={() => onOpenNodeDetail?.(runId, issue.nodeId)}>
               {t('result.details')} <ChevronRight size={12} />
@@ -191,7 +195,7 @@ export function ResultPanel({
       );
       setRemoteResults(data);
     } catch (error) {
-      if (error?.name !== 'AbortError') setLoadError(error?.message || String(error));
+      if (error?.name !== 'AbortError') setLoadError(displayError(error, t));
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -262,7 +266,7 @@ export function ResultPanel({
       });
       setSavedNames(data.names);
     } catch (error) {
-      setSaveError(error?.message || String(error));
+      setSaveError(displayError(error, t));
     } finally {
       setSaving(false);
     }
@@ -289,7 +293,7 @@ export function ResultPanel({
       setChildDetail(detail);
     } catch (error) {
       if (error?.name !== 'AbortError' && childRequestRef.current === controller && requestedRunId === runId) {
-        setLoadError(error.message || String(error));
+        setLoadError(displayError(error, t));
       }
     } finally {
       if (childRequestRef.current === controller) {
@@ -304,7 +308,7 @@ export function ResultPanel({
       <header className="result-panel-head">
         <div className="result-title-wrap">
           <span className={`result-status result-status-${viewState.status.tone}`}>{viewState.status.statusKey ? t(viewState.status.statusKey) : viewState.status.statusLabel}</span>
-          <strong>{model.workflowName}</strong>
+          <strong>{model.workflowName || (model.workflowNameKey ? t(model.workflowNameKey) : '')}</strong>
           {model.startedAt && <span className="result-run-time"><Clock3 size={12} />{formatTime(model.startedAt, locale)}</span>}
           {model.runId && model.usageTotal && (
             <span className="result-run-usage" title={t('usage.title')}>

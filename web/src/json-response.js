@@ -1,11 +1,19 @@
 export function parseJsonResponseText(text, { status = 0, contentType = '', url = '' } = {}) {
   const source = String(text ?? '').trim();
-  if (!source) throw new Error(`试运行接口返回空响应${status ? `（HTTP ${status}）` : ''}`);
+  const statusText = status ? `(HTTP ${status})` : '';
+  if (!source) throw responseError('test.emptyResponse', { status: statusText });
   try { return JSON.parse(source); } catch {
     const looksHtml = /^(?:<!doctype\s+html|<html\b)/i.test(source) || contentType.includes('text/html');
     if (looksHtml) {
-      throw new Error(`试运行接口返回了网页而不是 JSON${status ? `（HTTP ${status}）` : ''}：${url || '请刷新页面后重试'}`);
+      throw responseError('test.htmlResponse', { status: statusText, url: url || 'the page' });
     }
-    throw new Error(`试运行接口返回无效 JSON${status ? `（HTTP ${status}）` : ''}`);
+    throw responseError('test.invalidJsonResponse', { status: statusText });
   }
+}
+
+function responseError(i18nKey, i18nVariables) {
+  const error = new Error(i18nKey);
+  error.i18nKey = i18nKey;
+  error.i18nVariables = i18nVariables;
+  return error;
 }

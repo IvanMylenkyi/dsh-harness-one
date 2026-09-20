@@ -6,18 +6,18 @@ export const LEGACY_VARIABLE_MIMES = ['application/x-workflow-variable'];
 const BUILTINS = [
   {
     id: 'builtin:$trigger',
-    label: '触发输入',
+    labelKey: 'variables.builtin.trigger',
     token: '$trigger',
     type: 'string',
-    description: '本次运行传入的触发内容',
+    descriptionKey: 'variables.builtin.triggerHint',
     source: 'builtin',
   },
   {
     id: 'builtin:$upstream',
-    label: '全部上游',
+    labelKey: 'variables.builtin.upstream',
     token: '$upstream',
     type: 'string',
-    description: '全部直接上游输出，附带来源标记',
+    descriptionKey: 'variables.builtin.upstreamHint',
     source: 'builtin',
   },
 ];
@@ -49,10 +49,13 @@ export function normalizeVariableItem(raw, parent = {}) {
     : Object.entries(rawChildren).map(([name, value]) => ({ name, ...(value || {}) }));
   return {
     id: raw.id || token || `${parent.id || 'variable'}:${raw.name || raw.label || 'field'}`,
-    label: raw.label || raw.name || token || '变量',
+    label: raw.label || raw.name || token || '',
+    labelKey: raw.labelKey,
     token,
     type: raw.type || raw.valueType || inferType(raw.value ?? raw.recentValue),
     description: raw.description || raw.hint || '',
+    descriptionKey: raw.descriptionKey,
+    descriptionVariables: raw.descriptionVariables,
     recentValue: raw.recentValue ?? raw.lastValue ?? raw.value,
     hasValue: raw.hasValue ?? raw.available ?? (raw.recentValue ?? raw.lastValue ?? raw.value) !== undefined,
     source: raw.source || parent.source || 'node',
@@ -196,7 +199,8 @@ export function buildFallbackSchema({ graph, targetNodeId, upstreamNodes = [], u
       type: inferType(parsedValue ?? rawValue),
       recentValue: rawValue,
       hasValue: rawValue !== undefined && rawValue !== '',
-      description: `节点 ${source.id} 的输出`,
+      descriptionKey: 'variables.nodeOutputDescription',
+      descriptionVariables: { node: source.id },
       source: 'node',
       children: buildValueFields(parsedValue, baseToken, source.id, 0),
     });
@@ -204,13 +208,12 @@ export function buildFallbackSchema({ graph, targetNodeId, upstreamNodes = [], u
   const builtinItems = BUILTINS.map((item) => normalizeVariableItem(item));
   return {
     items: [
-      { id: 'group:nodes', label: '上游节点', source: 'group', children: nodeItems },
-      { id: 'group:builtin', label: '运行上下文', source: 'group', children: builtinItems },
+      { id: 'group:nodes', labelKey: 'variables.group.upstreamNodes', source: 'group', children: nodeItems },
+      { id: 'group:builtin', labelKey: 'variables.group.runtimeContext', source: 'group', children: builtinItems },
     ],
     fallback: true,
-    message: error
-      ? `变量接口暂不可用（${error.message || String(error)}），当前使用画布结构和最近输出推断。`
-      : '',
+    messageKey: error ? 'variables.fallbackMessage' : '',
+    messageVariables: error ? { error: error.message || String(error) } : {},
   };
 }
 
@@ -280,14 +283,20 @@ export function validateTemplateLocally(template, variables) {
         from: match.index,
         to: match.index + match[0].length,
         severity: 'error',
-        message: `找不到变量 ${token}`,
+        messageKey: 'variables.missingToken',
+        messageVariables: { token },
         token,
       });
     }
   }
   const opens = (text.match(/\{\{/g) || []).length;
   const closes = (text.match(/\}\}/g) || []).length;
-  if (opens !== closes) issues.push({ from: Math.max(0, text.lastIndexOf('{{')), to: text.length, severity: 'error', message: '变量表达式未闭合' });
+  if (opens !== closes) issues.push({
+    from: Math.max(0, text.lastIndexOf('{{')),
+    to: text.length,
+    severity: 'error',
+    messageKey: 'variables.unclosedExpression',
+  });
   return { ok: issues.length === 0, issues };
 }
 

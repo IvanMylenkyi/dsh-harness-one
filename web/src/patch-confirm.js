@@ -5,7 +5,7 @@ export const isModifyClassPatch = (ops) => (ops || []).some(
   (op) => op?.op === 'deleteNode' || op?.op === 'updateNode',
 );
 
-// 摘要文案：删除带节点名（点名最危险的操作），其余计类别数。
+// 摘要结构：删除带节点名（点名最危险的操作），其余计类别数；文案由 React 层翻译。
 // nodes 是落图前的画布节点（React Flow 形状），用于 id→label。
 export const summarizePendingOps = (ops, nodes) => {
   const labels = new Map((nodes || []).map((n) => [n.id, n.data?.label || n.id]));
@@ -21,13 +21,13 @@ export const summarizePendingOps = (ops, nodes) => {
     else if (op?.op === 'connect') connected += 1;
     else if (op?.op === 'deleteEdge') deletedEdges += 1;
   }
-  const parts = [];
-  if (deleted.length) parts.push(`删除 ${deleted.length} 个节点（${deleted.join('、')}）`);
-  if (updated.size) parts.push(`修改 ${updated.size} 个节点`);
-  if (added) parts.push(`新增 ${added} 个节点`);
-  if (connected) parts.push(`新增 ${connected} 条连线`);
-  if (deletedEdges) parts.push(`删除 ${deletedEdges} 条连线`);
-  return parts.join('、') || '无变更';
+  const items = [];
+  if (deleted.length) items.push({ key: 'patch.deletedNodes', variables: { count: deleted.length, labels: deleted.join(', ') } });
+  if (updated.size) items.push({ key: 'patch.updatedNodes', variables: { count: updated.size } });
+  if (added) items.push({ key: 'patch.addedNodes', variables: { count: added } });
+  if (connected) items.push({ key: 'patch.addedEdges', variables: { count: connected } });
+  if (deletedEdges) items.push({ key: 'patch.deletedEdges', variables: { count: deletedEdges } });
+  return { items, emptyKey: 'patch.noChanges' };
 };
 
 export const PATCH_CONFIRM_TIMEOUT_MS = 30000;

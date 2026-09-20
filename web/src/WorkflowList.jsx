@@ -19,6 +19,10 @@ function runTime(run, t, formatDateTime, formatDuration) {
   return formatDateTime(run.startedAt);
 }
 
+function errorText(error, t) {
+  return error?.i18nKey ? t(error.i18nKey, error.i18nVariables) : String(error?.message || error || '');
+}
+
 export function WorkflowList({ currentId, onOpen, onNew, runs = [], onStartRun, onCancelRun, onInspectRun, onRefresh }) {
   const { formatDateTime, formatDuration, t } = useI18n();
   const toast = useToast();
@@ -36,7 +40,7 @@ export function WorkflowList({ currentId, onOpen, onNew, runs = [], onStartRun, 
       if (!res.ok) throw new Error(`${t('workflow.loadFailed')} (HTTP ${res.status})`);
       const data = await res.json();
       setList(data.workflows || []);
-    } catch (error) { toast(error.message || t('workflow.loadFailed'), 'error'); }
+    } catch (error) { toast(errorText(error, t) || t('workflow.loadFailed'), 'error'); }
   };
   useEffect(() => { load(); }, []);
 
@@ -57,7 +61,7 @@ export function WorkflowList({ currentId, onOpen, onNew, runs = [], onStartRun, 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('workflow.readFailed'));
       setRunWorkflow(data);
-    } catch (error) { toast(error.message || t('workflow.readFailed'), 'error'); }
+    } catch (error) { toast(errorText(error, t) || t('workflow.readFailed'), 'error'); }
     finally { setActionBusy(`${wf.id}:run`, false); }
   };
 
@@ -72,7 +76,7 @@ export function WorkflowList({ currentId, onOpen, onNew, runs = [], onStartRun, 
     const key = `${wf.id}:${run.runId}`;
     setActionBusy(key, true);
     try { await onCancelRun?.(run.runId); refresh(); }
-    catch (error) { toast(error.message || t('workflow.cancelFailed'), 'error'); }
+    catch (error) { toast(errorText(error, t) || t('workflow.cancelFailed'), 'error'); }
     finally { setActionBusy(key, false); }
   } });
 
@@ -83,7 +87,7 @@ export function WorkflowList({ currentId, onOpen, onNew, runs = [], onStartRun, 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('workflow.createFailed'));
       refresh(); onNew?.(data);
-    } catch (error) { toast(error.message || t('workflow.createFailed'), 'error'); }
+    } catch (error) { toast(errorText(error, t) || t('workflow.createFailed'), 'error'); }
     finally { setBusy(false); }
   } });
 
@@ -113,7 +117,7 @@ export function WorkflowList({ currentId, onOpen, onNew, runs = [], onStartRun, 
       if (!res.headers.get('content-type')?.includes('application/json')) throw new Error(t('workflow.invalidServiceJson'));
       const url = URL.createObjectURL(await res.blob()); const a = document.createElement('a'); a.href = url; a.download = `${wf.name}.workflow-one.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 0);
       toast(t('workflow.exported', { workflow: wf.name }), 'success');
-    } catch (error) { toast(`${t('workflow.exportFailed')}: ${error.message}`, 'error'); }
+    } catch (error) { toast(`${t('workflow.exportFailed')}: ${errorText(error, t)}`, 'error'); }
     finally { setBusy(false); }
   };
 
@@ -125,7 +129,7 @@ export function WorkflowList({ currentId, onOpen, onNew, runs = [], onStartRun, 
       const res = await fetch(apiUrl('/workflows/transfer'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
       const out = await res.json(); if (!res.ok) throw new Error(out.error || t('workflow.importFailed'));
       toast(t('workflow.imported', { workflow: out.name, warnings: out.warnings ? ` (${out.warnings} ${t('workflow.warnings')})` : '' }), 'success'); refresh(); await onOpen?.(out);
-    } catch (error) { toast(`${t('workflow.importFailed')}: ${error.message}`, 'error'); }
+    } catch (error) { toast(`${t('workflow.importFailed')}: ${errorText(error, t)}`, 'error'); }
     finally { setBusy(false); }
   };
 

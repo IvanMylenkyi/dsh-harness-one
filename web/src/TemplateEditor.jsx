@@ -50,7 +50,7 @@ const templateHighlight = ViewPlugin.fromClass(class {
   update(update) { this.decorations = templateMatcher.updateDeco(update, this.decorations); }
 }, { decorations: (plugin) => plugin.decorations });
 
-function completionSource(variableRef) {
+function completionSource(variableRef, t) {
   return (context) => {
     const expression = context.matchBefore(/\{\{[^{}\n]*/);
     const command = context.matchBefore(/\/(?:var|变量)(?:\s+[^{}\n]*)?/);
@@ -74,9 +74,9 @@ function completionSource(variableRef) {
       from,
       filter: false,
       options: variables.slice(0, 120).map((item) => ({
-        label: item.label,
+        label: item.labelKey ? t(item.labelKey) : item.label,
         detail: item.type || 'unknown',
-        info: item.description || item.token,
+        info: item.descriptionKey ? t(item.descriptionKey, item.descriptionVariables) : (item.description || item.token),
         type: item.source === 'builtin' ? 'keyword' : 'variable',
         boost: item.hasValue ? 2 : 0,
         apply(view, _completion, applyFrom, to) {
@@ -92,14 +92,14 @@ function completionSource(variableRef) {
   };
 }
 
-function editorExtensions({ value, placeholder, variablesRef, onChangeRef, onCursor, singleLine, mode, minHeight, maxHeight }) {
+function editorExtensions({ value, placeholder, variablesRef, onChangeRef, onCursor, singleLine, mode, minHeight, maxHeight, t }) {
   return [
     history(),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     templateHighlight,
     diagnosticField,
     cmPlaceholder(placeholder),
-    autocompletion({ override: [completionSource(variablesRef)], activateOnTyping: true, maxRenderedOptions: 80 }),
+    autocompletion({ override: [completionSource(variablesRef, t)], activateOnTyping: true, maxRenderedOptions: 80 }),
     ...(mode === 'json' ? [json()] : []),
     EditorView.lineWrapping,
     EditorView.theme({
@@ -189,6 +189,7 @@ export function TemplateEditor({
         onChangeRef,
         singleLine,
         mode,
+        t,
         minHeight: `${Math.max(36, rows * 22 + 18)}px`,
         maxHeight: compact ? '150px' : '260px',
         onCursor(update) {
@@ -207,7 +208,7 @@ export function TemplateEditor({
       viewRef.current = null;
       view.destroy();
     };
-  }, [compact, mode, placeholder, rows, singleLine]);
+  }, [compact, mode, placeholder, rows, singleLine, t]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -348,6 +349,7 @@ function VariableWorkbench({
         onChangeRef,
         singleLine,
         mode,
+        t,
         minHeight: '420px',
         maxHeight: 'calc(82vh - 142px)',
       }),
@@ -359,7 +361,7 @@ function VariableWorkbench({
       viewRef.current = null;
       view.destroy();
     };
-  }, [mode, placeholder, singleLine]);
+  }, [mode, placeholder, singleLine, t]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -518,9 +520,9 @@ function VariableRow({ item, depth, expanded, onToggle, onInsert, forceOpen }) {
         </button>
         {insertable ? <GripVertical size={12} className="var-grip" /> : <Database size={12} className="var-group-icon" />}
         <div className="var-main">
-          <div className="var-name-line"><span className="var-name">{item.label}</span>{item.type && <span className={`var-type type-${item.type}`}>{item.type}</span>}</div>
+          <div className="var-name-line"><span className="var-name">{item.labelKey ? t(item.labelKey) : item.label}</span>{item.type && <span className={`var-type type-${item.type}`}>{item.type}</span>}</div>
           {insertable && <code>{item.token}</code>}
-          {item.description && <span className="var-description">{item.description}</span>}
+          {(item.description || item.descriptionKey) && <span className="var-description">{item.descriptionKey ? t(item.descriptionKey, item.descriptionVariables) : item.description}</span>}
           {insertable && <span className={item.hasValue ? 'var-preview' : 'var-no-value'}>{item.hasValue ? preview : t('template.noRecentValue')}</span>}
         </div>
         {insertable && <button type="button" className="var-copy" onClick={copy} aria-label={t('template.copyVariable', { label: item.label })} title={t('template.copyVariableTitle')}><Copy size={13} /></button>}

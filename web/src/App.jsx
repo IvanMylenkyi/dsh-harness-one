@@ -577,7 +577,12 @@ export default function App() {
         try {
           window.parent.postMessage({
             type: 'wf1-patch-confirm-state', state: 'pending', canvasId: canvasIdRef.current,
-            version, deadline, summary: summarizePendingOps(ops, nodesRef.current),
+            version,
+            deadline,
+            summary: (() => {
+              const descriptor = summarizePendingOps(ops, nodesRef.current);
+              return descriptor.items.map((item) => t(item.key, item.variables)).join(t('patch.joiner')) || t(descriptor.emptyKey);
+            })(),
           }, window.location.origin);
         } catch { /* 宿主无确认条（独立窗口画布）→ 30s 自动应用 */ }
         return;

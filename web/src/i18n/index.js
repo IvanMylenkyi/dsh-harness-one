@@ -33,10 +33,11 @@ export function createTranslator(locale) {
 }
 
 function DocumentLocale({ locale }) {
+  const { t } = useI18n();
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = locale === 'en' ? 'Workflow One' : '物业智能体工作流编排 MVP';
-  }, [locale]);
+    document.title = t('app.documentTitle');
+  }, [locale, t]);
   return null;
 }
 

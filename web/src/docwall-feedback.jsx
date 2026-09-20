@@ -5,8 +5,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiUrl } from './api.js';
 import { RichDocEditor } from './RichDocEditor.jsx';
+import { useI18n } from './i18n/index.js';
 
 const POLL_MS = 4000;
+
+function localError(i18nKey, i18nVariables = {}, cause) {
+  const error = new Error(i18nKey);
+  error.i18nKey = i18nKey;
+  error.i18nVariables = i18nVariables;
+  if (cause) error.cause = cause;
+  return error;
+}
+
+function errorText(error, t) {
+  return error?.i18nKey ? t(error.i18nKey, error.i18nVariables) : String(error?.message || error || '');
+}
 
 export function feedbackKey(doc) {
   return `${doc.nodeId || ''}\u0000${doc.name}`;
@@ -58,9 +71,14 @@ export function useArtifactFeedback(runId, refreshToken = 0) {
           return next;
         });
         if (!done) {
-          const message = run.error
-            || (run.status === 'success' ? '改写完成但没有生成修订版本' : run.status === 'canceled' ? '改写已取消' : `改写失败（${run.status}）`);
-          setRevisionErrors((prev) => new Map(prev).set(key, { revisionRunId: rid, message }));
+          const state = run.error
+            ? { revisionRunId: rid, message: run.error }
+            : run.status === 'success'
+              ? { revisionRunId: rid, i18nKey: 'feedback.revisionEmpty' }
+              : run.status === 'canceled'
+                ? { revisionRunId: rid, i18nKey: 'feedback.revisionCanceled' }
+                : { revisionRunId: rid, i18nKey: 'feedback.revisionFailed', i18nVariables: { status: run.status } };
+          setRevisionErrors((prev) => new Map(prev).set(key, state));
         }
       } catch { /* 状态查不到：保留 pending，轮询继续 */ }
     }
@@ -104,7 +122,7 @@ export function useArtifactFeedback(runId, refreshToken = 0) {
       body: JSON.stringify({ runId, nodeId: doc.nodeId, artifactId: doc.name, body }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || '评论失败');
+    if (!res.ok) throw (data.error ? new Error(data.error) : localError('feedback.commentFailed'));
     load();
     return data.comment;
   }, [runId, load]);
@@ -123,7 +141,7 @@ export function useArtifactFeedback(runId, refreshToken = 0) {
       body: JSON.stringify({ runId, nodeId: doc.nodeId, artifactId: doc.name, instruction }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || '改写发起失败');
+    if (!res.ok) throw (data.error ? new Error(data.error) : localError('feedback.revisionStartFailed'));
     const key = feedbackKey(doc);
     setRevisionErrors((prev) => {
       if (!prev.has(key)) return prev;
@@ -142,7 +160,7 @@ export function useArtifactFeedback(runId, refreshToken = 0) {
       body: JSON.stringify({ runId, nodeId: doc.nodeId, artifactId: doc.name, content }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || '保存失败');
+    if (!res.ok) throw (data.error ? new Error(data.error) : localError('feedback.saveFailed'));
     load();
     return data.revisionId;
   }, [runId, load]);
@@ -152,6 +170,7 @@ export function useArtifactFeedback(runId, refreshToken = 0) {
 
 /* ---------- 评论/版本链抽屉：挂在文稿视图右侧 ---------- */
 export function FeedbackDrawer({ doc, runId, feedback, onClose }) {
+  const { t } = useI18n();
   const key = feedbackKey(doc);
   const entry = feedback.byArtifact.get(key) || { comments: [], revisions: [] };
   const pendingId = feedback.pendingRevisions.get(key);
@@ -168,7 +187,7 @@ export function FeedbackDrawer({ doc, runId, feedback, onClose }) {
     setBusy('comment');
     setError('');
     try { await feedback.addComment(doc, body); setText(''); }
-    catch (e) { setError(String(e.message || e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setBusy(''); }
   };
 
@@ -177,7 +196,7 @@ export function FeedbackDrawer({ doc, runId, feedback, onClose }) {
     setBusy('revise');
     setError('');
     try { await feedback.revise(doc, text.trim()); setText(''); }
-    catch (e) { setError(String(e.message || e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setBusy(''); }
   };
 
@@ -191,14 +210,14 @@ export function FeedbackDrawer({ doc, runId, feedback, onClose }) {
     try {
       if (viewIndex === -1) {
         const res = await fetch(doc.downloadUrl);
-        if (!res.ok) throw new Error('原文拉取失败');
+        if (!res.ok) throw localError('feedback.sourceLoadFailed');
         setDraft({ base: -1, text: await res.text() });
       } else {
         const revision = entry.revisions[viewIndex];
-        if (!revision?.content) throw new Error('该版本正文未入库，无法作为编辑底稿');
+        if (!revision?.content) throw localError('feedback.revisionContentMissing');
         setDraft({ base: viewIndex, text: revision.content });
       }
-    } catch (e) { setError(String(e.message || e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setBusy(''); }
   };
 
@@ -210,106 +229,106 @@ export function FeedbackDrawer({ doc, runId, feedback, onClose }) {
       await feedback.saveManual(doc, draft.text);
       setDraft(null);
       setViewIndex(entry.revisions.length); // 保存后跳到新增的手工版本
-    } catch (e) { setError(String(e.message || e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setBusy(''); }
   };
 
   const shown = viewIndex >= 0 ? entry.revisions[viewIndex] : null;
 
   return (
-    <aside className="docwall-fb" aria-label={`评论：${doc.name}`}>
+    <aside className="docwall-fb" aria-label={t('feedback.ariaLabel', { name: doc.name })}>
       <header className="docwall-fb-head">
         <strong title={doc.name}>{doc.name}</strong>
-        <button type="button" className="btn btn-icon" aria-label="关闭评论" onClick={onClose}>✕</button>
+        <button type="button" className="btn btn-icon" aria-label={t('feedback.close')} onClick={onClose}>✕</button>
       </header>
 
       <section className="docwall-fb-sec">
         <div className="docwall-fb-label">
-          评论 / 修改建议
+          {t('feedback.comments')}
           {entry.comments.length > 0 && <span className="docwall-fb-cnt">{entry.comments.length}</span>}
         </div>
         <div className="docwall-fb-list">
-          {entry.comments.length === 0 && <p className="docwall-fb-empty">还没有评论。写下修改建议，AI 可按评论重出修订稿。</p>}
+          {entry.comments.length === 0 && <p className="docwall-fb-empty">{t('feedback.noComments')}</p>}
           {entry.comments.map((c) => (
             <div key={c.id} className="docwall-fb-item">
               <p>{c.body}</p>
               <div className="docwall-fb-meta">
                 <span>{new Date(c.created_at).toLocaleString()}</span>
-                <button type="button" className="docwall-fb-del" onClick={() => feedback.deleteComment(c.id)}>删除</button>
+                <button type="button" className="docwall-fb-del" onClick={() => feedback.deleteComment(c.id)}>{t('feedback.deleteComment')}</button>
               </div>
             </div>
           ))}
         </div>
         <textarea
-          className="docwall-fb-input" rows={3} placeholder="如：语气改正式些；第二段补充数据来源…"
+          className="docwall-fb-input" rows={3} placeholder={t('feedback.commentPlaceholder')}
           value={text} onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitComment(); }}
         />
         {error && <p className="docwall-fb-err">{error}</p>}
         <div className="docwall-fb-actions">
           <button type="button" className="btn btn-sm" disabled={!text.trim() || Boolean(busy)} onClick={submitComment}>
-            {busy === 'comment' ? '…' : '保存评论'}
+            {busy === 'comment' ? '…' : t('feedback.saveComment')}
           </button>
           {doc.kind === 'doc' && (
-            <button type="button" className="btn btn-sm btn-primary" disabled={Boolean(busy) || (!entry.comments.length && !text.trim())} onClick={submitRevise} title="只改这一篇，不动工作流">
-              {pendingId ? '改写中…' : busy === 'revise' ? '发起中…' : '✎ 按评论改写这一篇'}
+            <button type="button" className="btn btn-sm btn-primary" disabled={Boolean(busy) || (!entry.comments.length && !text.trim())} onClick={submitRevise} title={t('feedback.reviseTitle')}>
+              {pendingId ? t('feedback.revising') : busy === 'revise' ? t('feedback.startingRevision') : t('feedback.revise')}
             </button>
           )}
         </div>
-        {pendingId && <p className="docwall-fb-pending">改写运行中（{pendingId.slice(-6)}），完成后自动出现在版本链…</p>}
+        {pendingId && <p className="docwall-fb-pending">{t('feedback.pendingRevision', { id: pendingId.slice(-6) })}</p>}
         {revisionError && !pendingId && (
           <p className="docwall-fb-err" role="alert">
-            改写未完成：{revisionError.message}
+            {t('feedback.revisionIncomplete')}: {revisionError.i18nKey ? t(revisionError.i18nKey, revisionError.i18nVariables) : revisionError.message}
           </p>
         )}
       </section>
 
       {doc.kind === 'doc' && (
         <section className="docwall-fb-sec">
-          <div className="docwall-fb-label">版本链</div>
+          <div className="docwall-fb-label">{t('feedback.revisionChain')}</div>
           {draft ? (
             <div className="docwall-fb-edit">
               <p className="docwall-fb-edit-hint">
-                直接编辑（底稿：{draft.base === -1 ? '原稿' : `v${draft.base + 1}`}）——像改 Word 一样直接修改，保存为新版本，不覆盖原文件
+                {t('feedback.editHint', { base: draft.base === -1 ? t('feedback.original') : `v${draft.base + 1}` })}
               </p>
               {/* key=base：换底稿重开编辑时强制重挂编辑器（编辑器自身 deps 留空防逐键重建） */}
               <RichDocEditor key={draft.base} initialMarkdown={draft.text} onChange={(markdown) => setDraft((d) => (d ? { ...d, text: markdown } : d))} />
               {error && <p className="docwall-fb-err">{error}</p>}
               <div className="docwall-fb-actions">
-                <button type="button" className="btn btn-sm" disabled={Boolean(busy)} onClick={() => { setDraft(null); setError(''); }}>取消</button>
+                <button type="button" className="btn btn-sm" disabled={Boolean(busy)} onClick={() => { setDraft(null); setError(''); }}>{t('action.cancel')}</button>
                 <button type="button" className="btn btn-sm btn-primary" disabled={Boolean(busy) || !draft.text.trim()} onClick={saveEdit}>
-                  {busy === 'save' ? '保存中…' : '保存为新版本'}
+                  {busy === 'save' ? t('feedback.saving') : t('feedback.saveRevision')}
                 </button>
               </div>
             </div>
           ) : (
             <>
               <div className="docwall-fb-vers">
-                <button type="button" className={`docwall-fb-ver ${viewIndex === -1 ? 'docwall-fb-ver-on' : ''}`} onClick={() => setViewIndex(-1)}>原稿</button>
+                <button type="button" className={`docwall-fb-ver ${viewIndex === -1 ? 'docwall-fb-ver-on' : ''}`} onClick={() => setViewIndex(-1)}>{t('feedback.original')}</button>
                 {entry.revisions.map((r, i) => (
-                  <button key={r.id} type="button" className={`docwall-fb-ver ${viewIndex === i ? 'docwall-fb-ver-on' : ''}`}
+                <button key={r.id} type="button" className={`docwall-fb-ver ${viewIndex === i ? 'docwall-fb-ver-on' : ''}`}
                     onClick={() => setViewIndex(i)} title={r.summary || ''}>
                     v{i + 1}{r.revision_run_id == null ? ' ✍' : ''} · {new Date(r.created_at).toLocaleTimeString()}
                   </button>
                 ))}
-                {entry.revisions.length === 0 && <span className="docwall-fb-empty-inline">暂无修订</span>}
+                {entry.revisions.length === 0 && <span className="docwall-fb-empty-inline">{t('feedback.noRevisions')}</span>}
               </div>
               {shown && (
                 <div className="docwall-fb-preview">
                   {shown.summary && <p className="docwall-fb-summary">{shown.summary}</p>}
                   {shown.content
                     ? <pre className="docwall-fb-content">{shown.content}</pre>
-                    : <p className="docwall-fb-empty-inline">修订正文未入库（可从改写运行下载）</p>}
+                    : <p className="docwall-fb-empty-inline">{t('feedback.revisionContentMissingHint')}</p>}
                 </div>
               )}
               <div className="docwall-fb-actions">
                 {editableDoc && (
-                  <button type="button" className="btn btn-sm" disabled={Boolean(busy) || !doc.downloadUrl} title="以当前查看的版本为底稿直接编辑，保存为新版本"
+                  <button type="button" className="btn btn-sm" disabled={Boolean(busy) || !doc.downloadUrl} title={t('feedback.editTitle')}
                     onClick={startEdit}>
-                    {busy === 'edit' ? '准备中…' : '✍ 直接编辑'}
+                    {busy === 'edit' ? t('feedback.preparing') : t('feedback.editDirect')}
                   </button>
                 )}
-                {!editableDoc && <span className="docwall-fb-empty-inline">该格式不支持直接编辑（支持 .md）</span>}
+                {!editableDoc && <span className="docwall-fb-empty-inline">{t('feedback.editUnsupported')}</span>}
               </div>
             </>
           )}

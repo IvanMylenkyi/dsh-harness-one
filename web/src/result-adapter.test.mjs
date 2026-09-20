@@ -61,17 +61,17 @@ assert.deepEqual(fallback.nodeTimeline.map((row) => row.nodeId), ['input', 'agen
 // 过程 tab：步骤卡片需要原始 durationMs + startedAt，meta 统一为秒级文案
 assert.equal(fallback.nodeTimeline[0].durationMs, 10);
 assert.equal(fallback.nodeTimeline[0].startedAt, '2026-08-21T06:00:00.000Z');
-assert.equal(fallback.nodeTimeline[0].meta, '不到 1 秒');
-assert.equal(fallback.nodeTimeline[1].meta, '27 秒');
+assert.deepEqual(fallback.nodeTimeline[0].meta, { key: 'duration.lessThanSecond' });
+assert.deepEqual(fallback.nodeTimeline[1].meta, { key: 'duration.seconds', variables: { count: 27 } });
 
-assert.equal(formatDuration(undefined), '');
-assert.equal(formatDuration(0), '不到 1 秒');
-assert.equal(formatDuration(999), '不到 1 秒');
-assert.equal(formatDuration(1500), '1.5 秒');
-assert.equal(formatDuration(26817), '27 秒');
-assert.equal(formatDuration(57722), '58 秒');
-assert.equal(formatDuration(60000), '1 分钟');
-assert.equal(formatDuration(92000), '1 分 32 秒');
+assert.equal(formatDuration(undefined), null);
+assert.deepEqual(formatDuration(0), { key: 'duration.lessThanSecond' });
+assert.deepEqual(formatDuration(999), { key: 'duration.lessThanSecond' });
+assert.deepEqual(formatDuration(1500), { key: 'duration.secondsDecimal', variables: { count: '1.5' } });
+assert.deepEqual(formatDuration(26817), { key: 'duration.seconds', variables: { count: 27 } });
+assert.deepEqual(formatDuration(57722), { key: 'duration.seconds', variables: { count: 58 } });
+assert.deepEqual(formatDuration(60000), { key: 'duration.minutes', variables: { minutes: 1 } });
+assert.deepEqual(formatDuration(92000), { key: 'duration.minutesSeconds', variables: { minutes: 1, seconds: 32 } });
 assert.equal(formatClock('2026-08-21T06:00:00.000Z').length > 0, true);
 assert.equal(formatClock('not-a-date'), '');
 assert.equal(formatClock(undefined), '');

@@ -15,26 +15,26 @@ function test(name, fn) {
 
 console.log('schedule center tests:');
 
-test('常见 preset 人类可读描述', () => {
-  assert.equal(describeCron('0 9 * * *'), '每天 09:00');
-  assert.equal(describeCron('30 8 * * *'), '每天 08:30');
-  assert.equal(describeCron('0 * * * *'), '每小时第 0 分');
-  assert.equal(describeCron('15 * * * *'), '每小时第 15 分');
-  assert.equal(describeCron('*/10 * * * *'), '每 10 分钟');
-  assert.equal(describeCron('0 9 * * 1'), '周一 09:00');
-  assert.equal(describeCron('0 9 * * 1-5'), '工作日 09:00');
-  assert.equal(describeCron('0 9 1 * *'), '每月 1 日 09:00');
+test('常见 preset 返回稳定描述键', () => {
+  assert.deepEqual(describeCron('0 9 * * *'), { key: 'schedule.everyDayAt', variables: { time: '09:00' } });
+  assert.deepEqual(describeCron('30 8 * * *'), { key: 'schedule.everyDayAt', variables: { time: '08:30' } });
+  assert.deepEqual(describeCron('0 * * * *'), { key: 'schedule.hourlyAtMinute', variables: { minute: 0 } });
+  assert.deepEqual(describeCron('15 * * * *'), { key: 'schedule.hourlyAtMinute', variables: { minute: 15 } });
+  assert.deepEqual(describeCron('*/10 * * * *'), { key: 'schedule.everyMinutes', variables: { count: 10 } });
+  assert.deepEqual(describeCron('0 9 * * 1'), { key: 'schedule.weekdaysAtNamed', variables: { days: [1], time: '09:00' } });
+  assert.deepEqual(describeCron('0 9 * * 1-5'), { key: 'schedule.weekdaysAt', variables: { time: '09:00' } });
+  assert.deepEqual(describeCron('0 9 1 * *'), { key: 'schedule.monthlyAt', variables: { day: 1, time: '09:00' } });
 });
 
 test('别名周几与 7=周日', () => {
-  assert.equal(describeCron('0 9 * * mon'), '周一 09:00');
-  assert.equal(describeCron('0 9 * * sun'), '周日 09:00');
-  assert.equal(describeCron('0 9 * * 0'), '周日 09:00');
-  assert.equal(describeCron('0 9 * * 7'), '周日 09:00');
+  assert.deepEqual(describeCron('0 9 * * mon'), { key: 'schedule.weekdaysAtNamed', variables: { days: [1], time: '09:00' } });
+  assert.deepEqual(describeCron('0 9 * * sun'), { key: 'schedule.weekdaysAtNamed', variables: { days: [0], time: '09:00' } });
+  assert.deepEqual(describeCron('0 9 * * 0'), { key: 'schedule.weekdaysAtNamed', variables: { days: [0], time: '09:00' } });
+  assert.deepEqual(describeCron('0 9 * * 7'), { key: 'schedule.weekdaysAtNamed', variables: { days: [0], time: '09:00' } });
 });
 
 test('多天组合：周一、周三', () => {
-  assert.equal(describeCron('0 9 * * 1,3'), '周一、周三 09:00');
+  assert.deepEqual(describeCron('0 9 * * 1,3'), { key: 'schedule.weekdaysAtNamed', variables: { days: [1, 3], time: '09:00' } });
 });
 
 test('解析不了返回 null（面板回退显示原文）', () => {

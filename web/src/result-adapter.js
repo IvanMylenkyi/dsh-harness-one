@@ -2,6 +2,13 @@ const URL_PATTERN = /https?:\/\/[^\s<>()\[\]"']+/gi;
 
 export const RUN_ARTIFACT_SAVE_PATH = '/run-artifacts/save';
 
+function i18nError(i18nKey, i18nVariables = {}) {
+  const error = new Error(i18nKey);
+  error.i18nKey = i18nKey;
+  error.i18nVariables = i18nVariables;
+  return error;
+}
+
 const asArray = (value) => value == null ? [] : (Array.isArray(value) ? value : [value]);
 const asObject = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 const first = (...values) => values.find((value) => value !== undefined && value !== null && value !== '');
@@ -126,7 +133,7 @@ export async function saveRunArtifacts(url, payload, fetchImpl = globalThis.fetc
     body: JSON.stringify(buildArtifactSavePayload(payload)),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.ok !== true) throw new Error(data.error || `保存失败（HTTP ${response.status}）`);
+  if (!response.ok || data.ok !== true) throw (data.error ? new Error(data.error) : i18nError('result.saveArtifactsFailed', { status: response.status }));
   return {
     ...data,
     savedCount: Number(data.savedCount) || 0,
@@ -152,11 +159,12 @@ export async function loadRunResults(url, { signal, waitUntilReady = false } = {
     if (response.ok && (!waitUntilReady || isRunResultsReady(data, true))) return data;
     if (response.ok || response.status === 404) {
       if (attempt < attempts - 1) continue;
-      throw new Error(waitUntilReady ? '成果整理超时，请重试' : (data.error || '运行记录不存在'));
+      if (data.error) throw new Error(data.error);
+      throw i18nError(waitUntilReady ? 'result.organizingTimeout' : 'result.runRecordMissing');
     }
-    throw new Error(data.error || `加载成果失败（HTTP ${response.status}）`);
+    throw (data.error ? new Error(data.error) : i18nError('result.loadFailed', { status: response.status }));
   }
-  throw new Error('加载成果失败');
+  throw i18nError('result.loadFailed', { status: 0 });
 }
 
 function normalizeLink(link) {
@@ -213,14 +221,14 @@ function fallbackRows(runDetail) {
 }
 
 function timelineText(row) {
-  if (row.error) return row.error;
-  if (row.status === 'success') return '节点已完成';
-  if (row.status === 'running') return '节点正在执行';
-  if (row.status === 'queued' || row.status === 'pending') return '节点等待执行';
-  if (row.status === 'waiting') return '节点等待审批';
-  if (row.status === 'skipped') return '本次流程未执行该节点';
-  if (row.status === 'canceled') return '节点已取消';
-  return `节点状态：${row.status}`;
+  if (row.error) return { message: row.error };
+  if (row.status === 'success') return { messageKey: 'result.nodeCompleted' };
+  if (row.status === 'running') return { messageKey: 'result.nodeRunning' };
+  if (row.status === 'queued' || row.status === 'pending') return { messageKey: 'result.nodeQueued' };
+  if (row.status === 'waiting') return { messageKey: 'result.nodeWaiting' };
+  if (row.status === 'skipped') return { messageKey: 'result.nodeSkipped' };
+  if (row.status === 'canceled') return { messageKey: 'result.nodeCanceled' };
+  return { messageKey: 'result.nodeStatus', messageVariables: { status: row.status } };
 }
 
 // usage 四元组求和：输入列是未命中缓存部分（总输入读取 = input + cacheRead，
@@ -251,22 +259,26 @@ export function sumUsageTotal(rowsOrTotal) {
 
 // 面向普通用户的耗时文案：毫秒不直接暴露，统一换算成秒/分
 export function formatDuration(durationMs) {
-  if (durationMs == null || Number.isNaN(Number(durationMs))) return '';
+  if (durationMs == null || Number.isNaN(Number(durationMs))) return null;
   const ms = Number(durationMs);
-  if (ms < 1000) return '不到 1 秒';
+  if (ms < 1000) return { key: 'duration.lessThanSecond' };
   const seconds = ms / 1000;
-  if (seconds < 60) return seconds < 10 ? `${seconds.toFixed(1)} 秒` : `${Math.round(seconds)} 秒`;
+  if (seconds < 60) return seconds < 10
+    ? { key: 'duration.secondsDecimal', variables: { count: seconds.toFixed(1) } }
+    : { key: 'duration.seconds', variables: { count: Math.round(seconds) } };
   const minutes = Math.floor(seconds / 60);
   const rest = Math.round(seconds % 60);
-  return rest ? `${minutes} 分 ${rest} 秒` : `${minutes} 分钟`;
+  return rest
+    ? { key: 'duration.minutesSeconds', variables: { minutes, seconds: rest } }
+    : { key: 'duration.minutes', variables: { minutes } };
 }
 
 //  HH:MM:SS 时钟格式，用于「开始时间」
-export function formatClock(value) {
+export function formatClock(value, locale = 'en') {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('zh-CN', { hour12: false });
+  return date.toLocaleTimeString(locale, { hour12: false });
 }
 
 export function normalizeRunEvent(event, index = 0) {
@@ -363,11 +375,14 @@ export function adaptRunResults(payload, context = {}) {
         durationMs: live.status === 'running' ? undefined : first(live.durationMs, row.durationMs),
       }
       : row;
+    const timeline = timelineText(merged);
     return {
       ...merged,
       id: `node:${row.nodeId}`,
       kind: 'node',
-      text: timelineText(merged),
+      text: timeline.message || '',
+      textKey: timeline.messageKey,
+      textVariables: timeline.messageVariables,
       meta: merged.durationMs != null ? formatDuration(merged.durationMs) : undefined,
     };
   });
@@ -379,7 +394,14 @@ export function adaptRunResults(payload, context = {}) {
   const explicitIssues = [...asArray(source.issues), ...asArray(source.problems), ...asArray(source.errors), ...asArray(result.issues), ...asArray(result.problems)];
   const stateIssues = Object.entries(asObject(runDetail.nodeStates))
     .filter(([, state]) => state?.error || ['error', 'canceled'].includes(state?.status))
-    .map(([nodeId, state]) => ({ nodeId, nodeLabel: nodes.get(nodeId)?.data?.label || nodeId, status: state.status || 'error', message: state.error || `节点${state.status === 'canceled' ? '已取消' : '执行失败'}` }));
+    .map(([nodeId, state]) => ({
+      nodeId,
+      nodeLabel: nodes.get(nodeId)?.data?.label || nodeId,
+      status: state.status || 'error',
+      ...(state.error
+        ? { message: state.error }
+        : { messageKey: state.status === 'canceled' ? 'result.nodeCanceled' : 'result.nodeFailed' }),
+    }));
   const issues = [...explicitIssues, ...stateIssues].map((issue, index) => {
     if (typeof issue === 'string') return { id: `issue-${index}`, status: 'error', message: issue };
     const value = asObject(issue);
@@ -388,14 +410,18 @@ export function adaptRunResults(payload, context = {}) {
       status: first(value.status, value.level, 'error'),
       nodeId: value.nodeId,
       nodeLabel: first(value.nodeLabel, value.label),
-      message: textOf(first(value.message, value.text, value.error, value.detail, value)),
+      ...(value.messageKey
+        ? { messageKey: value.messageKey, messageVariables: value.messageVariables }
+        : { message: textOf(first(value.message, value.text, value.error, value.detail, value)) }),
     };
   });
 
+  const workflowName = first(source.workflowName, source.run?.workflowName, runDetail.workflowName);
   return {
     runId,
     status: first(source.status, source.run?.status, runDetail.status, context.status?.last, context.status?.status, context.status?.running ? 'running' : undefined, 'idle'),
-    workflowName: first(source.workflowName, source.run?.workflowName, runDetail.workflowName, '当前运行'),
+    workflowName: workflowName || '',
+    workflowNameKey: workflowName ? undefined : 'result.currentRun',
     startedAt: first(source.startedAt, source.run?.startedAt, runDetail.startedAt),
     durationMs: first(source.durationMs, source.run?.durationMs, runDetail.durationMs),
     summary: textOf(first(source.summary, result.summary, source.description, result.description)),

@@ -7,6 +7,15 @@ import { trialRequestUrls } from './trial-request.js';
 import { Modal, useToast } from './ui.jsx';
 import { useI18n } from './i18n/index.js';
 
+function errorText(error, t) {
+  return error?.i18nKey ? t(error.i18nKey, error.i18nVariables) : String(error?.message || error || '');
+}
+
+function canRetryResponse(error) {
+  return ['test.htmlResponse', 'test.emptyResponse'].includes(error?.i18nKey)
+    || /HTTP 404|Failed to fetch|Load failed/i.test(error?.message || '');
+}
+
 export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId, workflowVariables, inputSchema, runInputs, triggerInput, onClose, onResult }) {
   const toast = useToast();
   const { locale, t } = useI18n();
@@ -98,8 +107,9 @@ export function TestRunModal({ node, upstreamNodes, upstreamPreviews, workflowId
       onResult?.(d);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        setResult({ ok: false, error: e.message, at: new Date().toLocaleTimeString(locale, { hour12: false }) });
-        toast(t('test.failed', { error: e.message }), 'error');
+        const message = errorText(e, t);
+        setResult({ ok: false, error: message, at: new Date().toLocaleTimeString(locale, { hour12: false }) });
+        toast(t('test.failed', { error: message }), 'error');
       }
     } finally {
       requestAbortRef.current = null;
@@ -231,10 +241,9 @@ async function fetchTrialJson(url, request) {
       return data;
     } catch (error) {
       lastError = error;
-      const canUseAlternate = index < urls.length - 1
-        && /HTTP 404|返回了网页|空响应|Failed to fetch|Load failed/i.test(error.message || '');
+      const canUseAlternate = index < urls.length - 1 && canRetryResponse(error);
       if (canUseAlternate) continue;
-      if (index === urls.length - 1 && /返回了网页|空响应|Failed to fetch|Load failed/i.test(error.message || '')) {
+      if (index === urls.length - 1 && canRetryResponse(error)) {
         await new Promise((resolve) => setTimeout(resolve, 350));
         try {
           const response = await fetch(candidate, request);

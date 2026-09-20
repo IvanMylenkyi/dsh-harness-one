@@ -24,11 +24,19 @@ const summary = summarizePendingOps(
   ],
   nodes,
 );
-assert.equal(summary, '删除 1 个节点（工单输出）、修改 1 个节点、新增 1 个节点、新增 1 条连线');
+assert.deepEqual(summary, {
+  items: [
+    { key: 'patch.deletedNodes', variables: { count: 1, labels: '工单输出' } },
+    { key: 'patch.updatedNodes', variables: { count: 1 } },
+    { key: 'patch.addedNodes', variables: { count: 1 } },
+    { key: 'patch.addedEdges', variables: { count: 1 } },
+  ],
+  emptyKey: 'patch.noChanges',
+});
 
-assert.equal(summarizePendingOps([], nodes), '无变更');
-assert.equal(summarizePendingOps([{ op: 'deleteNode', id: 'ghost' }], nodes), '删除 1 个节点（ghost）');
-assert.equal(summarizePendingOps([{ op: 'deleteEdge', id: 'e2' }], nodes), '删除 1 条连线');
+assert.deepEqual(summarizePendingOps([], nodes), { items: [], emptyKey: 'patch.noChanges' });
+assert.deepEqual(summarizePendingOps([{ op: 'deleteNode', id: 'ghost' }], nodes).items, [{ key: 'patch.deletedNodes', variables: { count: 1, labels: 'ghost' } }]);
+assert.deepEqual(summarizePendingOps([{ op: 'deleteEdge', id: 'e2' }], nodes).items, [{ key: 'patch.deletedEdges', variables: { count: 1 } }]);
 
 assert.equal(PATCH_CONFIRM_TIMEOUT_MS, 30000);
 console.log('patch-confirm tests: passed');

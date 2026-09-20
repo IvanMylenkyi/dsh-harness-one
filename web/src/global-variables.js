@@ -1,11 +1,11 @@
 import { apiUrl } from './api.js';
 
 export const GLOBAL_VARIABLE_TYPES = [
-  { value: 'string', label: '文本' },
-  { value: 'number', label: '数字' },
-  { value: 'boolean', label: '布尔值' },
-  { value: 'json', label: 'JSON' },
-  { value: 'string[]', label: '文本数组' },
+  { value: 'string', labelKey: 'variables.type.string' },
+  { value: 'number', labelKey: 'variables.type.number' },
+  { value: 'boolean', labelKey: 'variables.type.boolean' },
+  { value: 'json', labelKey: 'variables.type.json' },
+  { value: 'string[]', labelKey: 'variables.type.stringArray' },
 ];
 
 export const EMPTY_GLOBAL_VARIABLE_DRAFT = {
@@ -25,12 +25,14 @@ function validationError(i18nKey, variables = {}, cause) {
 }
 
 export class GlobalVariableApiError extends Error {
-  constructor(message, { status = 0, code = 'request-failed', payload } = {}) {
+  constructor(message, { status = 0, code = 'request-failed', payload, i18nKey, i18nVariables } = {}) {
     super(message);
     this.name = 'GlobalVariableApiError';
     this.status = status;
     this.code = code;
     this.payload = payload;
+    this.i18nKey = i18nKey;
+    this.i18nVariables = i18nVariables;
   }
 }
 
@@ -104,12 +106,14 @@ async function request(path, options) {
   const text = await response.text();
   let payload;
   try { payload = JSON.parse(text || '{}'); }
-  catch { payload = { error: `接口返回了非 JSON 内容（HTTP ${response.status}）` }; }
+  catch { payload = { errorKey: 'variables.nonJsonResponse', errorVariables: { status: response.status } }; }
   if (!response.ok) {
-    throw new GlobalVariableApiError(payload.error || `请求失败（HTTP ${response.status}）`, {
+    throw new GlobalVariableApiError(payload.error || payload.errorKey || 'variables.requestFailed', {
       status: response.status,
       code: payload.code,
       payload,
+      i18nKey: payload.error ? undefined : payload.errorKey,
+      i18nVariables: payload.error ? undefined : payload.errorVariables,
     });
   }
   return payload;
