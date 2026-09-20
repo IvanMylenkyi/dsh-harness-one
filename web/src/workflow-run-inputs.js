@@ -39,6 +39,18 @@ function parseValue(field, value) {
   return value;
 }
 
+function validationError(i18nKey, variables) {
+  return { i18nKey, variables };
+}
+
+export class RunInputValidationError extends Error {
+  constructor(errors) {
+    super('Workflow input validation failed');
+    this.name = 'RunInputValidationError';
+    this.errors = errors;
+  }
+}
+
 export function validateRunInputValues(inputSchema, values = {}) {
   const fields = schemaFields(inputSchema);
   if (!fields.length) return { ok: true, value: isObject(values) ? values : {} };
@@ -51,7 +63,7 @@ export function validateRunInputValues(inputSchema, values = {}) {
     known.add(key);
     const has = Object.prototype.hasOwnProperty.call(values, key) && values[key] !== '' && values[key] !== undefined;
     if (!has) {
-      if (field.required === true && field.defaultValue === undefined) errors.push(`${field.label || key}为必填项`);
+      if (field.required === true && field.defaultValue === undefined) errors.push(validationError('validation.required', { field: field.label || key }));
       if (field.defaultValue !== undefined) output[key] = structuredClone(field.defaultValue);
       continue;
     }
@@ -67,23 +79,23 @@ export function validateRunInputValues(inputSchema, values = {}) {
                 : type === 'array' ? Array.isArray(parsed)
                   : type === 'string' ? typeof parsed === 'string' : true);
     if (!valid) {
-      errors.push(`${field.label || key}格式不正确`);
+      errors.push(validationError('validation.invalidFieldFormat', { field: field.label || key }));
       continue;
     }
     if (Array.isArray(field.enum) && !field.enum.includes(parsed)) {
-      errors.push(`${field.label || key}不在允许值范围内`);
+      errors.push(validationError('validation.valueNotAllowed', { field: field.label || key }));
       continue;
     }
     output[key] = parsed;
   }
   for (const key of Object.keys(values)) {
-    if (!known.has(key) && values[key] !== '' && values[key] !== undefined) errors.push(`不支持输入字段：${key}`);
+    if (!known.has(key) && values[key] !== '' && values[key] !== undefined) errors.push(validationError('validation.unsupportedInputField', { field: key }));
   }
   return errors.length ? { ok: false, errors } : { ok: true, value: output };
 }
 
 export function serializeRunInputValues(inputSchema, values = {}) {
   const result = validateRunInputValues(inputSchema, values);
-  if (!result.ok) throw new Error(result.errors.join('；'));
+  if (!result.ok) throw new RunInputValidationError(result.errors);
   return result.value;
 }
