@@ -20,13 +20,17 @@ command are excluded from migration scope.
 | Compatibility and locale infrastructure | Explicit compatibility only | `web/src/i18n/legacy.js` and the exported `translateText()`/`tx()` APIs remain available for external legacy callers, but the production call-site audit found no `tx()`/`translateText()` calls outside `web/src/i18n/index.js`; `createTranslator().t()` no longer falls back to legacy text lookup. `web/src/i18n/messages/*.js`, plugin `src/i18n.js`, and `docs/i18n/locale-key-manifest.json` are the locale boundary. | Dictionary/manifest parity, stable-key scanner, and browser language smoke |
 | Host integration and recovery | Migrated and browser-covered | `CanvasCommandBar` in `web/src/App.jsx` and `web/src/NodeDetailModal.jsx` use stable keys for local chrome/status/trace labels. Host-provided chat/session data, node labels, trace text, server errors, and command result text remain dynamic data. | Embedded iframe handshake, theme/command messages, `wf1-open-run`, patch confirmation, DocWall recovery boundaries, and SSE reconnect browser smoke |
 | Host-side canvas plugin cards and settings | Migrated in this batch | `dsh-plugins/dsh-ccpg-canvasui/src/client.js` now owns a stable `canvas.*` message table and reactive `html.lang` bridge for workflow cards, graph ARIA summaries, patch confirmation, binding/example bars, iframe loading, Agent defaults, package status, and upgrade states. `lib/client.js` is regenerated from source. Workflow names, prompts, node labels, server errors, command results, example prompts, and upgrade logs remain data. `dsh-plugins/dsh-ccpg-brand/lib/index.js` is intentional branding, not locale UI. | `dsh-plugins/dsh-ccpg-canvasui/test/client.test.mjs`; `web/tests/canvasui-browser.spec.mjs` covers cards, confirmation, settings and both language directions |
+| Host-side Lark authorization UI | Migrated in this batch | `dsh-plugins/dsh-ccpg-larkauth/lib/client.js` now uses a marked local `lark.*` dictionary and a reactive `html.lang` observer for install, sign-in, token status, renewal, QR, error, button, tooltip, and accessibility copy. User identity, app/bot metadata, server error text, verification URLs, and CLI command payloads remain data. | `web/tests/larkauth-browser.spec.mjs` covers installation and signed-in states in English → zh-CN → English; syntax check and full web suite |
 
 The source audit found no remaining unexcluded first-party UI literals in the
-migrated web surfaces, document-preview plugin, or audited canvas host surfaces.
-Remaining CJK source is limited to explicit web/plugin locale dictionaries,
-intentional prompt/data payloads, and comments; generated production chunks are
-still scanned by strict mode and are not blanket-excluded. The next audit should
-cover other first-party plugin entrypoints and any newly added host slots.
+migrated web surfaces, document-preview plugin, canvas host, or Lark
+authorization host. The remaining plugin entrypoints are backend/data-only or
+intentional branding; their CJK descriptions, workflow seeds, skill content,
+comments, and generated `lib/` artifacts are outside UI migration scope.
+Remaining UI CJK is limited to explicit web/plugin locale dictionaries and
+intentional prompt/data payloads; generated production chunks are still scanned
+by strict mode and are not blanket-excluded. The next audit should inspect new
+host slots when plugins add them.
 The root test entry is now Node-based and Windows-portable; optional plugin
 dependency/symlink tests still depend on their package install and Windows
 developer-mode prerequisites. Do not translate node labels, documents,

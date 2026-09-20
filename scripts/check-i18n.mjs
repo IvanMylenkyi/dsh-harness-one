@@ -18,7 +18,11 @@ function isSourceFile(file) {
   const normalized = normalizedPath(file);
   if (!sourceRoots.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`))) return false;
   if (!sourceExtensions.has(path.extname(normalized))) return false;
-  if (/(^|\/)(node_modules|dist|web-dist|coverage|lib)(\/|$)/.test(normalized)) return false;
+  // Most plugin lib/ trees are generated server artifacts. The larkauth
+  // browser entry is different: lib/client.js is the shipped source bundle,
+  // so keep it in the first-party UI scan and protect its marked dictionary.
+  if (/(^|\/)(node_modules|dist|web-dist|coverage|lib)(\/|$)/.test(normalized)
+    && normalized !== 'dsh-plugins/dsh-ccpg-larkauth/lib/client.js') return false;
   if (/(^|\/)(__tests__|test|tests)(\/|$)/.test(normalized) || /(?:\.test|\.spec)\.[^.]+$/.test(normalized)) return false;
   if (normalized.startsWith('web/src/i18n/')) return false;
   if (normalized === 'dsh-plugins/dsh-ccpg-document-preview/src/i18n.js') return false;

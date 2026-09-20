@@ -12,6 +12,95 @@ window.__ModuleLoader__.load({
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 		let react = require("react");
 
+		// @i18n-dictionary:start
+		var MESSAGES = {
+			en: {
+				"lark.account": "Lark account",
+				"lark.accountLoggedIn": "Lark: {name}",
+				"lark.loading": "Loading Lark authorization status…",
+				"lark.notInstalled": "lark-cli is not installed on this machine.",
+				"lark.installing": "Installing the official lark-cli (Lark CLI); this usually takes about a minute…",
+				"lark.installButton": "Install lark-cli automatically",
+				"lark.installingButton": "Installing…",
+				"lark.close": "Close",
+				"lark.desktopInstall": "After confirmation, it will be installed in the current Desktop profile; each profile needs its own installation.",
+				"lark.manualInstall": "After installation you can scan to sign in here, or run",
+				"lark.loggedOut": "Not signed in to Lark",
+				"lark.loggedIn": "Signed in · the agent will use your identity for Lark actions",
+				"lark.expired": "Sign-in expired; scan again to authorize",
+				"lark.renewal": "Token auto-renewal: current until {date}",
+				"lark.renewalLast": ", last renewed {date}",
+				"lark.logout": "Sign out",
+				"lark.login": "Scan to sign in to Lark",
+				"lark.reauthorize": "Scan again to authorize",
+				"lark.startError": "Unable to start sign-in",
+				"lark.networkError": "Network error; please try again",
+				"lark.retry": "Retry",
+				"lark.qrTip": "Scan with the Lark app to authorize (valid for 10 minutes)",
+				"lark.qrLoading": "Generating QR code…",
+				"lark.qrLink": "Can't scan? Open the authorization page →",
+				"lark.qrWaiting": "Waiting for scan confirmation…",
+				"lark.cancel": "Cancel",
+			},
+			"zh-CN": {
+				"lark.account": "飞书账号",
+				"lark.accountLoggedIn": "飞书 {name}",
+				"lark.loading": "正在加载飞书授权状态…",
+				"lark.notInstalled": "本机未安装 lark-cli（飞书官方 CLI）。",
+				"lark.installing": "正在自动安装 lark-cli（飞书官方 CLI），通常 1 分钟内完成…",
+				"lark.installButton": "自动安装 lark-cli",
+				"lark.installingButton": "安装中…",
+				"lark.close": "关闭",
+				"lark.desktopInstall": "确认后将安装到当前 Desktop profile；切换 profile 时需分别安装。",
+				"lark.manualInstall": "安装后此处即可扫码登录；也可手动执行",
+				"lark.loggedOut": "未登录飞书账号",
+				"lark.loggedIn": "已登录 · agent 会以你的身份执行飞书操作",
+				"lark.expired": "登录已过期，重新扫码即可",
+				"lark.renewal": "凭证自动续期：当前至 {date}",
+				"lark.renewalLast": "，上次续期 {date}",
+				"lark.logout": "退出登录",
+				"lark.login": "扫码登录飞书",
+				"lark.reauthorize": "重新扫码授权",
+				"lark.startError": "发起登录失败",
+				"lark.networkError": "网络错误，请重试",
+				"lark.retry": "重试",
+				"lark.qrTip": "用飞书 App 扫码完成授权（10 分钟内有效）",
+				"lark.qrLoading": "二维码生成中…",
+				"lark.qrLink": "打不开扫码？点这里授权 →",
+				"lark.qrWaiting": "等待扫码确认…",
+				"lark.cancel": "取消",
+			},
+		};
+		// @i18n-dictionary:end
+
+		function currentLocale() {
+			return typeof document !== "undefined" && document.documentElement.lang === "zh-CN" ? "zh-CN" : "en";
+		}
+		function interpolate(text, variables) {
+			return String(text).replace(/\{(\w+)\}/g, function (_, name) {
+				return variables && variables[name] != null ? String(variables[name]) : "{" + name + "}";
+			});
+		}
+		function translate(locale, key, variables) {
+			var table = MESSAGES[locale] || MESSAGES.en;
+			return interpolate(table[key] || MESSAGES.en[key] || key, variables);
+		}
+		function useLocale() {
+			var state = react.useState(currentLocale());
+			var locale = state[0], setLocale = state[1];
+			react.useEffect(function () {
+				if (typeof document === "undefined" || typeof MutationObserver === "undefined") return undefined;
+				var observer = new MutationObserver(function () { setLocale(currentLocale()); });
+				observer.observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+				return function () { observer.disconnect(); };
+			}, []);
+			return locale;
+		}
+		function useTranslator() {
+			var locale = useLocale();
+			return { locale: locale, t: function (key, variables) { return translate(locale, key, variables); } };
+		}
+
 		var API = "/wf1/api/lark-auth";
 
 		function apiGet() {
@@ -37,6 +126,8 @@ window.__ModuleLoader__.load({
 		// ---- 设置面板 section 组件 ----
 		function LarkAuthSection(props) {
 			var close = props && props.close;
+			var i18n = useTranslator();
+			var locale = i18n.locale, t = i18n.t;
 			var status0 = props && props.initialStatus;
 			var st = react.useState(status0 || null);
 			var status = st[0], setStatus = st[1];
@@ -78,7 +169,7 @@ window.__ModuleLoader__.load({
 		var start = function () {
 			setBusy(true);
 			apiPost({ action: "start" }).then(function (d) {
-				if (!d.ok) { setBusy(false); setStartError(d.error || "发起登录失败"); return; }
+				if (!d.ok) { setBusy(false); setStartError(d.error || t("lark.startError")); return; }
 				return apiPost({ action: "qrcode", verificationUrl: d.verificationUrl }).then(function (q) {
 					setLogin({
 						verificationUrl: d.verificationUrl,
@@ -89,7 +180,7 @@ window.__ModuleLoader__.load({
 					schedulePoll(d.deviceCode);
 					setBusy(false);
 				});
-			}).catch(function () { setBusy(false); setStartError("网络错误，请重试"); });
+			}).catch(function () { setBusy(false); setStartError(t("lark.networkError")); });
 		};
 
 			var cancel = function () {
@@ -103,14 +194,14 @@ window.__ModuleLoader__.load({
 			};
 
 			if (!status) {
-				return react.createElement("div", { style: S.muted }, "正在加载飞书授权状态…");
+				return react.createElement("div", { style: S.muted }, t("lark.loading"));
 			}
 			if (!status.installed) {
 				return react.createElement("div", { style: S.wrap },
 					react.createElement("div", { style: S.warn },
 						status.installing
-							? "正在自动安装 lark-cli（飞书官方 CLI），通常 1 分钟内完成…"
-							: "本机未安装 lark-cli（飞书官方 CLI）。"),
+							? t("lark.installing")
+							: t("lark.notInstalled")),
 					react.createElement("div", { style: S.actions },
 						react.createElement("button", {
 							style: Object.assign({}, S.btn, S.btnPrimary),
@@ -122,12 +213,12 @@ window.__ModuleLoader__.load({
 									if (d.status) setStatus(d.status); else load();
 								}).catch(function () { setBusy(false); load(); });
 							},
-						}, status.installing ? "安装中…" : "自动安装 lark-cli"),
-						close ? react.createElement("button", { style: S.btn, onClick: close }, "关闭") : null),
+						}, status.installing ? t("lark.installingButton") : t("lark.installButton")),
+						close ? react.createElement("button", { style: S.btn, onClick: close }, t("lark.close")) : null),
 					status.runtime === "desktop"
-						? react.createElement("div", { style: S.muted }, "确认后将安装到当前 Desktop profile；切换 profile 时需分别安装。")
+						? react.createElement("div", { style: S.muted }, t("lark.desktopInstall"))
 						: react.createElement("div", { style: S.muted },
-							"安装后此处即可扫码登录；也可手动执行 ",
+							t("lark.manualInstall") + " ",
 							react.createElement("code", { style: S.code }, "npm i -g @larksuite/cli")));
 			}
 
@@ -141,8 +232,8 @@ window.__ModuleLoader__.load({
 				? " ✓"
 				: renew.lastResult === "fresh" ? "" : renew.lastResult ? "（" + renew.lastResult + "）" : "";
 			var renewalLine = loggedIn && u.expiresAt
-				? "凭证自动续期：当前至 " + fmtWhen(u.expiresAt) +
-					(renew.lastAt ? "，上次续期 " + fmtWhen(renew.lastAt) + renewSuffix : "")
+				? t("lark.renewal", { date: fmtWhen(u.expiresAt, locale) }) +
+					(renew.lastAt ? t("lark.renewalLast", { date: fmtWhen(renew.lastAt, locale) }) + renewSuffix : "")
 				: "";
 			// 技术明细挂 title 悬浮提示，界面上不再占一行
 			var techLine = "App " + (status.appId || "-") + " · 默认身份 " + (status.defaultIdentity || "-") +
@@ -154,32 +245,32 @@ window.__ModuleLoader__.load({
 					title: loggedIn || status.appId ? techLine : undefined,
 				},
 					react.createElement("span", { className: dotClass(status) }),
-					react.createElement("strong", null, u.userName || "未登录飞书账号"),
+					react.createElement("strong", null, u.userName || t("lark.loggedOut")),
 					u.userName ? react.createElement("span", { style: S.muted },
-						loggedIn ? "已登录 · agent 会以你的身份执行飞书操作" : "登录已过期，重新扫码即可") : null),
+						loggedIn ? t("lark.loggedIn") : t("lark.expired")) : null),
 				renewalLine
 					? react.createElement("div", { style: S.meta }, renewalLine)
 					: null,
 				react.createElement("div", { style: S.actions },
 					loggedIn
-						? react.createElement("button", { style: S.btn, onClick: logout, disabled: busy }, "退出登录")
+						? react.createElement("button", { style: S.btn, onClick: logout, disabled: busy }, t("lark.logout"))
 						: react.createElement("button", { style: Object.assign({}, S.btn, S.btnPrimary), onClick: start, disabled: busy },
-							needsRefresh ? "重新扫码授权" : "扫码登录飞书"),
-					close ? react.createElement("button", { style: S.btn, onClick: close }, "关闭") : null),
+							needsRefresh ? t("lark.reauthorize") : t("lark.login")),
+					close ? react.createElement("button", { style: S.btn, onClick: close }, t("lark.close")) : null),
 				startError ? react.createElement("div", { style: S.warn },
 					startError, " · ", react.createElement("a", {
 						href: "#", style: S.link, onClick: function (e) { e.preventDefault(); setStartError(null); start(); },
-					}, "重试")) : null,
+					}, t("lark.retry"))) : null,
 				login ? react.createElement("div", { style: S.qrBox },
-					react.createElement("div", { style: S.qrTip }, "用飞书 App 扫码完成授权（10 分钟内有效）"),
+					react.createElement("div", { style: S.qrTip }, t("lark.qrTip")),
 					react.createElement("div", { style: S.qrRow },
 						login.qrDataUrl
-							? react.createElement("img", { src: login.qrDataUrl, alt: "飞书登录二维码", style: S.qrImg })
-							: react.createElement("div", { style: S.qrLoading }, "二维码生成中…"),
+							? react.createElement("img", { src: login.qrDataUrl, alt: t("lark.qrTip"), style: S.qrImg })
+							: react.createElement("div", { style: S.qrLoading }, t("lark.qrLoading")),
 						react.createElement("div", { style: S.qrSide },
-							react.createElement("a", { href: login.verificationUrl, target: "_blank", rel: "noreferrer", style: S.link }, "打不开扫码？点这里授权 →"),
-							react.createElement("span", { style: S.muted }, "等待扫码确认…"),
-							react.createElement("button", { style: S.btn, onClick: cancel }, "取消")))) : null);
+							react.createElement("a", { href: login.verificationUrl, target: "_blank", rel: "noreferrer", style: S.link }, t("lark.qrLink")),
+							react.createElement("span", { style: S.muted }, t("lark.qrWaiting")),
+							react.createElement("button", { style: S.btn, onClick: cancel }, t("lark.cancel"))))) : null);
 		}
 
 		// 样式（内联，避免与宿主 CSS 约定耦合；色值对齐官方 --dsw 变量优先）
@@ -241,6 +332,8 @@ window.__ModuleLoader__.load({
 		// settings 面板由官方 ui-settings 打开；这里用官方入口同款方式：派发打开设置后切换到本 section。
 		function LarkAuthEntry(props) {
 			var wide = props && props.wide;
+			var i18n = useTranslator();
+			var t = i18n.t;
 			ensureDotStyle();
 			var st = react.useState(null);
 			react.useEffect(function () {
@@ -254,11 +347,11 @@ window.__ModuleLoader__.load({
 				if (btn) btn.click();
 			};
 			var label = st[0] && st[0].user && st[0].user.tokenStatus === "valid"
-				? "飞书 " + (st[0].user.userName || "已登录") : "飞书账号";
+				? t("lark.accountLoggedIn", { name: st[0].user.userName || t("lark.loggedIn") }) : t("lark.account");
 			// 几何走 larka-entry/larka-rail 类（见 ensureDotStyle）：与官方设置按钮逐项同款
 			return react.createElement("button", {
 				onClick: openSettings,
-				title: "飞书账号授权（lark-cli 扫码登录）",
+				title: t("lark.account"),
 				className: wide ? "larka-entry" : "larka-entry larka-rail",
 			},
 				react.createElement("span", { className: dotClass(st[0]) }),
@@ -267,22 +360,18 @@ window.__ModuleLoader__.load({
 
 		// ISO → 「今天 HH:MM」/「M月D日 HH:MM」/「YYYY年M月D日 HH:MM」（跨天才有意义，
 		// 之前 slice(11,16) 只剩时分，隔天续约/token 到期看不出是哪天）
-		function fmtWhen(iso) {
+		function fmtWhen(iso, locale) {
 			if (!iso) return "";
 			var d = new Date(iso);
 			if (isNaN(d.getTime())) return String(iso);
-			var hm = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-			var now = new Date();
-			if (d.getFullYear() !== now.getFullYear()) return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 " + hm;
-			if (d.toDateString() === now.toDateString()) return "今天 " + hm;
-			return d.getMonth() + 1 + "月" + d.getDate() + "日 " + hm;
+			return new Intl.DateTimeFormat(locale || "en", { dateStyle: "medium", timeStyle: "short" }).format(d);
 		}
 		// ---- 设置导航图标注入 ----
 		// 官方 ui-settings-general 的 navIcon 是编译期写死的 id→图标映射，第三方 section
 		// 统一回退齿轮且无扩展口（SlotMap 只有 id/order/label）。DOM 最小补丁：定位文本
 		// 精确等于「飞书账号」的导航按钮，前置一枚 16px 描边 currentColor 的自绘 SVG。
 		var NAV_ICON_MARK = "data-larka-nav-icon";
-		function startSettingsNavIcon(labelText, svgMarkup) {
+		function startSettingsNavIcon(getLabels, svgMarkup) {
 			// 非 DOM 宿主（单测加载 bundle）直接跳过
 			if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
 			// 官方行内的回退齿轮不删除（React 自己的节点）——纯 CSS 隐藏，避免 reconcile 冲突
@@ -301,7 +390,7 @@ window.__ModuleLoader__.load({
 				for (var i = 0; i < buttons.length; i++) {
 					var btn = buttons[i];
 					if (btn.getAttribute(NAV_ICON_MARK)) continue;
-					if ((btn.textContent || "").trim() !== labelText) continue;
+					if (getLabels().indexOf((btn.textContent || "").trim()) < 0) continue;
 					btn.setAttribute(NAV_ICON_MARK, "seen");
 					if (btn.querySelector("[" + NAV_ICON_MARK + "='icon']")) continue;
 					var holder = document.createElement("span");
@@ -326,13 +415,13 @@ window.__ModuleLoader__.load({
 
 		function apply(ctx) {
 			ensureDotStyle();
-			startSettingsNavIcon("飞书账号", LARK_NAV_ICON_SVG);
-			// 1) 设置面板「飞书账号」section（无 locale 字典时 label 用字符串）
+			startSettingsNavIcon(function () { return [translate(currentLocale(), "lark.account")]; }, LARK_NAV_ICON_SVG);
+			// 1) Settings section label is read by the host at registration time.
 			ctx.slots.inject("settings.section", () => ctx.slots.register({
 				name: "settings.section",
 				id: "lark-auth",
 				order: 20,
-				label: () => "飞书账号",
+				label: () => translate(currentLocale(), "lark.account"),
 			}, LarkAuthSection));
 			// 2) 侧边栏 footer 入口
 		ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register({
