@@ -338,7 +338,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
           <span className="live-strip-dot" aria-hidden="true" />
           <span className="live-strip-title">{t('status.running')}</span>
           {d.runStartedAt && <span className="live-strip-elapsed">{formatElapsed(d.runStartedAt)}</span>}
-          {progress?.turns != null && <span className="live-strip-turns">{t('node.roundProgress', { turns: progress.turns, max: progress.maxRounds || '?' })}</span>}
+          {progress?.turns != null && <span className="live-strip-turns">{t(progress.maxRounds ? 'node.roundProgress' : 'node.round', { turns: progress.turns, max: progress.maxRounds })}</span>}
           {(d.livePreview || progress?.preview) && (
             <pre className="live-strip-preview">{String(d.livePreview || progress.preview).slice(-400)}</pre>
           )}
@@ -436,11 +436,11 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
           <Section title={t('node.matchExclude')} hint={t('node.keywordHint')}>
             <Field label={t('node.includeCondition')} hint={t('node.matchYesHint')} wide>
               <textarea rows={2} value={d.include || ''} onChange={(e) => set({ include: e.target.value })}
-                placeholder={'紧急, 漏水, 爆管\n留空 = 默认命中'} />
+                placeholder={t('node.includePlaceholder')} />
             </Field>
             <Field label={t('node.excludeCondition')} hint={t('node.matchNoHint')} wide>
               <textarea rows={2} value={d.exclude || ''} onChange={(e) => set({ exclude: e.target.value })}
-                placeholder="咨询, 无需上门" />
+                placeholder={t('node.excludePlaceholder')} />
             </Field>
             <p className="sec-hint">{t('node.conditionBranchHint')}</p>
           </Section>
@@ -560,27 +560,27 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
 
       {nodeType === 'agent' && (
         <>
-          <Section title="提示词">
+          <Section title={t('node.prompt')}>
             <TemplateEditor
               {...templateProps}
-              label="系统提示词" hint="支持变量"
+              label={t('node.systemPrompt')} hint={t('node.supportsVariables')}
               rows={6}
               value={d.prompt || ''}
               onChange={(v) => set({ prompt: v })}
-              placeholder="你是物业客服助手…"
+              placeholder={t('node.systemPromptPlaceholder')}
               implicitUpstream={false}
             />
             <TemplateEditor
               {...templateProps}
-              label="输入模板" hint="留空时注入全部上游"
+              label={t('node.inputTemplate')} hint={t('node.allUpstreamHint')}
               rows={4}
               value={d.inputTemplate || ''}
               onChange={(v) => set({ inputTemplate: v })}
-              placeholder={'请整理以下报修信息：{{node["input"].data}}'}
+              placeholder={t('node.inputTemplatePlaceholder')}
             />
           </Section>
 
-          <Section title="结构化输出" hint="Schema" defaultOpen={false}>
+          <Section title={t('node.structuredOutput')} hint="Schema" defaultOpen={false}>
             <AgentSchemaEditor
               mode={d.outputMode || 'text'}
               value={d.outputSchema}
@@ -589,7 +589,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
             />
           </Section>
 
-          <Section title="工具" hint="勾选后仅这些可用" count={selectedTools.length || undefined} defaultOpen={false}>
+          <Section title={t('node.tools')} hint={t('node.selectedToolsHint')} count={selectedTools.length || undefined} defaultOpen={false}>
             <div className="tool-chips">
               {availableTools.map((tool) => {
                 const on = selectedTools.includes(tool.name);
@@ -600,11 +600,11 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
                 );
               })}
             </div>
-            {selectedTools.length === 0 && <p className="sec-hint">未勾选 = 全部注册工具可用</p>}
+            {selectedTools.length === 0 && <p className="sec-hint">{t('node.allToolsHint')}</p>}
           </Section>
 
           {skills.length > 0 && (
-            <Section title="技能" hint="dsh 技能目录，勾选后定向提示" count={selectedSkills.length || undefined} defaultOpen={false}>
+            <Section title={t('node.skills')} hint={t('node.skillsHint')} count={selectedSkills.length || undefined} defaultOpen={false}>
               <div className="tool-chips">
                 {skills.map((sk) => {
                   const on = selectedSkills.includes(sk.id) || selectedSkills.includes(sk.name);
@@ -621,29 +621,29 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
                   );
                 })}
               </div>
-              {selectedSkills.length === 0 && <p className="sec-hint">未选技能：按会话默认技能目录执行</p>}
+              {selectedSkills.length === 0 && <p className="sec-hint">{t('node.defaultSkillsHint')}</p>}
             </Section>
           )}
 
-          <Section title="模型与轮次" hint="留空用全局默认" defaultOpen={false}>
+          <Section title={t('node.modelRounds')} hint={t('node.followGlobalDefault')} defaultOpen={false}>
             <div className="field-grid">
-              <Field label="渠道">
+              <Field label={t('node.channel')}>
                 <select value={d.channel || ''} onChange={(e) => selectProvider(e.target.value)}>
                   <option value="">
                     {wf1Provider
-                      ? `跟随 Workflow One 默认（${providers.find((p) => p.id === wf1Provider)?.name || wf1Provider}${wf1Model ? '' : '，渠道首选模型'}）`
-                      : `跟随 dsh 默认（${llmConfig.defaultProvider || '未配置'}）`}
+                      ? t('node.followWorkflowDefault', { model: `${providers.find((p) => p.id === wf1Provider)?.name || wf1Provider}${wf1Model ? '' : `, ${t('node.providerPreferred')}`}` })
+                      : t('node.followDshDefault', { model: llmConfig.defaultProvider || t('node.notConfigured') })}
                   </option>
                   {providers.map((provider) => (
                     <option key={provider.id} value={provider.id}>{provider.name || provider.id}</option>
                   ))}
                 </select>
               </Field>
-              <Field label="模型">
+              <Field label={t('node.model')}>
                 <select value={d.model || ''} onChange={(e) => set({ model: e.target.value || undefined, reasoningEffort: undefined })} disabled={!effectiveProvider}>
                   <option value="">{defaultModelLabel}</option>
                   {d.model && !providerModels.some((model) => model.id === d.model) && (
-                    <option value={d.model}>{d.model}（目录中不可用）</option>
+                    <option value={d.model}>{d.model} ({t('node.modelUnavailable')})</option>
                   )}
                   {providerModels.map((model) => (
                     <option key={model.id} value={model.id}>
@@ -655,20 +655,20 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
             </div>
             {currentModel && (
               <p className="sec-hint">
-                {currentModel.vision === true && <span title="该模型支持图片输入">👁 支持视觉</span>}
-                {currentModel.vision === false && <span title="该模型不支持图片输入">不支持视觉</span>}
-                {currentModel.vision === undefined && <span>视觉能力未知</span>}
-                {modelReasoning && <span> · 思考{modelReasoning.efforts.length ? ` ${modelReasoning.efforts.length} 档` : '不支持'}</span>}
+                {currentModel.vision === true && <span title={t('node.supportsVision')}>👁 {t('node.supportsVision')}</span>}
+                {currentModel.vision === false && <span title={t('node.noVision')}>{t('node.noVision')}</span>}
+                {currentModel.vision === undefined && <span>{t('node.visionUnknown')}</span>}
+                {modelReasoning && <span> · {t('node.thinking')}{modelReasoning.efforts.length ? ` ${modelReasoning.efforts.length}` : ` ${t('node.notSupported')}`}</span>}
               </p>
             )}
             {modelReasoning && modelReasoning.efforts.length > 0 && (
-              <Field label="思考级别" hint="留空跟随全局默认档位">
+              <Field label={t('node.thinkingLevel')} hint={t('node.followGlobalEffort')}>
                 <select
                   value={d.reasoningEffort || ''}
                   onChange={(e) => set({ reasoningEffort: e.target.value || undefined })}>
-                  <option value="">{inheritedEffort ? `跟随默认（${inheritedEffort}）` : `模型默认（${modelReasoning.defaultEffort || 'provider 决定'}）`}</option>
+                  <option value="">{inheritedEffort ? t('node.followEffort', { effort: inheritedEffort }) : t('node.modelEffort', { effort: modelReasoning.defaultEffort || t('node.providerDecides') })}</option>
                   {d.reasoningEffort && !modelReasoning.efforts.some((effort) => effort.id === d.reasoningEffort) && (
-                    <option value={d.reasoningEffort}>{d.reasoningEffort}（该模型不支持）</option>
+                    <option value={d.reasoningEffort}>{d.reasoningEffort} ({t('node.modelUnavailable')})</option>
                   )}
                   {modelReasoning.efforts.map((effort) => (
                     <option key={effort.id} value={effort.id} title={effort.description || ''}>{effort.name || effort.id}</option>
@@ -677,21 +677,21 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
               </Field>
             )}
             {llmConfig.failures?.length > 0 && (
-              <p className="panel-note note-warn">部分 dsh 渠道的模型目录加载失败。</p>
+              <p className="panel-note note-warn">{t('node.catalogLoadFailed')}</p>
             )}
             <div className="field-grid">
-              <Field label="轮数上限" hint="模型调用+工具执行算一轮">
+              <Field label={t('node.roundsLimit')} hint={t('node.roundHint')}>
                 <input type="number" min="1" max="20" value={d.maxRounds ?? ''}
                   onChange={(e) => set({ maxRounds: e.target.value === '' ? undefined : Number(e.target.value) })}
                   placeholder="3" />
               </Field>
-              <Field label="节点超时（秒）" hint="整个节点生命周期">
+              <Field label={t('node.nodeTimeout')} hint={t('node.nodeLifetime')}>
                 <input type="number" min="10" max="86400" value={d.timeoutSec ?? ''}
                   onChange={(e) => set({ timeoutSec: e.target.value === '' ? undefined : Number(e.target.value) })}
                   placeholder={wf1Timeouts.nodeTimeoutSec} />
               </Field>
             </div>
-            <Field label="单次请求超时（秒）" hint="一次模型调用无响应即判卡死，触发重试">
+            <Field label={t('node.requestTimeout')} hint={t('node.requestTimeoutHint')}>
               <input type="number" min="10" max="86400" value={d.modelTimeoutSec ?? ''}
                 onChange={(e) => set({ modelTimeoutSec: e.target.value === '' ? undefined : Number(e.target.value) })}
                 placeholder={wf1Timeouts.modelTimeoutSec} />
@@ -702,14 +702,14 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
 
       {nodeType === 'output' && (
         <>
-          <Section title="输出模板" hint="留空 = 汇总全部上游">
+          <Section title={t('node.outputTemplate')} hint={t('node.emptyAllUpstream')}>
             <TemplateEditor
               {...templateProps}
-              label="输出模板" hint="留空时汇总全部上游"
+              label={t('node.outputTemplate')} hint={t('node.allUpstreamHint')}
               rows={3}
               value={d.inputTemplate || ''}
               onChange={(v) => set({ inputTemplate: v })}
-              placeholder={'最终工单：{{node["agent"].data}}'}
+              placeholder={t('node.outputTemplatePlaceholder')}
             />
           </Section>
         </>
@@ -717,35 +717,35 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
 
       {nodeType === 'notify' && (
         <>
-          <Section title="消息渠道" hint="运行观察器，连线与否均生效">
+          <Section title={t('node.notificationChannel')} hint={t('node.notificationHint')}>
             <div className="field-grid">
-              <Field label="渠道">
+              <Field label={t('node.channel')}>
                 <select value={d.channel || 'feishu'} onChange={(e) => set({ channel: e.target.value, channelConfig: {} })}>
-                  {(notificationChannels.length ? notificationChannels : [{ id: 'feishu', label: '飞书' }]).map((channel) => (
+                  {(notificationChannels.length ? notificationChannels : [{ id: 'feishu', label: t('node.feishu') }]).map((channel) => (
                     <option key={channel.id} value={channel.id}>{channel.label}</option>
                   ))}
                 </select>
               </Field>
-              <Field label="通知模式">
+              <Field label={t('node.notificationMode')}>
                 <select value={d.mode || 'terminal'} onChange={(e) => set({ mode: e.target.value })}>
-                  <option value="terminal">仅运行结束</option>
-                  <option value="each_node">每个节点完成</option>
+                  <option value="terminal">{t('node.onCompletion')}</option>
+                  <option value="each_node">{t('node.eachNode')}</option>
                 </select>
               </Field>
             </div>
             {(d.channel || 'feishu') === 'feishu' && (
               <>
-                <Field label="接收方式">
+                <Field label={t('node.recipientMethod')}>
                   <select
                     value={notifyTargetType}
                     onChange={(e) => set({ channelConfig: { ...d.channelConfig, targetType: e.target.value, targetId: '' } })}>
-                    <option value="chat_id">群聊</option>
-                    <option value="open_id">私聊</option>
+                    <option value="chat_id">{t('node.groupChat')}</option>
+                    <option value="open_id">{t('node.directMessage')}</option>
                   </select>
                 </Field>
                 <Field
-                  label={notifyTargetType === 'open_id' ? '用户 open_id' : '群聊 chat_id'}
-                  hint={notifyTargetType === 'open_id' ? '机器人应用可用范围需包含该用户' : '机器人需已加入目标群'}
+                  label={notifyTargetType === 'open_id' ? t('node.userOpenId') : t('node.groupChatId')}
+                  hint={notifyTargetType === 'open_id' ? t('node.userScopeHint') : t('node.groupScopeHint')}
                   wide>
                   <input
                     value={d.channelConfig?.targetId || ''}
@@ -753,18 +753,18 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
                     placeholder={notifyTargetType === 'open_id' ? 'ou_xxxxxxxxxxxxxxxx' : 'oc_xxxxxxxxxxxxxxxx'} />
                 </Field>
                 {feishuCreds.length > 0 && (
-                  <Field label="使用凭据">
+                  <Field label={t('node.credentials')}>
                     <select
                       value={d.channelConfig?.credentialId || ''}
                       onChange={(e) => set({ channelConfig: { ...d.channelConfig, credentialId: e.target.value || undefined } })}>
-                      <option value="">默认凭据</option>
+                      <option value="">{t('node.defaultCredentials')}</option>
                       {feishuCreds.map((credential) => (
-                        <option key={credential.id} value={credential.id}>{credential.name}{credential.isDefault ? '（默认）' : ''}</option>
+                        <option key={credential.id} value={credential.id}>{credential.name}{credential.isDefault ? ` (${t('node.default')})` : ''}</option>
                       ))}
                     </select>
                   </Field>
                 )}
-                {!feishuEnabled && <p className="panel-note note-warn">飞书未配置（右上“设置”添加应用凭据）</p>}
+                {!feishuEnabled && <p className="panel-note note-warn">{t('node.feishuNotConfigured')}</p>}
               </>
             )}
           </Section>
@@ -772,27 +772,27 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
       )}
 
       {nodeType === 'note' && (
-        <Section title="说明内容" hint="画布便签，不参与运行">
-          <Field label="内容" wide>
+        <Section title={t('node.noteContent')} hint={t('node.canvasNoteHint')}>
+          <Field label={t('node.content')} wide>
             <textarea rows={6} value={d.text || ''} onChange={(e) => set({ text: e.target.value })}
-              placeholder="这一段流程做什么、负责人是谁、注意事项…" />
+              placeholder={t('node.notePlaceholder')} />
           </Field>
         </Section>
       )}
 
       {nodeType !== 'note' && nodeType !== 'notify' && (
-        <Section title="执行容错" hint="重试 / 失败继续 / 超时" defaultOpen={false}>
+        <Section title={t('node.errorHandling')} hint={t('node.errorHandlingHint')} defaultOpen={false}>
           <div className={nodeType === 'script' ? '' : 'field-grid'}>
-            <Field label="失败重试">
+            <Field label={t('node.retry')}>
               <select value={String(d.retryCount ?? 0)} onChange={(e) => set({ retryCount: Number(e.target.value) || undefined })}>
-                <option value="0">不重试</option>
-                <option value="1">重试 1 次</option>
-                <option value="2">重试 2 次</option>
-                <option value="3">重试 3 次</option>
+                <option value="0">{t('node.noRetry')}</option>
+                <option value="1">{t('node.retryCount', { count: 1 })}</option>
+                <option value="2">{t('node.retryCount', { count: 2 })}</option>
+                <option value="3">{t('node.retryCount', { count: 3 })}</option>
               </select>
             </Field>
             {nodeType !== 'script' && (
-              <Field label="超时（秒）">
+              <Field label={t('node.timeoutSeconds')}>
                 <input type="number" min="5" max="86400" value={d.timeoutSec ?? ''}
                   onChange={(e) => set({ timeoutSec: e.target.value === '' ? undefined : Number(e.target.value) })}
                   placeholder={nodeType === 'agent' ? wf1Timeouts.nodeTimeoutSec : '300'} />
@@ -802,7 +802,7 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
           {nodeType !== 'agent' && (
             <label className="check-row">
               <input type="checkbox" checked={Boolean(d.continueOnFail)} onChange={(e) => set({ continueOnFail: e.target.checked || undefined })} />
-              <span>失败后继续<em className="field-hint">下游照常执行</em></span>
+              <span>{t('node.continueAfterFail')}<em className="field-hint">{t('node.downstreamContinues')}</em></span>
             </label>
           )}
         </Section>
@@ -812,8 +812,8 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
         {d.runStatus === 'running' && (
           <div className="live-progress">
             <div className="result-head">
-              <span className="result-title">执行中</span>
-              <span className="sec-hint">第 {progress?.turns || '?'} 轮{progress?.maxRounds ? ` / 上限 ${progress.maxRounds}` : ''}</span>
+              <span className="result-title">{t('status.running')}</span>
+              <span className="sec-hint">{t(progress?.maxRounds ? 'node.roundProgress' : 'node.round', { turns: progress?.turns || '?', max: progress?.maxRounds })}</span>
             </div>
             {progress?.preview && <pre className="panel-output live-out">{String(progress.preview).slice(-400)}</pre>}
           </div>
@@ -821,51 +821,51 @@ export function NodePanel({ node, onChange, onDelete, onTest, onClose, available
         {d.runOutput !== undefined && (
           <>
             <div className="result-head">
-              <span className="result-title">{d.test ? '试运行输出' : '最近运行输出'}</span>
+              <span className="result-title">{d.test ? t('node.testOutput') : t('node.recentOutput')}</span>
               <span className="sec-hint">
                 {d.runtimeModel && `· ${d.runtimeModel} `}
                 {d.durationMs != null && `· ${(d.durationMs / 1000).toFixed(1)}s`}
-                {d.runChars > (d.runOutput || '').length ? ` （前 ${(d.runOutput || '').length}/${d.runChars} 字）` : ''}
+                {d.runChars > (d.runOutput || '').length ? t('node.outputTruncated', { shown: (d.runOutput || '').length, total: d.runChars }) : ''}
               </span>
             </div>
-            <pre className="panel-output">{d.runOutput || '(空结果)'}</pre>
+            <pre className="panel-output">{d.runOutput || t('node.emptyResult')}</pre>
             {d.runtimeStructuredOutput?.type === 'json' && (
               <details className="panel-structured" open={d.test}>
-                <summary>结构化输出预览</summary>
+                <summary>{t('node.structuredPreview')}</summary>
                 <pre className="panel-output">{JSON.stringify(d.runtimeStructuredOutput.value, null, 2)}</pre>
               </details>
             )}
             <div className="field-actions">
-              <button className="btn btn-sm" onClick={copyOutput}>{copied ? '已复制' : '复制全文'}</button>
-              <button className="btn btn-sm" onClick={() => setPreviewOpen(true)}>预览</button>
+              <button className="btn btn-sm" onClick={copyOutput}>{copied ? t('action.copied') : t('action.copyAll')}</button>
+              <button className="btn btn-sm" onClick={() => setPreviewOpen(true)}>{t('action.preview')}</button>
             </div>
           </>
         )}
         {previewOpen && createPortal(
           <Modal
             className="artifact-preview-modal"
-            title={`输出预览 · ${d.label || node.id}`}
+            title={t('node.outputPreview', { label: d.label || node.id })}
             onClose={() => setPreviewOpen(false)}
             footer={(
               <>
-                <button className="btn" onClick={copyOutput}>{copied ? '已复制' : '复制全文'}</button>
-                <button className="btn btn-primary" onClick={() => setPreviewOpen(false)}>关闭</button>
+                <button className="btn" onClick={copyOutput}>{copied ? t('action.copied') : t('action.copyAll')}</button>
+                <button className="btn btn-primary" onClick={() => setPreviewOpen(false)}>{t('action.close')}</button>
               </>
             )}
           >
             <article className="markdown-preview">
-              <MarkdownDocument content={d.runOutput || '(空结果)'} />
+              <MarkdownDocument content={d.runOutput || t('node.emptyResult')} />
             </article>
           </Modal>,
           document.body,
         )}
         {d.artifacts?.length > 0 && (
           <>
-            <div className="result-head"><span className="result-title">工作区产物</span></div>
+            <div className="result-head"><span className="result-title">{t('detail.workspaceArtifacts')}</span></div>
             <ArtifactLinks nodeLabel={d.label || node.id} runId={d.artifactsRunId} nodeId={node.id} artifacts={d.artifacts} />
           </>
         )}
-        {d.runError && <p className="panel-error">错误：{d.runError}</p>}
+        {d.runError && <p className="panel-error">{t('error.label')}: {d.runError}</p>}
       </section>
       </div>
     </aside>
