@@ -24,9 +24,9 @@ assert.equal(parseEditorValue('number', '0'), 0);
 assert.equal(parseEditorValue('boolean', 'false'), false);
 assert.deepEqual(parseEditorValue('json', '{"ok":false,"count":0}'), { ok: false, count: 0 });
 assert.deepEqual(parseEditorValue('string[]', ' first\n\nsecond '), ['first', 'second']);
-assert.throws(() => parseEditorValue('number', ''), /请输入数字/);
-assert.throws(() => parseEditorValue('number', 'Infinity'), /有限数字/);
-assert.throws(() => parseEditorValue('json', '{bad'), /JSON 格式错误/);
+assert.throws(() => parseEditorValue('number', ''), (error) => error.i18nKey === 'validation.enterNumber');
+assert.throws(() => parseEditorValue('number', 'Infinity'), (error) => error.i18nKey === 'validation.finiteNumber');
+assert.throws(() => parseEditorValue('json', '{bad'), (error) => error.i18nKey === 'validation.jsonFormat');
 
 assert.equal(valueToEditorText('boolean', false), 'false');
 assert.equal(valueToEditorText('number', 0), '0');
@@ -40,7 +40,7 @@ assert.deepEqual(variableToDraft({ key: 'enabled', label: 'Enabled', type: 'bool
 assert.deepEqual(draftToVariable({ key: ' limit ', label: ' Limit ', type: 'number', description: ' minutes ', valueText: '15' }), {
   key: 'limit', label: 'Limit', type: 'number', description: 'minutes', value: 15,
 });
-assert.throws(() => draftToVariable({ key: 'bad key', type: 'string', valueText: 'x' }), /Key/);
+assert.throws(() => draftToVariable({ key: 'bad key', type: 'string', valueText: 'x' }), (error) => error.i18nKey === 'validation.keyPattern');
 
 const calls = [];
 globalThis.fetch = async (url, options = {}) => {

@@ -16,10 +16,10 @@ export function validateScriptInputs(inputs) {
   return normalized.map((item, index) => {
     const name = item.name.trim();
     let error = '';
-    if (!name) error = '参数名不能为空';
-    else if (!/^[A-Za-z_$][\w$]*$/.test(name)) error = '参数名必须是有效的 JavaScript 标识符';
-    else if (['__proto__', 'prototype', 'constructor'].includes(name)) error = '参数名不安全';
-    else if (names.has(name)) error = `参数名与第 ${names.get(name) + 1} 行重复`;
+    if (!name) error = { i18nKey: 'validation.parameterNameRequired' };
+    else if (!/^[A-Za-z_$][\w$]*$/.test(name)) error = { i18nKey: 'validation.parameterNameIdentifier' };
+    else if (['__proto__', 'prototype', 'constructor'].includes(name)) error = { i18nKey: 'validation.parameterNameUnsafe' };
+    else if (names.has(name)) error = { i18nKey: 'validation.parameterNameDuplicate', variables: { line: names.get(name) + 1 } };
     else names.set(name, index);
     return error;
   });
@@ -29,7 +29,7 @@ export function parseScriptConstant(text) {
   try {
     return { ok: true, value: JSON.parse(text) };
   } catch (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: { i18nKey: 'validation.jsonFormat', variables: { message: error.message } } };
   }
 }
 

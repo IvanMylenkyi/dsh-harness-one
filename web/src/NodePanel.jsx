@@ -95,7 +95,7 @@ function ScriptParameterRow({ input, index, error, templateProps, onChange, onRe
   const changeConstant = (text) => {
     setConstantText(text);
     const parsed = parseScriptConstant(text);
-    setConstantError(parsed.ok ? '' : parsed.error);
+    setConstantError(parsed.ok ? null : parsed.error);
     if (parsed.ok) onChange({ name: input.name, value: parsed.value });
   };
 
@@ -110,7 +110,7 @@ function ScriptParameterRow({ input, index, error, templateProps, onChange, onRe
         </div>
         <button type="button" className="btn-icon script-param-remove" title={t('node.removeParameter')} aria-label={t('node.removeParameterIndex', { index: index + 1 })} onClick={onRemove}><Trash2 size={14} /></button>
       </div>
-      {error && <p className="script-param-error">{error}</p>}
+      {error && <p className="script-param-error">{t(error.i18nKey, error.variables)}</p>}
       {expressionMode ? (
         <TemplateEditor
           {...templateProps}
@@ -126,7 +126,7 @@ function ScriptParameterRow({ input, index, error, templateProps, onChange, onRe
         <Field label={t('node.parameterValue')} hint={t('node.jsonValueHint')} wide>
           <textarea rows={3} spellCheck="false" className="script-json-input" value={constantText}
             onChange={(event) => changeConstant(event.target.value)} />
-          {constantError && <span className="script-param-error">{t('validation.invalidJson')}: {constantError}</span>}
+          {constantError && <span className="script-param-error">{t(constantError.i18nKey, constantError.variables)}</span>}
         </Field>
       )}
     </div>
@@ -134,8 +134,8 @@ function ScriptParameterRow({ input, index, error, templateProps, onChange, onRe
 }
 
 export function NodePanel({ node, onChange, onDelete, onTest, onClose, availableTools = [], availableWorkflows = [], skills = [], feishuEnabled = false, feishuCreds = [], notificationChannels = [], llmConfig = {}, upstreamNodes = [], upstreamPreviews = {}, graph, workflowId, runId, workflowVariables, inputSchema, runInputs, triggerInput, globalVariableEpoch, progress }) {
-  if (!node) return null;
   const { t } = useI18n();
+  if (!node) return null;
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
   const [runInputsText, setRunInputsText] = useState(() => JSON.stringify(node.data?.inputMap?.runInputs ?? {}, null, 2));

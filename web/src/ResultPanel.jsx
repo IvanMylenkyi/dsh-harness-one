@@ -53,7 +53,7 @@ function useElapsedClock(startedAt, active) {
 }
 
 function ProcessStep({ event, index, runId, onFocusNode, onOpenNodeDetail }) {
-  const { locale, t } = useI18n();
+  const { locale, t, formatDuration } = useI18n();
   const meta = stepStatusMeta(event.status);
   // running 节点也可打开：详情弹窗对运行中 agent 轮询实时轨迹（issue #52）
   const canOpenDetail = Boolean(event.nodeId && runId && event.status !== 'queued');
@@ -284,7 +284,7 @@ export function ResultPanel({
     try {
       const response = await fetch(apiUrl(`/runs/detail?id=${encodeURIComponent(childRunId)}`), { signal: controller.signal });
       const detail = await response.json();
-      if (!response.ok) throw new Error(detail.error || '子运行详情不可用');
+      if (!response.ok) throw new Error(detail.error || t('result.childUnavailable'));
       if (childRequestRef.current !== controller || requestedRunId !== runId) return;
       setChildDetail(detail);
     } catch (error) {

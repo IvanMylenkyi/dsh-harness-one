@@ -24,6 +24,10 @@ const SCOPE_META = {
 };
 const TYPE_KEYS = { string: 'variables.type.string', number: 'variables.type.number', boolean: 'variables.type.boolean', json: 'variables.type.json', 'string[]': 'variables.type.stringArray' };
 
+function formatVariableError(error, t) {
+  return error?.i18nKey ? t(error.i18nKey, error.i18nVariables) : error?.message || t('variables.saveFailed');
+}
+
 export function VariableCenter({ onClose, workflowVariables = [], inputSchema = { fields: [] }, onGlobalChanged }) {
   const toast = useToast();
   const { t } = useI18n();
@@ -95,7 +99,7 @@ export function VariableCenter({ onClose, workflowVariables = [], inputSchema = 
   const saveGlobal = async () => {
     let variable;
     try { variable = draftToVariable(draft); }
-    catch (validationError) { setError(validationError.message); return; }
+    catch (validationError) { setError(formatVariableError(validationError, t)); return; }
     setBusy(true);
     setError('');
     try {

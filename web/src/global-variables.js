@@ -16,6 +16,14 @@ export const EMPTY_GLOBAL_VARIABLE_DRAFT = {
   valueText: '',
 };
 
+function validationError(i18nKey, variables = {}, cause) {
+  const error = new Error(i18nKey);
+  error.i18nKey = i18nKey;
+  error.i18nVariables = variables;
+  if (cause) error.cause = cause;
+  return error;
+}
+
 export class GlobalVariableApiError extends Error {
   constructor(message, { status = 0, code = 'request-failed', payload } = {}) {
     super(message);
@@ -55,32 +63,32 @@ export function parseEditorValue(type, text) {
   if (type === 'string') return String(text ?? '');
   if (type === 'number') {
     const source = String(text ?? '').trim();
-    if (!source) throw new Error('请输入数字');
+    if (!source) throw validationError('validation.enterNumber');
     const value = Number(source);
-    if (!Number.isFinite(value)) throw new Error('必须是有限数字');
+    if (!Number.isFinite(value)) throw validationError('validation.finiteNumber');
     return value;
   }
   if (type === 'boolean') {
     if (text === true || text === 'true') return true;
     if (text === false || text === 'false') return false;
-    throw new Error('请选择 true 或 false');
+    throw validationError('validation.selectBoolean');
   }
   if (type === 'json') {
     const source = String(text ?? '').trim();
-    if (!source) throw new Error('请输入有效 JSON');
+    if (!source) throw validationError('validation.validJson');
     try { return JSON.parse(source); }
-    catch (error) { throw new Error(`JSON 格式错误：${error.message}`); }
+    catch (error) { throw validationError('validation.jsonFormat', { message: error.message }, error); }
   }
   if (type === 'string[]') {
     return String(text ?? '').split('\n').map((item) => item.trim()).filter(Boolean);
   }
-  throw new Error(`不支持的变量类型：${type}`);
+  throw validationError('validation.unsupportedType', { type });
 }
 
 export function draftToVariable(draft) {
   const key = String(draft?.key || '').trim();
   if (!/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(key)) {
-    throw new Error('Key 需以字母或下划线开头，只能包含字母、数字和下划线');
+    throw validationError('validation.keyPattern');
   }
   return {
     key,
