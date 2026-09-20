@@ -8,6 +8,7 @@ import MarkdownDocument from './MarkdownDocument.jsx';
 import { ArtifactPreviewButton, ArtifactPreviewModal, runArtifact } from './ArtifactPreview.jsx';
 import { FeedbackDrawer, feedbackKey, useArtifactFeedback } from './docwall-feedback.jsx';
 import { apiUrl } from './api.js';
+import { useI18n } from './i18n/index.js';
 
 const STATUS_ICON = {
   running: <Loader2 size={13} className="docspin" />,
@@ -15,11 +16,8 @@ const STATUS_ICON = {
   error: <AlertTriangle size={13} />,
   canceled: <AlertTriangle size={13} />,
 };
-
-function formatDuration(ms) {
-  if (ms == null) return '';
-  return ms >= 60000 ? `${(ms / 60000).toFixed(1)} 分` : `${(ms / 1000).toFixed(1)} 秒`;
-}
+const DENSITY_KEY = { s: 'docwall.density.s', m: 'docwall.density.m', l: 'docwall.density.l' };
+const STATUS_KEY = { running: 'status.running', success: 'status.success', error: 'status.error', canceled: 'status.canceled', interrupted: 'status.interrupted', skipped: 'status.skipped', waiting: 'status.waiting' };
 
 /* ---------- 懒挂载包装：进入视口才挂子树，挂后保留（内容静态不卸载） ---------- */
 function LazyMount({ children, placeholderHeight = 320 }) {
@@ -56,13 +54,13 @@ function hasOwn(value, key) {
 }
 
 function docBodyErrorMessage(reason, timedOut = false) {
-  if (timedOut) return '正文读取超时，请重试。';
-  if (reason?.status === 404) return '正文文件不存在，可能已随运行历史清理。';
-  if (reason?.status === 409) return '当前工作区会话已失效，请刷新页面后重试。';
-  if (reason?.status >= 500) return '正文服务暂时不可用，请稍后重试。';
+  if (timedOut) return { i18nKey: 'docwall.bodyTimeout' };
+  if (reason?.status === 404) return { i18nKey: 'docwall.bodyNotFound' };
+  if (reason?.status === 409) return { i18nKey: 'docwall.sessionExpired' };
+  if (reason?.status >= 500) return { i18nKey: 'docwall.bodyUnavailable' };
   const raw = String(reason?.message || reason || '');
-  if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) return '正文读取失败，请检查连接后重试。';
-  return '正文暂不可读，请重试。';
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) return { i18nKey: 'docwall.bodyNetworkFailed' };
+  return { i18nKey: 'docwall.bodyUnreadable' };
 }
 
 function useDocBody(doc) {
@@ -96,7 +94,7 @@ function useDocBody(doc) {
       if (bulkPending) setState('loading');
       return undefined;
     }
-    if (!doc.downloadUrl) { setError('正文地址缺失。'); setState('missing'); return undefined; }
+    if (!doc.downloadUrl) { setError({ i18nKey: 'docwall.bodyAddressMissing' }); setState('missing'); return undefined; }
 
     const controller = new AbortController();
     let timedOut = false;
@@ -131,6 +129,7 @@ function useDocBody(doc) {
 
 /* ---------- 文档卡（md 可读卡 / 图片 / 视频占位 / data chip 由 Strip 渲染） ---------- */
 const DocCard = memo(function DocCard({ doc, onOpen, fresh, onComment, commentCount, revisionCount, commenting }) {
+  const { t } = useI18n();
   const open = () => onOpen?.(doc);
   const files = useContext(FilesContext);
   const { state, body: bodyText, error, retry } = useDocBody(doc);
@@ -143,21 +142,21 @@ const DocCard = memo(function DocCard({ doc, onOpen, fresh, onComment, commentCo
     );
   } else if (doc.kind === 'video') {
     // 性能红线：视频卡不挂 <video>，时长未知渲染占位块，真视频只进预览弹窗
-    body = <div className="docwall-media docwall-video-ph" onClick={open} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && open()}><Film size={26} /><span>视频 · 点击预览</span></div>;
+    body = <div className="docwall-media docwall-video-ph" onClick={open} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && open()}><Film size={26} /><span>{t('docwall.videoPreview')}</span></div>;
   } else if (state === 'missing') {
     body = (
       <div className="docwall-card-body docwall-card-missing">
         <AlertTriangle size={15} />
-        <p>{error || '正文暂不可读。'}</p>
+        <p>{error?.i18nKey ? t(error.i18nKey, error.variables) : error || t('docwall.bodyUnreadable')}</p>
         <div className="docwall-card-missing-actions">
-          {doc.downloadUrl && <a href={doc.downloadUrl} download onClick={(e) => e.stopPropagation()}>尝试下载</a>}
-          <button type="button" className="btn btn-sm" onClick={(e) => { e.stopPropagation(); retry(); }}>重试</button>
+          {doc.downloadUrl && <a href={doc.downloadUrl} download onClick={(e) => e.stopPropagation()}>{t('action.tryDownload')}</a>}
+          <button type="button" className="btn btn-sm" onClick={(e) => { e.stopPropagation(); retry(); }}>{t('action.retry')}</button>
         </div>
       </div>
     );
   } else if (state === 'loading' || state === 'idle') {
     // idle 瞬间即转 fetch；显示 loading 态（不 setState，防 effect 重跑）
-    body = <div className="docwall-card-body docwall-card-loading"><Loader2 size={14} className="docspin" /> 正在读取正文…</div>;
+    body = <div className="docwall-card-body docwall-card-loading"><Loader2 size={14} className="docspin" /> {t('docwall.readingBody')}</div>;
   } else {
     body = (
       <div className="docwall-card-body" onClick={open} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && open()}>
@@ -171,11 +170,11 @@ const DocCard = memo(function DocCard({ doc, onOpen, fresh, onComment, commentCo
       <header className="docwall-card-head" onClick={open}>
         <Icon size={14} aria-hidden="true" />
         <span className="docwall-card-name" title={doc.name}>{doc.name}</span>
-        {revisionCount > 0 && <span className="docwall-card-badge" title={`${revisionCount} 个修订版本`}>✎{revisionCount}</span>}
+        {revisionCount > 0 && <span className="docwall-card-badge" title={t('docwall.revisions', { count: revisionCount })}>✎{revisionCount}</span>}
         {onComment && (
           <button type="button"
             className={`btn btn-icon docwall-card-cmt ${commentCount ? 'docwall-card-cmt-on' : ''}`}
-            title="评论 / 修改建议" aria-label={`评论 ${doc.name}`}
+            title={t('docwall.comment')} aria-label={t('docwall.commentFile', { name: doc.name })}
             onClick={(e) => { e.stopPropagation(); onComment(doc); }}>
             <MessageSquare size={13} />
             {commentCount > 0 && <span className="docwall-card-cmt-n">{commentCount}</span>}
@@ -192,22 +191,23 @@ const DocCard = memo(function DocCard({ doc, onOpen, fresh, onComment, commentCo
    docTail 存在（引擎扫到节点正在写的文本产物）优先渲染「正在生成：<文件名>」的尾部，
    否则回退 agent 对话文本（诚实标注「实时输出」） ---------- */
 function LiveCard({ progress, structured }) {
+  const { t } = useI18n();
   const docTail = progress?.docTail;
   const text = structured ? '' : String(progress?.preview || '');
   const files = useContext(FilesContext);
   const bodyContent = docTail?.tail
-    ? <MarkdownDocument content={`${docTail.tail}\n\n*……生成中（${docTail.name}，已写 ${docTail.size} 字节）*`} files={files} />
+    ? <MarkdownDocument content={`${docTail.tail}\n\n*${t('docwall.generatingMarkdown', { name: docTail.name, size: docTail.size })}*`} files={files} />
     : text ? <MarkdownDocument content={text} files={files} /> : null;
   return (
     <article className="docwall-card docwall-card-live">
       <header className="docwall-card-head">
         <Loader2 size={14} className="docspin" aria-hidden="true" />
-        <span className="docwall-card-name">{docTail?.name ? `正在生成：${docTail.name}` : '实时输出'}</span>
-        {structured && <span className="docwall-live-structured">结构化生成中</span>}
-        {progress?.turns > 0 && <span className="docwall-live-turns">第 {progress.turns} 轮</span>}
+        <span className="docwall-card-name">{docTail?.name ? t('docwall.generating', { name: docTail.name }) : t('docwall.liveOutput')}</span>
+        {structured && <span className="docwall-live-structured">{t('docwall.structuredGenerating')}</span>}
+        {progress?.turns > 0 && <span className="docwall-live-turns">{t('docwall.turn', { count: progress.turns })}</span>}
       </header>
       <div className="docwall-card-body docwall-live-body">
-        {bodyContent || <span className="docwall-live-wait">等待首个输出…</span>}
+        {bodyContent || <span className="docwall-live-wait">{t('docwall.waitingOutput')}</span>}
       </div>
     </article>
   );
@@ -215,6 +215,7 @@ function LiveCard({ progress, structured }) {
 
 /* ---------- 单节点条带 ---------- */
 function NodeStrip({ node, liveProgress, onOpen, registerRef, freshIds, feedback, onComment, commentingKey }) {
+  const { formatDuration, t } = useI18n();
   const [chipOpen, setChipOpen] = useState(false);
   const dataFiles = node.dataFiles || [];
   const strip = node.docs || [];
@@ -234,21 +235,21 @@ function NodeStrip({ node, liveProgress, onOpen, registerRef, freshIds, feedback
         <span className={`docwall-strip-status docwall-strip-status-${node.status}`}>{STATUS_ICON[node.status] || null}</span>
         <strong>{node.nodeLabel}</strong>
         {node.durationMs != null && <span className="docwall-strip-meta"><Clock3 size={11} />{formatDuration(node.durationMs)}</span>}
-        <span className="docwall-strip-meta">{strip.length + dataFiles.length} 个文件</span>
+        <span className="docwall-strip-meta">{t('docwall.fileCount', { count: strip.length + dataFiles.length })}</span>
         {node.error && <span className="docwall-strip-error" title={node.error}>{node.error}</span>}
       </header>
       <div className={`docwall-strip-cards ${strip.length > 0 && strip.length <= 2 ? 'docwall-strip-cards-sparse' : ''}`}>
         {live && <LiveCard progress={liveProgress} structured={liveProgress?.structured} />}
         {strip.map((doc) => <LazyMount key={doc.id}><DocCard doc={doc} onOpen={onOpen} fresh={freshIds?.has(doc.id)} {...cardProps(doc)} /></LazyMount>)}
         {strip.length === 0 && !dataFiles.length && !live && (
-          <div className="docwall-strip-empty">本节点无文件产物</div>
+          <div className="docwall-strip-empty">{t('docwall.noFiles')}</div>
         )}
       </div>
       {dataFiles.length > 0 && (
         <div className="docwall-chiprow">
           <button type="button" className="docwall-chip" onClick={() => setChipOpen((v) => !v)}>
             <ChevronRight size={12} style={{ transform: chipOpen ? 'rotate(90deg)' : 'none' }} />
-            {dataFiles.length} 个中间文件
+            {t('docwall.intermediateFiles', { count: dataFiles.length })}
           </button>
           {chipOpen && dataFiles.map((file) => (
             <span key={file.id} className="docwall-chip docwall-chip-file">
@@ -267,6 +268,7 @@ export function DocWallView({
   loading = false, loadError = '', onRetry, onRefresh,
   onRunHere, recentRuns = [], onInspectRun,
 }) {
+  const { t } = useI18n();
   const model = useMemo(
     () => buildDocWallModel({
       runResults,
@@ -486,27 +488,27 @@ export function DocWallView({
     return (
       <div className="docwall docwall-center">
         <p className="docwall-load-error"><AlertTriangle size={15} />{loadError}</p>
-        <button type="button" className="btn" onClick={onRetry}><RefreshCw size={14} />重试</button>
+        <button type="button" className="btn" onClick={onRetry}><RefreshCw size={14} />{t('action.retry')}</button>
       </div>
     );
   }
   if (loading && !runResults?.runId) {
-    return <div className="docwall docwall-center"><Loader2 size={17} className="docspin" /> 正在加载文稿…</div>;
+    return <div className="docwall docwall-center"><Loader2 size={17} className="docspin" /> {t('docwall.loading')}</div>;
   }
   if (!model.hasRun) {
     // 空态引导（P8）：给出去处，而不是一句静默文案
     return (
       <div className="docwall docwall-center docwall-empty">
-        <p>运行一次工作流后，过程文稿会铺在这里。</p>
+        <p>{t('docwall.emptyHint')}</p>
         {onRunHere
-          ? <button type="button" className="btn btn-primary" onClick={onRunHere}>▶ 去画布运行</button>
+          ? <button type="button" className="btn btn-primary" onClick={onRunHere}>▶ {t('docwall.runOnCanvas')}</button>
           : (recentRuns?.length ? (
             <div className="docwall-empty-runs">
-              <div className="docwall-side-label">最近运行</div>
+              <div className="docwall-side-label">{t('docwall.recentRuns')}</div>
               {recentRuns.slice(0, 5).map((run) => (
                 <button key={run.runId} type="button" className="docwall-row" onClick={() => onInspectRun?.(run.runId)}>
                   <span className="docwall-row-name">{run.workflowName || run.runId}</span>
-                  <span className="docwall-row-cnt">{run.status}</span>
+                  <span className="docwall-row-cnt">{t(STATUS_KEY[run.status] || 'run.statusUnknown', { status: run.status })}</span>
                 </button>
               ))}
             </div>
@@ -525,16 +527,16 @@ export function DocWallView({
     <BulkContext.Provider value={bulkContext}>
     <FilesContext.Provider value={runFiles}>
     <div className={`docwall docwall-density-${density}`}>
-      <aside className="docwall-side" aria-label="节点列表">
+      <aside className="docwall-side" aria-label={t('docwall.nodeList')}>
         <button type="button" className={`docwall-row ${selected === 'overview' ? 'docwall-row-on' : ''}`} onClick={() => setSelected('overview')}>
-          <span className="docwall-row-name">总览 · 全部节点</span>
+          <span className="docwall-row-name">{t('docwall.overview')}</span>
           <span className="docwall-row-cnt">{model.nodes.length}</span>
         </button>
         <button type="button" className={`docwall-row ${selected === 'finals' ? 'docwall-row-on' : ''}`} onClick={() => setSelected('finals')}>
-          <span className="docwall-row-name">成果</span>
+          <span className="docwall-row-name">{t('docwall.results')}</span>
           <span className="docwall-row-cnt">{model.finals.docs.length}</span>
         </button>
-        <div className="docwall-side-label">过程 · 执行顺序</div>
+        <div className="docwall-side-label">{t('docwall.processOrder')}</div>
         {model.nodes.map((node) => (
           <button key={node.nodeId} type="button"
             className={`docwall-row ${(selected === node.nodeId || (selected === 'overview' && spyNode === node.nodeId)) ? 'docwall-row-on' : ''} ${node.docs.length + node.dataFiles.length === 0 ? 'docwall-row-zero' : ''}`}
@@ -549,34 +551,34 @@ export function DocWallView({
 
       <div className="docwall-main" ref={mainRef}>
         <div className="docwall-toolbar">
-          <strong>{model.workflowName || '当前运行'}</strong>
-          <span className="docwall-toolbar-meta">{model.finals.docs.length + model.totals.docs} 份文稿</span>
+          <strong>{model.workflowName || t('docwall.currentRun')}</strong>
+          <span className="docwall-toolbar-meta">{t('docwall.documentCount', { count: model.finals.docs.length + model.totals.docs })}</span>
           <span className="docwall-toolbar-spacer" />
-          <input type="search" ref={searchRef} className="docwall-search" placeholder="搜索文件名…（/）" value={query}
-            onChange={(e) => setQuery(e.target.value)} aria-label="搜索文件名" />
-          <select className="docwall-kind" value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} aria-label="按类型过滤">
-            <option value="all">全部类型</option>
-            <option value="doc">文档</option>
-            <option value="image">图片</option>
-            <option value="video">视频</option>
+          <input type="search" ref={searchRef} className="docwall-search" placeholder={t('docwall.searchPlaceholder')} value={query}
+            onChange={(e) => setQuery(e.target.value)} aria-label={t('docwall.searchLabel')} />
+          <select className="docwall-kind" value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} aria-label={t('docwall.filterLabel')}>
+            <option value="all">{t('docwall.typeAll')}</option>
+            <option value="doc">{t('docwall.typeDocument')}</option>
+            <option value="image">{t('docwall.typeImage')}</option>
+            <option value="video">{t('docwall.typeVideo')}</option>
           </select>
           <div className="docwall-density" role="group" aria-label="卡片密度">
             {['s', 'm', 'l'].map((d) => (
               <button key={d} type="button" className={`docwall-density-btn ${density === d ? 'docwall-density-on' : ''}`}
-                title={{ s: '紧凑', m: '适中', l: '宽松' }[d]} aria-pressed={density === d}
+                title={t(DENSITY_KEY[d])} aria-pressed={density === d}
                 onClick={() => setDensity(d)}>{d.toUpperCase()}</button>
             ))}
           </div>
-          <button type="button" className={`btn btn-icon ${onlyWithFiles ? 'docwall-only-on' : ''}`} title={onlyWithFiles ? '显示全部节点' : '只看有产物的节点'}
-            aria-label="只看有产物的节点" aria-pressed={onlyWithFiles} onClick={() => setOnlyWithFiles((v) => !v)}>◈</button>
-          {model.runId && <a type="button" className="btn btn-icon" title="导出本次运行全部产物（zip）" aria-label="导出本次运行全部产物"
+          <button type="button" className={`btn btn-icon ${onlyWithFiles ? 'docwall-only-on' : ''}`} title={onlyWithFiles ? t('docwall.showAllNodes') : t('docwall.onlyWithFiles')}
+            aria-label={t('docwall.onlyWithFiles')} aria-pressed={onlyWithFiles} onClick={() => setOnlyWithFiles((v) => !v)}>◈</button>
+          {model.runId && <a type="button" className="btn btn-icon" title={t('docwall.exportRun')} aria-label={t('docwall.exportRun')}
             href={apiUrl(`/runs/export?id=${encodeURIComponent(model.runId)}`)} download>⬇</a>}
-          {onRefresh && <button type="button" className="btn btn-icon" title="刷新文稿" aria-label="刷新文稿" onClick={onRefresh}><RefreshCw size={14} /></button>}
+          {onRefresh && <button type="button" className="btn btn-icon" title={t('action.refresh')} aria-label={t('action.refresh')} onClick={onRefresh}><RefreshCw size={14} /></button>}
         </div>
 
         {selected === 'finals' ? (
-          <section className="docwall-strip" aria-label="成果">
-            <header className="docwall-strip-head docwall-strip-head-final"><strong>◆ 成果</strong><span className="docwall-strip-meta">{model.finals.docs.length} 文档 · {model.finals.links.length} 链接</span></header>
+          <section className="docwall-strip" aria-label={t('docwall.results')}>
+            <header className="docwall-strip-head docwall-strip-head-final"><strong>◆ {t('docwall.results')}</strong><span className="docwall-strip-meta">{t('docwall.resultsMeta', { docs: model.finals.docs.length, links: model.finals.links.length })}</span></header>
             <div className="docwall-strip-cards">
               {model.finals.docs.map((doc) => {
                 const entry = feedback.byArtifact.get(feedbackKey(doc));
@@ -589,7 +591,7 @@ export function DocWallView({
               {model.finals.links.map((link) => (
                 <a key={link.url} className="docwall-card docwall-card-link" href={link.url} target="_blank" rel="noreferrer">🔗 {link.label}</a>
               ))}
-              {!model.finals.docs.length && !model.finals.links.length && <div className="docwall-strip-empty">本次运行没有 output 节点产物。</div>}
+              {!model.finals.docs.length && !model.finals.links.length && <div className="docwall-strip-empty">{t('docwall.noOutputArtifacts')}</div>}
             </div>
           </section>
         ) : (
@@ -603,7 +605,7 @@ export function DocWallView({
           ))
         )}
         {selected === 'overview' && !visibleNodes.length && (
-          <div className="docwall-strip-empty docwall-filter-empty">没有匹配的节点——试试清空搜索或切换类型过滤。</div>
+          <div className="docwall-strip-empty docwall-filter-empty">{t('docwall.noMatches')}</div>
         )}
       </div>
       {previewDoc && <PreviewExtra artifact={previewDoc} onClose={() => setPreviewDoc(null)} />}
@@ -617,6 +619,7 @@ export function DocWallView({
 /* ---------- 预览弹窗辅助工具条：DocumentPreviewDialog 属 document-preview 插件不可扩展，
    在其后挂自己的小浮层——复制全文（md/txt/csv）与复制链接 ---------- */
 function PreviewExtra({ artifact, onClose }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState('');
   const copy = async (text, label) => {
     try { await navigator.clipboard.writeText(text); setCopied(label); setTimeout(() => setCopied(''), 1600); } catch { /* 剪贴板不可用静默 */ }
@@ -625,15 +628,15 @@ function PreviewExtra({ artifact, onClose }) {
     try {
       const res = await fetch(artifact.downloadUrl);
       if (!res.ok) throw new Error(String(res.status));
-      await copy(await res.text(), '已复制全文');
-    } catch { setCopied('复制失败'); setTimeout(() => setCopied(''), 1600); }
+      await copy(await res.text(), t('docwall.copiedText'));
+    } catch { setCopied(t('docwall.copyFailed')); setTimeout(() => setCopied(''), 1600); }
   };
   return <>
     <ArtifactPreviewModal artifact={artifact} onClose={onClose} />
     <div className="docwall-preview-extra">
-      {['doc'].includes(artifact.kind) && <button type="button" className="btn btn-sm" onClick={copyText}>{copied === '已复制全文' ? '✓ 已复制全文' : '复制全文'}</button>}
-      {artifact.previewUrl && <button type="button" className="btn btn-sm" onClick={() => copy(window.location.origin + artifact.previewUrl, '已复制链接')}>{copied === '已复制链接' ? '✓ 已复制链接' : '复制链接'}</button>}
-      {copied && copied !== '已复制全文' && copied !== '已复制链接' && <span className="docwall-copy-err">{copied}</span>}
+      {['doc'].includes(artifact.kind) && <button type="button" className="btn btn-sm" onClick={copyText}>{copied === t('docwall.copiedText') ? `✓ ${t('docwall.copiedText')}` : t('docwall.copyText')}</button>}
+      {artifact.previewUrl && <button type="button" className="btn btn-sm" onClick={() => copy(window.location.origin + artifact.previewUrl, t('docwall.copiedLink'))}>{copied === t('docwall.copiedLink') ? `✓ ${t('docwall.copiedLink')}` : t('docwall.copyLink')}</button>}
+      {copied && copied !== t('docwall.copiedText') && copied !== t('docwall.copiedLink') && <span className="docwall-copy-err">{copied}</span>}
     </div>
   </>;
 }

@@ -14,6 +14,7 @@ import {
   validateTemplate,
   wrapToken,
 } from './variables.js';
+import { useI18n } from './i18n/index.js';
 
 const externalSync = Annotation.define();
 const setDiagnostics = StateEffect.define();
@@ -163,6 +164,7 @@ export function TemplateEditor({
   mode = 'template',
   implicitUpstream = true,
 }) {
+  const { t } = useI18n();
   const hostRef = useRef(null);
   const viewRef = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -257,14 +259,14 @@ export function TemplateEditor({
       <div ref={hostRef} className="tpl-cm" data-template-editor="true" />
       <div className="tpl-toolbar">
         <button type="button" className={`tpl-tool ${explorerOpen ? 'tpl-tool-on' : ''}`} onClick={() => setExplorerOpen(true)}>
-          <Braces size={13} />变量工作台
+          <Braces size={13} />{t('template.variableWorkbench')}
         </button>
         <span className={`tpl-health ${issues.length ? 'tpl-health-bad' : 'tpl-health-ok'}`}>
-          {issues.length ? `${issues.length} 个问题` : '模板有效'}
+          {issues.length ? t('template.issueCount', { count: issues.length }) : t('template.valid')}
         </span>
         <span className="tpl-toolbar-spacer" />
-        {issues.length > 0 && <button type="button" className="tpl-tool" onClick={jumpToIssue} title="定位首个诊断"><Crosshair size={13} />定位</button>}
-        <button type="button" className="tpl-tool" disabled={rendering} onClick={tryRender} title="使用最近一次运行数据试渲染"><Play size={13} />{rendering ? '渲染中' : '试渲染'}</button>
+        {issues.length > 0 && <button type="button" className="tpl-tool" onClick={jumpToIssue} title={t('template.jumpToFirstIssue')}><Crosshair size={13} />{t('template.locate')}</button>}
+        <button type="button" className="tpl-tool" disabled={rendering} onClick={tryRender} title={t('template.tryRenderHint')}><Play size={13} />{rendering ? t('template.rendering') : t('template.tryRender')}</button>
       </div>
       {activeVariable && (
         <div className="tpl-active-info">
@@ -275,7 +277,7 @@ export function TemplateEditor({
       )}
       {explorerOpen && (
         <VariableWorkbench
-          title={label || '模板'}
+          title={label || t('template.defaultTitle')}
           value={value || ''}
           onChange={onChange}
           items={variables}
@@ -291,10 +293,10 @@ export function TemplateEditor({
       {rendered && (
         <div className={`tpl-rendered ${rendered.error ? 'tpl-rendered-error' : ''}`}>
           <div className="tpl-rendered-head">
-            <span>试渲染结果</span>
-            <button type="button" className="btn-icon" aria-label="关闭试渲染" onClick={() => setRendered(null)}><X size={14} /></button>
+            <span>{t('template.renderedResult')}</span>
+            <button type="button" className="btn-icon" aria-label={t('template.closeRendered')} onClick={() => setRendered(null)}><X size={14} /></button>
           </div>
-          <pre>{rendered.error || rendered.text || '(空结果)'}</pre>
+          <pre>{rendered.error || rendered.text || t('template.emptyResult')}</pre>
           {rendered.note && <p>{rendered.note}</p>}
         </div>
       )}
@@ -324,6 +326,7 @@ function VariableWorkbench({
   mode,
   onClose,
 }) {
+  const { t } = useI18n();
   const hostRef = useRef(null);
   const viewRef = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -394,13 +397,13 @@ function VariableWorkbench({
 
   return (
     <div className="variable-workbench-mask" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="variable-workbench" role="dialog" aria-modal="true" aria-label={`${title}变量工作台`}>
+      <div className="variable-workbench" role="dialog" aria-modal="true" aria-label={t('template.workbenchAria', { title })}>
         <header className="variable-workbench-head">
           <div>
             <strong>{title}</strong>
-            <span>变量树 / 编辑 / 实时预览</span>
+            <span>{t('template.workbenchSubtitle')}</span>
           </div>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="关闭变量工作台"><X size={16} /></button>
+          <button type="button" className="btn-icon" onClick={onClose} aria-label={t('template.closeWorkbench')}><X size={16} /></button>
         </header>
         <div className="variable-workbench-grid">
           <section className="variable-workbench-pane variable-workbench-vars">
@@ -414,8 +417,8 @@ function VariableWorkbench({
           </section>
           <section className="variable-workbench-pane variable-workbench-editor">
             <div className="variable-pane-head">
-              <strong>编辑</strong>
-              <span>{issues.length ? `${issues.length} 个问题` : '模板有效'}</span>
+              <strong>{t('template.edit')}</strong>
+              <span>{issues.length ? t('template.issueCount', { count: issues.length }) : t('template.valid')}</span>
             </div>
             <div ref={hostRef} className="tpl-cm variable-workbench-cm" data-template-editor="true" />
             {issues.length > 0 && (
@@ -426,19 +429,19 @@ function VariableWorkbench({
           </section>
           <section className="variable-workbench-pane variable-workbench-preview">
             <div className="variable-pane-head">
-              <strong>预览</strong>
-              <span>{preview.loading ? '更新中' : preview.error ? '失败' : preview.missing.length ? '有缺失值' : '实时'}</span>
+              <strong>{t('template.preview')}</strong>
+              <span>{preview.loading ? t('template.updating') : preview.error ? t('status.error') : preview.missing.length ? t('template.missingValues') : t('template.live')}</span>
             </div>
             <div className={`variable-preview-body ${preview.error ? 'variable-preview-error' : ''}`}>
               {preview.loading && !preview.text && !preview.error ? (
-                <div className="variable-preview-empty">正在计算预览…</div>
+                <div className="variable-preview-empty">{t('template.calculatingPreview')}</div>
               ) : (
-                <pre>{preview.error || preview.text || '(空结果)'}</pre>
+                <pre>{preview.error || preview.text || t('template.emptyResult')}</pre>
               )}
             </div>
             {preview.missing.length > 0 && (
               <div className="variable-preview-missing">
-                <strong>缺失变量</strong>
+                <strong>{t('template.missingVariables')}</strong>
                 {preview.missing.map((token) => <code key={token}>{token}</code>)}
               </div>
             )}
@@ -450,6 +453,7 @@ function VariableWorkbench({
 }
 
 export function VariableExplorer({ items, fallback, message, onInsert, onClose, embedded = false }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState(() => new Set(['group:nodes', 'group:builtin']));
   const visibleItems = useMemo(() => filterTree(items, query.trim().toLowerCase()), [items, query]);
@@ -463,26 +467,27 @@ export function VariableExplorer({ items, fallback, message, onInsert, onClose, 
   return (
     <div className={`var-explorer ${embedded ? 'var-explorer-embedded' : ''}`}>
       <div className="var-explorer-head">
-        <div><strong>变量树</strong>{fallback && <span className="var-fallback">本地 schema</span>}</div>
-        {!embedded && <button type="button" className="btn-icon" onClick={onClose} aria-label="关闭变量资源管理器"><X size={14} /></button>}
+        <div><strong>{t('template.variableTree')}</strong>{fallback && <span className="var-fallback">{t('template.localSchema')}</span>}</div>
+        {!embedded && <button type="button" className="btn-icon" onClick={onClose} aria-label={t('template.closeVariableExplorer')}><X size={14} /></button>}
       </div>
       <label className="var-search">
         <Search size={13} />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索节点、字段或类型" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('template.variableSearch')} />
       </label>
       {message && <p className="var-message">{message}</p>}
       <div className="var-tree">
-        {visibleItems.length === 0 && <div className="var-empty">没有匹配变量</div>}
+        {visibleItems.length === 0 && <div className="var-empty">{t('template.noVariables')}</div>}
         {visibleItems.map((item) => (
           <VariableRow key={item.id} item={item} depth={0} expanded={expanded} onToggle={toggle} onInsert={onInsert} forceOpen={Boolean(query)} />
         ))}
       </div>
-      <div className="var-explorer-foot">拖到中间编辑器，或点击字段插入。<code>{'{{'}</code>、<code>/变量</code>、<code>/var</code> 仍可补全。</div>
+      <div className="var-explorer-foot">{t('template.variableExplorerHint')} <code>{'{{'}</code> {t('template.variableCommands')}。</div>
     </div>
   );
 }
 
 function VariableRow({ item, depth, expanded, onToggle, onInsert, forceOpen }) {
+  const { t } = useI18n();
   const hasChildren = item.children?.length > 0;
   const open = forceOpen || expanded.has(item.id);
   const insertable = Boolean(item.token);
@@ -508,7 +513,7 @@ function VariableRow({ item, depth, expanded, onToggle, onInsert, forceOpen }) {
         onClick={() => insertable ? onInsert(item.token) : hasChildren && onToggle(item.id)}
         title={insertable ? item.token : item.label}
       >
-        <button type="button" className="var-caret" aria-label={open ? '收起字段' : '展开字段'} onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(item.id); }}>
+        <button type="button" className="var-caret" aria-label={open ? t('template.collapseField') : t('template.expandField')} onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(item.id); }}>
           {hasChildren ? <ChevronRight size={13} className={open ? 'var-caret-open' : ''} /> : <span />}
         </button>
         {insertable ? <GripVertical size={12} className="var-grip" /> : <Database size={12} className="var-group-icon" />}
@@ -516,9 +521,9 @@ function VariableRow({ item, depth, expanded, onToggle, onInsert, forceOpen }) {
           <div className="var-name-line"><span className="var-name">{item.label}</span>{item.type && <span className={`var-type type-${item.type}`}>{item.type}</span>}</div>
           {insertable && <code>{item.token}</code>}
           {item.description && <span className="var-description">{item.description}</span>}
-          {insertable && <span className={item.hasValue ? 'var-preview' : 'var-no-value'}>{item.hasValue ? preview : '暂无最近值'}</span>}
+          {insertable && <span className={item.hasValue ? 'var-preview' : 'var-no-value'}>{item.hasValue ? preview : t('template.noRecentValue')}</span>}
         </div>
-        {insertable && <button type="button" className="var-copy" onClick={copy} aria-label={`复制 ${item.label}`} title="复制变量"><Copy size={13} /></button>}
+        {insertable && <button type="button" className="var-copy" onClick={copy} aria-label={t('template.copyVariable', { label: item.label })} title={t('template.copyVariableTitle')}><Copy size={13} /></button>}
       </div>
       {hasChildren && open && (
         <div className="var-children">
