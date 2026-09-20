@@ -13,11 +13,11 @@ const panel = readFileSync(join(root, 'NodePanel.jsx'), 'utf8');
 // llmConfig.wf1Defaults 是展示链的第一顺位数据源
 assert.match(panel, /llmConfig\.wf1Defaults/, 'NodePanel 应从 llmConfig.wf1Defaults 读取 WF1 默认值');
 
-// 占位文案：WF1 设置了渠道时显示「跟随 Workflow One 默认」，而不是「跟随 dsh 默认」
-assert.match(panel, /跟随 Workflow One 默认/, '占位文案应包含「跟随 Workflow One 默认」分支');
+// 占位文案使用稳定 key，由 locale dictionary 提供实际语言。
+assert.match(panel, /t\('node\.followWorkflowDefault'/, '占位文案应包含 Workflow One 默认分支');
 
 // 渠道下拉占位：wf1Provider 存在时优先展示 WF1 层
-assert.match(panel, /wf1Provider\s*\?\s*`跟随 Workflow One 默认/, '渠道下拉占位应优先 wf1Provider');
+assert.match(panel, /wf1Provider\s*\?\s*t\('node\.followWorkflowDefault'/, '渠道下拉占位应优先 wf1Provider');
 
 // effectiveProvider 链：wf1Provider 优先于 llmConfig.defaultProvider
 assert.match(panel, /const defaultProvider = wf1Provider \|\| llmConfig\.defaultProvider \|\| ''/, 'defaultProvider 应先取 wf1Provider');
