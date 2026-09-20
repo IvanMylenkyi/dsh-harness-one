@@ -4,21 +4,57 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiUrl } from './api.js';
 import { Modal } from './ui.jsx';
 import { CRON_PRESETS, describeCron, formatNextInZone, hostTimezone, presetOfCron, supportedTimezones, timezoneOffsetLabel } from './schedule-center.js';
+import { useI18n } from './i18n/index.js';
+
+const PRESET_KEY = {
+  'daily-9': 'schedule.preset.daily9',
+  hourly: 'schedule.preset.hourly',
+  'weekly-mon-9': 'schedule.preset.weeklyMon9',
+  'weekdays-9': 'schedule.preset.weekdays9',
+};
+const DAY_KEY = { '\u5468\u65e5': 'schedule.day.sun', '\u5468\u4e00': 'schedule.day.mon', '\u5468\u4e8c': 'schedule.day.tue', '\u5468\u4e09': 'schedule.day.wed', '\u5468\u56db': 'schedule.day.thu', '\u5468\u4e94': 'schedule.day.fri', '\u5468\u516d': 'schedule.day.sat' };
+
+function localizeDays(value, t) {
+  return value.split('、').map((day) => t(DAY_KEY[day] || 'schedule.unknownDay', { day })).join(t('schedule.dayJoiner'));
+}
+
+function localizeCronDescription(cron, t) {
+  const raw = describeCron(cron);
+  if (!raw) return '';
+  let match = raw.match(/^\u6bcf\u5929 (\d{2}:\d{2})$/);
+  if (match) return t('schedule.everyDayAt', { time: match[1] });
+  match = raw.match(/^\u6bcf\u5c0f\u65f6\u7b2c (\d+) \u5206$/);
+  if (match) return t('schedule.hourlyAtMinute', { minute: match[1] });
+  if (raw === '\u6bcf\u5c0f\u65f6\u7b2c 0 \u5206\u8d77\u6bcf\u5206' || raw === '\u6bcf\u5206\u949f') return t('schedule.everyMinute');
+  match = raw.match(/^\u6bcf\u5c0f\u65f6\u6bcf (\d+) \u5206\u949f$/);
+  if (match) return t('schedule.everyMinutes', { count: match[1] });
+  match = raw.match(/^\u5de5\u4f5c\u65e5 (\d{2}:\d{2})$/);
+  if (match) return t('schedule.weekdaysAt', { time: match[1] });
+  if (raw === '\u6bcf\u4e2a\u5de5\u4f5c\u65e5') return t('schedule.everyWeekday');
+  match = raw.match(/^\u6bcf\u6708 (\d+) \u65e5(?: (\d{2}:\d{2}))?$/);
+  if (match) return match[2] ? t('schedule.monthlyAt', { day: match[1], time: match[2] }) : t('schedule.monthlyOn', { day: match[1] });
+  match = raw.match(/^(.+?) (\d{2}:\d{2})$/);
+  if (match && match[1].split('\u3001').every((day) => DAY_KEY[day])) return t('schedule.weekdaysAtNamed', { days: localizeDays(match[1], t), time: match[2] });
+  match = raw.match(/^\u6bcf(.+)$/);
+  if (match && match[1].split('、').every((day) => DAY_KEY[day])) return t('schedule.everyWeekdays', { days: localizeDays(match[1], t) });
+  return cron;
+}
 
 function validateRunInputsJson(text) {
   if (!text.trim()) return { ok: true, value: {} };
   try {
     const value = JSON.parse(text);
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return { ok: false, error: '运行参数必须是 JSON 对象（如 {"env": "prod"}）' };
+      return { ok: false, error: { i18nKey: 'schedule.runInputsObject', variables: {} } };
     }
     return { ok: true, value };
   } catch (e) {
-    return { ok: false, error: `JSON 格式错误：${e.message}` };
+    return { ok: false, error: { i18nKey: 'validation.invalidJson', variables: { message: e.message } } };
   }
 }
 
 function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
+  const { t } = useI18n();
   const [workflowId, setWorkflowId] = useState(initial?.workflowId || (workflows[0]?.id || ''));
   const [cron, setCron] = useState(initial?.cron || CRON_PRESETS[0].cron);
   const [input, setInput] = useState(initial?.input || '');
@@ -48,11 +84,11 @@ function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
         body: JSON.stringify({ cron, timezone: timezone || null }),
       })
         .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
-        .then(({ ok, data }) => setPreview(ok ? { state: 'ok', times: data.times || [] } : { state: 'error', error: data.error || 'cron 表达式无效' }))
-        .catch(() => setPreview({ state: 'error', error: '预览请求失败' }));
+        .then(({ ok, data }) => setPreview(ok ? { state: 'ok', times: data.times || [] } : { state: 'error', error: data.error || t('schedule.invalidCron') }))
+        .catch(() => setPreview({ state: 'error', error: t('schedule.previewFailed') }));
     }, 300);
     return () => clearTimeout(debounceRef.current);
-  }, [cron, timezone]);
+  }, [cron, timezone, t]);
 
   const runInputsCheck = validateRunInputsJson(runInputsText);
   const cronValid = preview.state === 'ok';
@@ -74,31 +110,31 @@ function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
   return (
     <div className="sch-form">
       <section className="panel-sec">
-        <h4>工作流 <span className="sec-hint">定时任务按保存后的最新画布内容运行</span></h4>
+        <h4>{t('schedule.workflow')} <span className="sec-hint">{t('schedule.workflowHint')}</span></h4>
         <select className="sch-input" value={workflowId} onChange={(e) => setWorkflowId(e.target.value)} disabled={Boolean(initial?.workflowId)}>
           {workflows.map((wf) => <option key={wf.id} value={wf.id}>{wf.name}</option>)}
         </select>
       </section>
       <section className="panel-sec">
-        <h4>触发时间</h4>
+        <h4>{t('schedule.triggerTime')}</h4>
         <div className="sch-presets">
           {CRON_PRESETS.map((p) => (
-            <button key={p.key} type="button" className={`chip ${preset?.key === p.key ? 'chip-on' : ''}`} onClick={() => setCron(p.cron)}>{p.label}</button>
+            <button key={p.key} type="button" className={`chip ${preset?.key === p.key ? 'chip-on' : ''}`} onClick={() => setCron(p.cron)}>{t(PRESET_KEY[p.key] || 'schedule.custom')}</button>
           ))}
-          <button type="button" className={`chip ${preset === null ? 'chip-on' : ''}`} onClick={() => setCron('')}>自定义</button>
+          <button type="button" className={`chip ${preset === null ? 'chip-on' : ''}`} onClick={() => setCron('')}>{t('schedule.custom')}</button>
         </div>
         <input
           className={`sch-input ${preview.state === 'error' ? 'sch-input-err' : ''}`}
-          placeholder="cron 表达式（分 时 日 月 周，如 30 8 * * *）"
+          placeholder={t('schedule.cronPlaceholder')}
           value={cron}
           onChange={(e) => setCron(e.target.value)}
         />
         {preview.state === 'error' && <p className="sch-err">{preview.error}</p>}
-        {preview.state === 'loading' && <p className="sec-hint">校验中…</p>}
+        {preview.state === 'loading' && <p className="sec-hint">{t('schedule.validating')}</p>}
         {preview.state === 'ok' && (
           <p className="sch-preview">
-            <strong>{describeCron(cron) || '自定义周期'}</strong>
-            接下来：{preview.times.map((t) => formatNextInZone(t, timezone)).join('、')}
+            <strong>{localizeCronDescription(cron, t) || t('schedule.customCycle')}</strong>
+            {t('schedule.nextRuns')}: {preview.times.map((time) => formatNextInZone(time, timezone)).join(t('schedule.timeJoiner'))}
           </p>
         )}
         <div className="sch-tz">
@@ -106,22 +142,22 @@ function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
             className="sch-input sch-tz-select"
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            title="cron 表达式按所选时区解释"
+            title={t('schedule.timezoneTitle')}
           >
-            <option value="">跟随主机（{hostTimezone()}）</option>
+            <option value="">{t('schedule.followHost', { timezone: hostTimezone() })}</option>
             {timezoneOptions.map((tz) => (
               <option key={tz} value={tz}>{tz}（{timezoneOffsetLabel(tz)}）</option>
             ))}
           </select>
-          {timezone && <p className="sec-hint">cron 按所选时区 {timezone} 解释；改回「跟随主机」即恢复旧行为</p>}
+          {timezone && <p className="sec-hint">{t('schedule.timezoneSelectedHint', { timezone })}</p>}
         </div>
       </section>
       <section className="panel-sec">
-        <h4>触发输入 <span className="sec-hint">可选，模板里用 {'{{$trigger}}'} 引用</span></h4>
-        <textarea className="sch-input sch-textarea" rows={2} placeholder="如：执行今日巡检" value={input} onChange={(e) => setInput(e.target.value)} />
+        <h4>{t('schedule.triggerInput')} <span className="sec-hint">{t('schedule.triggerInputHint')}</span></h4>
+        <textarea className="sch-input sch-textarea" rows={2} placeholder={t('schedule.triggerInputPlaceholder')} value={input} onChange={(e) => setInput(e.target.value)} />
       </section>
       <section className="panel-sec">
-        <h4>运行参数 <span className="sec-hint">可选 JSON 对象，对应工作流输入 Schema 的入参</span></h4>
+        <h4>{t('schedule.runParameters')} <span className="sec-hint">{t('schedule.runParametersHint')}</span></h4>
         <textarea
           className={`sch-input sch-textarea ${!runInputsCheck.ok ? 'sch-input-err' : ''}`}
           rows={2}
@@ -132,35 +168,35 @@ function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
         {!runInputsCheck.ok && <p className="sch-err">{runInputsCheck.error}</p>}
       </section>
       <section className="panel-sec">
-        <h4>重叠策略 <span className="sec-hint">到点时上一轮还没跑完怎么办</span></h4>
+        <h4>{t('schedule.overlap')} <span className="sec-hint">{t('schedule.overlapHint')}</span></h4>
         <div className="sch-overlap">
           <label className={`sch-radio ${overlap === 'skip' ? 'sch-radio-on' : ''}`}>
             <input type="radio" name="sch-overlap" checked={overlap === 'skip'} onChange={() => setOverlap('skip')} />
-            <span><strong>跳过本轮（推荐巡检）</strong><em>不重复执行、不重复推送，结束后下个周期照常</em></span>
+            <span><strong>{t('schedule.overlapSkip')}</strong><em>{t('schedule.overlapSkipHint')}</em></span>
           </label>
           <label className={`sch-radio ${overlap === 'parallel' ? 'sch-radio-on' : ''}`}>
             <input type="radio" name="sch-overlap" checked={overlap === 'parallel'} onChange={() => setOverlap('parallel')} />
-            <span><strong>并行新开一轮</strong><em>与上一轮同时运行，互不干扰（消耗双份资源）</em></span>
+            <span><strong>{t('schedule.overlapParallel')}</strong><em>{t('schedule.overlapParallelHint')}</em></span>
           </label>
         </div>
       </section>
       <section className="panel-sec">
-        <h4>错过触发点 <span className="sec-hint">dsh 停机期间到期的周期怎么处理</span></h4>
+        <h4>{t('schedule.misfire')} <span className="sec-hint">{t('schedule.misfireHint')}</span></h4>
         <div className="sch-overlap">
           <label className={`sch-radio ${misfirePolicy === 'ignore' ? 'sch-radio-on' : ''}`}>
             <input type="radio" name="sch-misfire" checked={misfirePolicy === 'ignore'} onChange={() => setMisfirePolicy('ignore')} />
-            <span><strong>忽略（默认）</strong><em>停机期间错过的触发点跳过，只记一条 misfire 统计；重启后按下一周期继续</em></span>
+            <span><strong>{t('schedule.misfireIgnore')}</strong><em>{t('schedule.misfireIgnoreHint')}</em></span>
           </label>
           <label className={`sch-radio ${misfirePolicy === 'catchUp' ? 'sch-radio-on' : ''}`}>
             <input type="radio" name="sch-misfire" checked={misfirePolicy === 'catchUp'} onChange={() => setMisfirePolicy('catchUp')} />
-            <span><strong>补跑一次</strong><em>重启后立即补跑最近错过的那一次（多个触发点也只补一次，防雪崩）；来源标记为「补跑」</em></span>
+            <span><strong>{t('schedule.misfireCatchUp')}</strong><em>{t('schedule.misfireCatchUpHint')}</em></span>
           </label>
         </div>
       </section>
       <div className="sch-form-actions">
-        <button className="btn" onClick={onCancel} disabled={submitting}>取消</button>
+        <button className="btn" onClick={onCancel} disabled={submitting}>{t('action.cancel')}</button>
         <button className="btn btn-primary" onClick={submit} disabled={!canSubmit}>
-          {submitting ? '保存中…' : initial?.key ? '保存修改' : '创建任务'}
+          {submitting ? t('status.saving') : initial?.key ? t('schedule.saveChanges') : t('schedule.create')}
         </button>
       </div>
     </div>
@@ -168,6 +204,7 @@ function ScheduleForm({ workflows, initial, onSubmit, onCancel, submitting }) {
 }
 
 export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
+  const { t } = useI18n();
   const [schedules, setSchedules] = useState([]);
   const [workflows, setWorkflows] = useState([]);
   const [mode, setMode] = useState('list'); // list | create | edit
@@ -202,8 +239,8 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
         body: JSON.stringify(isEdit ? { key: editing.key, ...payload } : payload),
       });
       const data = await res.json();
-      if (!res.ok) { toast(`保存失败：${data.error}`, 'error'); return; }
-      toast(isEdit ? '已保存修改' : '定时任务已创建', 'success');
+      if (!res.ok) { toast(`${t('schedule.saveFailed')}: ${data.error}`, 'error'); return; }
+      toast(isEdit ? t('schedule.saved') : t('schedule.created'), 'success');
       setMode('list');
       setEditing(null);
       load();
@@ -216,8 +253,8 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
       body: JSON.stringify({ key: row.key }),
     });
     const data = await res.json();
-    if (!res.ok) { toast(`立即运行失败：${data.error}`, 'error'); return; }
-    toast('已触发运行，可在底部运行面板切换查看', 'success');
+    if (!res.ok) { toast(`${t('schedule.runFailed')}: ${data.error}`, 'error'); return; }
+    toast(t('schedule.triggered'), 'success');
     onRan?.();
     load();
   });
@@ -227,15 +264,15 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: row.key, enabled: !row.enabled }),
     });
-    if (!res.ok) { toast('操作失败', 'error'); return; }
-    toast(row.enabled ? '已停用，到点不再触发' : '已启用', 'info');
+    if (!res.ok) { toast(t('schedule.operationFailed'), 'error'); return; }
+    toast(row.enabled ? t('schedule.disabledToast') : t('schedule.enabledToast'), 'info');
     load();
   });
 
   const doDelete = (key) => act(`del:${key}`, async () => {
     const res = await fetch(apiUrl(`/schedule?key=${encodeURIComponent(key)}`), { method: 'DELETE' });
-    if (!res.ok) { toast('删除失败', 'error'); return; }
-    toast('已删除', 'info');
+    if (!res.ok) { toast(t('schedule.deleteFailed'), 'error'); return; }
+    toast(t('schedule.deleted'), 'info');
     setConfirmDelete(null);
     load();
   });
@@ -249,7 +286,7 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
   };
 
   return (
-    <Modal title={mode === 'list' ? '定时任务' : mode === 'create' ? '新建定时任务' : '编辑定时任务'} onClose={mode === 'list' ? onClose : () => { setMode('list'); setEditing(null); }}>
+    <Modal title={mode === 'list' ? t('schedule.title') : mode === 'create' ? t('schedule.newTitle') : t('schedule.editTitle')} onClose={mode === 'list' ? onClose : () => { setMode('list'); setEditing(null); }}>
       {mode !== 'list' ? (
         <ScheduleForm
           workflows={workflows}
@@ -261,12 +298,12 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
       ) : (
         <div className="sch-list">
           {!workflows.length && (
-            <p className="panel-note">还没有已保存的工作流。先在画布保存一个工作流，再来创建定时任务。</p>
+            <p className="panel-note">{t('schedule.noWorkflows')}</p>
           )}
           {workflows.length > 0 && !schedules.length && (
             <div className="sch-empty">
-              <p className="panel-note">还没有定时任务。三步开始：</p>
-              <p className="sec-hint">1. 画布右上保存工作流 → 2. 点「新建定时任务」选周期 → 3. 到点自动运行，结果可在底部运行面板查看</p>
+              <p className="panel-note">{t('schedule.noSchedules')}</p>
+              <p className="sec-hint">{t('schedule.stepsHint')}</p>
             </div>
           )}
           {schedules.length > 0 && (
@@ -276,27 +313,27 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
                   <div className="sch-row-main">
                     <div className="sch-row-title">
                       <strong>{row.workflowName}</strong>
-                      {!row.enabled && <span className="badge">已停用</span>}
-                      {row.workflowMissing && <span className="badge badge-danger">工作流已删除</span>}
+                      {!row.enabled && <span className="badge">{t('schedule.disabled')}</span>}
+                      {row.workflowMissing && <span className="badge badge-danger">{t('schedule.workflowMissing')}</span>}
                     </div>
                     <div className="sch-row-meta">
                       <span title={row.cron}>{describeCron(row.cron) || row.cron}</span>
-                      <span>下次 {formatNextInZone(row.nextAt, row.timezone)}</span>
-                      <span>{row.timezone ? `时区 ${row.timezone}` : `跟随主机（${hostTimezone()}）`}</span>
-                      <span>已触发 {row.fireCount ?? 0} 次{row.skippedCount ? `（跳过 ${row.skippedCount} 次）` : ''}{row.misfireCount ? `（停机错过 ${row.misfireCount} 次）` : ''}</span>
-                      <span>{row.overlap === 'parallel' ? '重叠并行' : '重叠跳过'}</span>
-                      {row.misfirePolicy === 'catchUp' && <span>停机补跑</span>}
+                      <span>{t('schedule.nextAt', { time: formatNextInZone(row.nextAt, row.timezone) })}</span>
+                      <span>{row.timezone ? t('schedule.timezone', { timezone: row.timezone }) : t('schedule.followHost', { timezone: hostTimezone() })}</span>
+                      <span>{t('schedule.fired', { count: row.fireCount ?? 0 })}{row.skippedCount ? ` (${t('schedule.skipped', { count: row.skippedCount })})` : ''}{row.misfireCount ? ` (${t('schedule.misfires', { count: row.misfireCount })})` : ''}</span>
+                      <span>{row.overlap === 'parallel' ? t('schedule.overlapParallelShort') : t('schedule.overlapSkipShort')}</span>
+                      {row.misfirePolicy === 'catchUp' && <span>{t('schedule.catchUpShort')}</span>}
                     </div>
                   </div>
                   <div className="sch-row-actions">
-                    <button className="btn btn-sm" disabled={Boolean(busy) || row.workflowMissing} onClick={() => runNow(row)} title="立即运行一次（不影响定时周期）">
-                      {busy === `run:${row.key}` ? '运行中…' : '立即运行'}
+                    <button className="btn btn-sm" disabled={Boolean(busy) || row.workflowMissing} onClick={() => runNow(row)} title={t('schedule.runOnceTitle')}>
+                      {busy === `run:${row.key}` ? t('status.running') : t('schedule.runNow')}
                     </button>
                     <button className="btn btn-sm" disabled={Boolean(busy)} onClick={() => toggleEnabled(row)}>
-                      {busy === `toggle:${row.key}` ? '…' : row.enabled ? '停用' : '启用'}
+                      {busy === `toggle:${row.key}` ? '…' : row.enabled ? t('schedule.disable') : t('schedule.enable')}
                     </button>
-                    <button className="btn btn-sm" disabled={Boolean(busy)} onClick={() => { setEditing(row); setMode('edit'); }}>编辑</button>
-                    <button className="btn btn-sm btn-danger" disabled={Boolean(busy)} onClick={() => setConfirmDelete(row)}>删除</button>
+                    <button className="btn btn-sm" disabled={Boolean(busy)} onClick={() => { setEditing(row); setMode('edit'); }}>{t('action.edit')}</button>
+                    <button className="btn btn-sm btn-danger" disabled={Boolean(busy)} onClick={() => setConfirmDelete(row)}>{t('action.delete')}</button>
                   </div>
                 </div>
               ))}
@@ -304,16 +341,16 @@ export function ScheduleCenter({ currentWorkflowId, onRan, onClose, toast }) {
           )}
           {workflows.length > 0 && (
             <div className="sch-footer">
-              <button className="btn btn-primary" onClick={startCreate} disabled={Boolean(busy)}>＋ 新建定时任务</button>
+              <button className="btn btn-primary" onClick={startCreate} disabled={Boolean(busy)}>＋ {t('schedule.newTitle')}</button>
             </div>
           )}
           {confirmDelete && (
             <div className="sch-confirm">
-              <p>确定删除「{confirmDelete.workflowName}」的定时任务（{confirmDelete.cron}）？删除后不可恢复。</p>
+              <p>{t('schedule.confirmDelete', { workflow: confirmDelete.workflowName, cron: confirmDelete.cron })}</p>
               <div className="sch-form-actions">
-                <button className="btn" onClick={() => setConfirmDelete(null)}>取消</button>
+                <button className="btn" onClick={() => setConfirmDelete(null)}>{t('action.cancel')}</button>
                 <button className="btn btn-danger" disabled={busy === `del:${confirmDelete.key}`} onClick={() => doDelete(confirmDelete.key)}>
-                  {busy === `del:${confirmDelete.key}` ? '删除中…' : '确认删除'}
+                  {busy === `del:${confirmDelete.key}` ? t('schedule.deleting') : t('schedule.confirmDeleteButton')}
                 </button>
               </div>
             </div>
