@@ -9,7 +9,8 @@ const enKeys = Object.keys(en.messages).sort();
 const zhKeys = Object.keys(zhCN.messages).sort();
 assert.deepEqual(enKeys, zhKeys, 'English and Chinese dictionaries must have identical key sets');
 assert.deepEqual(enKeys, [...manifest.keys].sort(), 'locale key manifest must match dictionaries');
-assert.deepEqual(Object.keys(en.legacy).sort(), Object.keys(zhCN.legacy).sort(), 'Legacy key sets must match');
+assert.equal(Object.hasOwn(en, 'legacy'), false, 'legacy dictionary must stay outside stable locale messages');
+assert.equal(Object.hasOwn(zhCN, 'legacy'), false, 'legacy dictionary must stay outside stable locale messages');
 
 const placeholder = (value) => [...String(value).matchAll(/\{(\w+)(?:,|\})/g)].map((match) => match[1]).sort();
 for (const key of enKeys) assert.deepEqual(placeholder(en.messages[key]), placeholder(zhCN.messages[key]), `placeholder mismatch: ${key}`);

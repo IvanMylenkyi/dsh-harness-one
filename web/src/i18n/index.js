@@ -1,10 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import en from './messages/en.js';
 import zhCN from './messages/zh-CN.js';
+import { legacyEnglish, legacyChinese } from './legacy.js';
 import { browserLanguages, readStoredLocale, resolveLocale, writeStoredLocale } from './locale.js';
 import { formatDate, formatDateTime, formatDuration, formatNumber, formatTokens } from './format.js';
 
 export const LOCALES = { en, 'zh-CN': zhCN };
+const LEGACY_MESSAGES = { en: legacyEnglish, 'zh-CN': legacyChinese };
 const I18nContext = createContext(null);
 
 function interpolate(template, variables = {}) {
@@ -21,7 +23,7 @@ function pluralize(template, variables, locale) {
 
 export function translateText(value, locale = 'en') {
   const input = String(value ?? '');
-  return locale === 'en' ? (en.legacy[input] ?? input) : input;
+  return LEGACY_MESSAGES[locale]?.[input] ?? input;
 }
 
 export function createTranslator(locale) {
@@ -80,8 +82,9 @@ export function useI18n() {
   return useContext(I18nContext) || { locale: 'en', setLocale: () => {}, t: createTranslator('en'), translateText: (value) => value };
 }
 
-// Non-React callers must pass the locale explicitly. UI components should use
-// useI18n().t so language changes are reactive and never depend on storage.
+// Compatibility-only API for external legacy callers. First-party UI must use
+// useI18n().t with a stable key; the scanner rejects tx()/translateText() in
+// first-party source so this lookup can never become a new UI fallback.
 export const tx = (value, locale = 'en') => translateText(value, locale);
 
 export { formatDate, formatDateTime, formatDuration, formatNumber, formatTokens } from './format.js';

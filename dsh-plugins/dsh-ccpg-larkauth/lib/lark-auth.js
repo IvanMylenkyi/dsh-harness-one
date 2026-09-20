@@ -16,6 +16,12 @@ const NPM_GLOBAL = join(homedir(), '.local', 'npm-global');
 export const LARK_CLI_VERSION = '1.0.89';
 const MAX_OUTPUT = 64 * 1024;
 
+function quoteWindowsArg(value) {
+  const text = String(value);
+  if (!/[\s&()^|<>]/.test(text)) return text;
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
 const CANDIDATES = [
   join(NPM_GLOBAL, 'bin', 'lark-cli'),
   '/usr/local/bin/lark-cli',
@@ -329,14 +335,15 @@ export function createDesktopLarkCliRuntime({ desktopPnpm, profileDir, version =
     }
   };
 
-  const binReady = () => {
-    const ext = process.platform === 'win32' ? '.exe' : '';
-    try {
-      return statSync(join(profileDir, 'node_modules', '@larksuite', 'cli', 'bin', `lark-cli${ext}`)).isFile();
-    } catch {
-      return false;
-    }
+  const cliPath = () => {
+    const base = join(profileDir, 'node_modules', '@larksuite', 'cli', 'bin', 'lark-cli');
+    const candidates = process.platform === 'win32' ? [`${base}.exe`, `${base}.cmd`, base] : [base];
+    return candidates.find((candidate) => {
+      try { return statSync(candidate).isFile(); } catch { return false; }
+    }) || null;
   };
+
+  const binReady = () => Boolean(cliPath());
 
   const enqueue = (task) => {
     const result = tail.then(task, task);
@@ -383,7 +390,11 @@ export function createDesktopLarkCliRuntime({ desktopPnpm, profileDir, version =
       resolve({ ok: false, error: 'Desktop generation disposed' });
       return;
     }
-    const bin = join(profileDir, 'node_modules', '@larksuite', 'cli', 'bin', `lark-cli${process.platform === 'win32' ? '.exe' : ''}`);
+    const bin = cliPath();
+    if (!bin) {
+      resolve({ ok: false, error: 'lark-cli not installed' });
+      return;
+    }
     let child;
     let out = '';
     let err = '';
@@ -414,7 +425,12 @@ export function createDesktopLarkCliRuntime({ desktopPnpm, profileDir, version =
       child?.kill();
     }, timeoutMs);
     try {
-      child = spawn(bin, args, { cwd });
+      if (bin.endsWith('.cmd')) {
+        const command = [quoteWindowsArg(bin), ...args.map(quoteWindowsArg)].join(' ');
+        child = spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', command], { cwd });
+      } else {
+        child = spawn(bin, args, { cwd });
+      }
       active = {
         child,
         cancel: () => child.kill(),

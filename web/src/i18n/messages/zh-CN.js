@@ -1,5 +1,3 @@
-import { legacyChinese } from '../legacy.js';
-
 export default {
   locale: 'zh-CN',
   name: '简体中文',
@@ -1000,5 +998,4 @@ export default {
     'patch.noChanges': '无变更',
     'patch.joiner': '、',
   },
-  legacy: legacyChinese,
 };

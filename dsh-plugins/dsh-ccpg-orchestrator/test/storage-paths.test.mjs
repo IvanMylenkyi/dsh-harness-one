@@ -53,15 +53,19 @@ test('requires an absolute workspace root', () => {
 });
 
 test('different workspaces never share roots', () => {
-  const a = createStoragePaths({ workspaceRoot: '/tmp/wf1-a', dshHome: '/tmp/dsh', legacyRoot: '/tmp/legacy' });
-  const b = createStoragePaths({ workspaceRoot: '/tmp/wf1-b', dshHome: '/tmp/dsh', legacyRoot: '/tmp/legacy' });
+  const root = mkdtempSync(join(tmpdir(), 'wf1-storage-roots-'));
+  const aRoot = join(root, 'wf1-a');
+  const bRoot = join(root, 'wf1-b');
+  const a = createStoragePaths({ workspaceRoot: aRoot, dshHome: join(root, 'dsh'), legacyRoot: join(root, 'legacy') });
+  const b = createStoragePaths({ workspaceRoot: bRoot, dshHome: join(root, 'dsh'), legacyRoot: join(root, 'legacy') });
   assert.notEqual(a.root, b.root);
-  assert.equal(a.root, '/tmp/wf1-a/.workflow-one');
-  assert.equal(b.root, '/tmp/wf1-b/.workflow-one');
+  assert.equal(a.root, join(aRoot, '.workflow-one'));
+  assert.equal(b.root, join(bRoot, '.workflow-one'));
 });
 
 test('stable hashes and run-scoped runtime paths do not expose identifiers', () => {
-  const paths = createStoragePaths({ workspaceRoot: '/tmp/workspace', dshHome: '/tmp/dsh-home', legacyRoot: '/tmp/legacy' });
+  const root = mkdtempSync(join(tmpdir(), 'wf1-storage-scope-'));
+  const paths = createStoragePaths({ workspaceRoot: join(root, 'workspace'), dshHome: join(root, 'dsh-home'), legacyRoot: join(root, 'legacy') });
   assert.equal(hashedKey('workflow/一'), stableHashedKey('workflow/一'));
   assert.match(hashedKey('workflow/一'), /^[a-f0-9]{24}$/);
   assert.notEqual(hashedKey('workflow/一'), hashedKey('workflow/二'));

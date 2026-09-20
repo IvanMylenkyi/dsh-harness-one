@@ -2,7 +2,7 @@
 // 真实模块加载（非字符串截取），node:fs 与 node:child_process 走 mock——
 // 重点：issue #24 的占位符归位、幂等（二跑零改动）、块存在/不存在两路径、--prewrite 只写不装。
 import { strict as assert } from 'node:assert';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -75,7 +75,7 @@ try {
   rmSync(home, { recursive: true, force: true });
 }
 
-function mkdirTree(p) { execFileSync('/bin/mkdir', ['-p', p]); }
-function writeFileSyncUTF8(p, t) { execFileSync('/bin/sh', ['-c', `cat > ${JSON.stringify(p)} << 'EOF'\n${t}\nEOF`]); }
+function mkdirTree(p) { mkdirSync(p, { recursive: true }); }
+function writeFileSyncUTF8(p, t) { writeFileSync(p, t, 'utf8'); }
 
 console.log('✓ dsh-harness-one bin/install --prewrite：占位符归位 / 幂等 / 空白 profile 三组通过');

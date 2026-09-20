@@ -28,9 +28,25 @@ function completedHandle({ stdout = '', stderr = '', exitCode = 0, signal = null
 }
 
 function writeProfileCli(profileDir) {
-  const bin = join(profileDir, 'node_modules', '@larksuite', 'cli', 'bin', 'lark-cli');
-  mkdirSync(join(bin, '..'), { recursive: true });
-  writeFileSync(bin, `#!/bin/sh
+  const base = join(profileDir, 'node_modules', '@larksuite', 'cli', 'bin', 'lark-cli');
+  const bin = process.platform === 'win32' ? `${base}.cmd` : base;
+  mkdirSync(join(base, '..'), { recursive: true });
+  const script = process.platform === 'win32' ? `@echo off
+if "%1"=="auth" if "%2"=="qrcode" (
+  >"%5" <nul set /p "=png"
+  exit /b 0
+)
+if "%1"=="auth" if "%2"=="login" (
+  <nul set /p "={\"verification_url\":\"https://example.com/device\",\"device_code\":\"device\",\"expires_in\":600}"
+  exit /b 0
+)
+if "%1"=="fail" (
+  echo bad 1>&2
+  exit /b 7
+)
+if "%1"=="wait" timeout /t 30 >nul
+<nul set /p "={\"ok\":true,\"appId\":\"cli_app\",\"defaultAs\":\"user\",\"identities\":{\"user\":{\"available\":true,\"tokenStatus\":\"valid\"},\"bot\":{\"status\":\"ready\"}}}"
+` : `#!/bin/sh
 if [ "$1" = "auth" ] && [ "$2" = "qrcode" ]; then
   previous=""
   for arg in "$@"; do
@@ -46,8 +62,9 @@ fi
 if [ "$1" = "fail" ]; then echo 'bad' >&2; exit 7; fi
 if [ "$1" = "wait" ]; then sleep 30; exit 0; fi
 printf '%s' '{"ok":true,"appId":"cli_app","defaultAs":"user","identities":{"user":{"available":true,"tokenStatus":"valid"},"bot":{"status":"ready"}}}'
-`);
-  chmodSync(bin, 0o755);
+`;
+  writeFileSync(bin, script);
+  if (process.platform !== 'win32') chmodSync(bin, 0o755);
   return bin;
 }
 

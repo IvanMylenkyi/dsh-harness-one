@@ -161,8 +161,13 @@ await test('工作区拒绝穿越、反斜杠、目录删除和符号链接', as
   assert.throws(() => workspace.remove('dir'), /只能删除文件/);
   const outside = tempWorkspace();
   writeFileSync(join(outside, 'secret.txt'), 'secret');
-  symlinkSync(outside, join(workspaceDir, 'link'));
-  assert.throws(() => workspace.read('link/secret.txt'), /符号链接/);
+  try {
+    symlinkSync(outside, join(workspaceDir, 'link'));
+    assert.throws(() => workspace.read('link/secret.txt'), /符号链接/);
+  } catch (error) {
+    if (!['EPERM', 'EACCES', 'ENOSYS'].includes(error?.code)) throw error;
+    console.log('    ↪ symlink protection check skipped: platform does not allow test symlinks');
+  }
 });
 
 await test('typed resolver 保留 canonical/scoped/常量类型并拒绝非直接上游', () => {

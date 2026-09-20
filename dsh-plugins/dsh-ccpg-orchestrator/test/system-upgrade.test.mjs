@@ -58,7 +58,13 @@ console.log('system-upgrade tests:');
   const residueDir = join(profilesDir, 'p-residue');
   mkdirSync(join(residueDir, 'node_modules', '.bin'), { recursive: true });
   writeFileSync(join(residueDir, 'package.json'), JSON.stringify({ name: 'dsh-profile-p-residue' }));
-  symlinkSync('../../nowhere', join(residueDir, 'node_modules', '.bin', 'dsh-ccpg-one'));
+  let symlinksAvailable = true;
+  try {
+    symlinkSync('../../nowhere', join(residueDir, 'node_modules', '.bin', 'dsh-ccpg-one'));
+  } catch (error) {
+    if (!['EPERM', 'EACCES', 'ENOSYS'].includes(error?.code)) throw error;
+    symlinksAvailable = false;
+  }
   // p-src：link 进 git 仓库
   mkdirSync(join(profilesDir, 'p-src'), { recursive: true });
   writeFileSync(join(profilesDir, 'p-src', 'package.json'), JSON.stringify({
@@ -80,7 +86,9 @@ console.log('system-upgrade tests:');
   await test('来源探测：三种形态逐包分类、无关 profile 排除', () => {
     const report = collectInstallReport({ profilesRoot: profilesDir });
     const byName = new Map(report.map((p) => [p.name, p]));
-    assert.deepEqual([...byName.keys()].sort(), ['p-npm', 'p-rel', 'p-residue', 'p-src']);
+    const expectedProfiles = ['p-npm', 'p-rel', 'p-src'];
+    if (symlinksAvailable) expectedProfiles.push('p-residue');
+    assert.deepEqual([...byName.keys()].sort(), expectedProfiles.sort());
 
     assert.equal(gitRootOf(join(srcRepo, 'dsh-plugins')), srcRepo);
     assert.equal(gitRootOf(join(releaseTree)), null);
@@ -170,7 +178,7 @@ console.log('system-upgrade tests:');
     assert.ok(log.some((l) => l.includes('画布双构建完成')));
   });
 
-  await test('planner：残局（.bin 残留但依赖表空）同样产出重装动作', () => {
+  if (symlinksAvailable) await test('planner：残局（.bin 残留但依赖表空）同样产出重装动作', () => {
     const report = collectInstallReport({ profilesRoot: profilesDir });
     const residue = report.find((p) => p.name === 'p-residue');
     assert.ok(residue);
@@ -183,7 +191,7 @@ console.log('system-upgrade tests:');
     assert.match(plan.actions[0].title, /修复|迁移/);
   });
 
-  await test('executePlan：残局依赖表为空时使用 add 重新落表', async () => {
+  if (symlinksAvailable) await test('executePlan：残局依赖表为空时使用 add 重新落表', async () => {
     const report = collectInstallReport({ profilesRoot: profilesDir });
     const residue = report.find((p) => p.name === 'p-residue');
     const calls = [];

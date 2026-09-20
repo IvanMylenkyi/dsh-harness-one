@@ -1,5 +1,3 @@
-import { legacyEnglish } from '../legacy.js';
-
 export default {
   locale: 'en',
   name: 'English',
@@ -1000,5 +998,4 @@ export default {
     'patch.noChanges': 'No changes',
     'patch.joiner': '; ',
   },
-  legacy: legacyEnglish,
 };

@@ -20,7 +20,7 @@ await test('read does not create file; mutation writes 0600 revisioned document'
   const added = store.add({ key: 'region', label: 'Region', type: 'string', value: '' });
   assert.equal(added.document.revision, 1);
   assert.equal(added.variable.revision, 1);
-  assert.equal(statSync(file).mode & 0o777, 0o600);
+  if (process.platform !== 'win32') assert.equal(statSync(file).mode & 0o777, 0o600);
 });
 
 await test('revision conflicts and sensitive declarations are rejected', () => {

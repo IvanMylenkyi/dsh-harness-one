@@ -92,6 +92,13 @@ function scanContent(content, file, { checkKeys = true } = {}) {
           });
         }
       }
+      for (const match of line.matchAll(/\b(?:tx|translateText)\s*\(/g)) {
+        invalidKeys.push({
+          file: normalizedPath(file),
+          line: index + 1,
+          text: 'legacy text lookup is compatibility-only; use a stable translation key with t()',
+        });
+      }
     }
     const untranslated = line.replace(/\b(?:t|tx)\s*\((?:[^()'\"]|'[^']*'|\"[^\"]*\")*\)/g, '');
     if (!cjk.test(untranslated)) continue;
