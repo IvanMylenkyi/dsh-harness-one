@@ -1,24 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from './i18n/index.js';
 
 export const DEFAULT_AGENT_SCHEMA = {
   type: 'object',
   properties: {
-    result: { type: 'string', description: '智能体的主要结果' },
+    result: { type: 'string' },
   },
   required: ['result'],
   additionalProperties: false,
 };
 
 const FIELD_TYPES = [
-  ['string', '文本'],
-  ['number', '数字'],
-  ['boolean', '布尔'],
-  ['object', '对象'],
-  ['array', '数组'],
-  ['enum', '枚举'],
+  ['string', 'schema.type.string'],
+  ['number', 'schema.type.number'],
+  ['boolean', 'schema.type.boolean'],
+  ['object', 'schema.type.object'],
+  ['array', 'schema.type.array'],
+  ['enum', 'schema.type.enum'],
 ];
 
 export function AgentSchemaEditor({ mode = 'text', value, onModeChange, onChange }) {
+  const { t } = useI18n();
   const schema = useMemo(() => normalizeSchema(value), [value]);
   const [editorMode, setEditorMode] = useState('visual');
   const [jsonText, setJsonText] = useState(() => JSON.stringify(schema, null, 2));
@@ -47,32 +49,32 @@ export function AgentSchemaEditor({ mode = 'text', value, onModeChange, onChange
     setJsonText(text);
     try {
       const parsed = JSON.parse(text);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Schema 必须是 JSON 对象');
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(t('schema.invalidObject'));
       setJsonError('');
       emitChange(parsed);
-    } catch (error) {
-      setJsonError(error.message);
+    } catch {
+      setJsonError('schema.invalidJson');
     }
   };
 
   return (
     <div className="agent-schema-editor">
       <label className="field">
-        <span className="field-label">输出模式</span>
+        <span className="field-label">{t('schema.outputMode')}</span>
         <select value={mode} onChange={(event) => onModeChange?.(event.target.value)}>
-          <option value="text">文本</option>
-          <option value="structured">结构化 JSON</option>
+          <option value="text">{t('schema.outputText')}</option>
+          <option value="structured">{t('schema.outputStructured')}</option>
         </select>
       </label>
 
       {mode === 'structured' && <div className="schema-config">
-      <div className="schema-mode-tabs" role="tablist" aria-label="Schema 编辑模式">
+      <div className="schema-mode-tabs" role="tablist" aria-label={t('schema.editorMode')}>
         <button type="button" role="tab" aria-selected={editorMode === 'visual'}
           className={editorMode === 'visual' ? 'schema-tab schema-tab-on' : 'schema-tab'}
-          onClick={() => setEditorMode('visual')}>可视化</button>
+          onClick={() => setEditorMode('visual')}>{t('schema.visual')}</button>
         <button type="button" role="tab" aria-selected={editorMode === 'json'}
           className={editorMode === 'json' ? 'schema-tab schema-tab-on' : 'schema-tab'}
-          onClick={() => setEditorMode('json')}>高级 JSON</button>
+          onClick={() => setEditorMode('json')}>{t('schema.advancedJson')}</button>
       </div>
 
       {editorMode === 'visual' ? (
@@ -80,7 +82,7 @@ export function AgentSchemaEditor({ mode = 'text', value, onModeChange, onChange
       ) : (
         <div className="schema-json-editor">
           <textarea rows={14} spellCheck="false" value={jsonText} onChange={(event) => updateJson(event.target.value)} />
-          {jsonError && <p className="panel-error">JSON 无效：{jsonError}</p>}
+          {jsonError && <p className="panel-error">{t('schema.invalidJsonMessage', { message: t(jsonError) })}</p>}
         </div>
       )}
       </div>}
@@ -89,6 +91,7 @@ export function AgentSchemaEditor({ mode = 'text', value, onModeChange, onChange
 }
 
 function ObjectFields({ schema, onChange, root = false }) {
+  const { t } = useI18n();
   const properties = schema.properties || {};
   const required = new Set(schema.required || []);
   const entries = Object.entries(properties);
@@ -133,18 +136,19 @@ function ObjectFields({ schema, onChange, root = false }) {
 
   return (
     <div className={root ? 'schema-object schema-root' : 'schema-object'}>
-      {entries.length === 0 && <p className="sec-hint">暂无字段，添加后模型必须按字段返回 JSON。</p>}
+      {entries.length === 0 && <p className="sec-hint">{t('schema.emptyFields')}</p>}
       {entries.map(([name, field]) => (
         <SchemaField key={name} name={name} schema={field} required={required.has(name)}
           onChange={(nextName, nextField, nextRequired) => updateField(name, nextName, nextField, nextRequired)}
           onRemove={() => removeField(name)} />
       ))}
-      <button type="button" className="btn btn-sm schema-add" onClick={addField}>+ 添加字段</button>
+      <button type="button" className="btn btn-sm schema-add" onClick={addField}>+ {t('schema.addField')}</button>
     </div>
   );
 }
 
 function SchemaField({ name, schema, required, onChange, onRemove }) {
+  const { t } = useI18n();
   const [nameDraft, setNameDraft] = useState(name);
   const displayType = schema.enum ? 'enum' : schema.type || 'string';
   const itemType = schema.items?.enum ? 'enum' : schema.items?.type || 'string';
@@ -176,22 +180,22 @@ function SchemaField({ name, schema, required, onChange, onRemove }) {
   return (
     <div className="schema-field-row">
       <div className="schema-field-main">
-        <input aria-label="字段名" value={nameDraft} onChange={(event) => setNameDraft(event.target.value)}
+        <input aria-label={t('schema.fieldName')} value={nameDraft} onChange={(event) => setNameDraft(event.target.value)}
           onBlur={commitName} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
-        <select aria-label={`${name} 类型`} value={displayType} onChange={(event) => changeType(event.target.value)}>
-          {FIELD_TYPES.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
+        <select aria-label={t('schema.fieldType', { name })} value={displayType} onChange={(event) => changeType(event.target.value)}>
+          {FIELD_TYPES.map(([type, labelKey]) => <option key={type} value={type}>{t(labelKey)}</option>)}
         </select>
         <label className="schema-required">
           <input type="checkbox" checked={required} onChange={(event) => onChange(name, schema, event.target.checked)} />
-          <span>必填</span>
+          <span>{t('schema.required')}</span>
         </label>
-        <button type="button" className="btn-icon schema-remove" title="删除字段" aria-label={`删除字段 ${name}`} onClick={onRemove}>×</button>
+        <button type="button" className="btn-icon schema-remove" title={t('schema.deleteField')} aria-label={t('schema.deleteFieldNamed', { name })} onClick={onRemove}>×</button>
       </div>
-      <input className="schema-description" aria-label={`${name} 描述`} placeholder="字段描述"
+      <input className="schema-description" aria-label={t('schema.fieldDescription', { name })} placeholder={t('schema.descriptionPlaceholder')}
         value={schema.description || ''} onChange={(event) => emit({ description: event.target.value || undefined })} />
 
       {displayType === 'enum' && (
-        <input aria-label={`${name} 枚举值`} placeholder="枚举值，逗号分隔"
+        <input aria-label={t('schema.enumValues', { name })} placeholder={t('schema.enumPlaceholder')}
           value={(schema.enum || []).join(', ')}
           onChange={(event) => emit({ type: 'string', enum: splitEnum(event.target.value) })} />
       )}
@@ -202,12 +206,12 @@ function SchemaField({ name, schema, required, onChange, onRemove }) {
 
       {displayType === 'array' && (
         <div className="schema-array-items">
-          <span className="field-label">数组元素</span>
+          <span className="field-label">{t('schema.arrayItems')}</span>
           <select value={itemType} onChange={(event) => changeArrayItemType(event.target.value)}>
-            {FIELD_TYPES.filter(([type]) => type !== 'array').map(([type, label]) => <option key={type} value={type}>{label}</option>)}
+            {FIELD_TYPES.filter(([type]) => type !== 'array').map(([type, labelKey]) => <option key={type} value={type}>{t(labelKey)}</option>)}
           </select>
           {itemType === 'enum' && (
-            <input placeholder="枚举值，逗号分隔" value={(schema.items?.enum || []).join(', ')}
+            <input aria-label={t('schema.enumValues', { name })} placeholder={t('schema.enumPlaceholder')} value={(schema.items?.enum || []).join(', ')}
               onChange={(event) => emit({ items: { type: 'string', enum: splitEnum(event.target.value) } })} />
           )}
           {itemType === 'object' && (

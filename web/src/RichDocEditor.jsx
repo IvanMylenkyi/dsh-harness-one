@@ -15,6 +15,7 @@ import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import { Markdown } from 'tiptap-markdown';
+import { useI18n } from './i18n/index.js';
 
 export const RICH_DOC_EXTENSIONS = [
   StarterKit,
@@ -31,49 +32,50 @@ export const RICH_DOC_EXTENSIONS = [
 ];
 
 /** 工具条按钮规格：active 判定与动作（编辑器实例方法安全调用） */
-function toolbarState(editor) {
+function toolbarState(editor, t) {
   return [
-    { key: 'bold', label: 'B', title: '加粗', className: 'rde-btn-b', active: editor.isActive('bold'), run: () => editor.chain().focus().toggleBold().run() },
-    { key: 'italic', label: 'I', title: '斜体', className: 'rde-btn-i', active: editor.isActive('italic'), run: () => editor.chain().focus().toggleItalic().run() },
-    { key: 'strike', label: 'S', title: '删除线', className: 'rde-btn-s', active: editor.isActive('strike'), run: () => editor.chain().focus().toggleStrike().run() },
-    { key: 'code', label: '</>', title: '行内代码', active: editor.isActive('code'), run: () => editor.chain().focus().toggleCode().run() },
+    { key: 'bold', label: 'B', titleKey: 'richDoc.bold', className: 'rde-btn-b', active: editor.isActive('bold'), run: () => editor.chain().focus().toggleBold().run() },
+    { key: 'italic', label: 'I', titleKey: 'richDoc.italic', className: 'rde-btn-i', active: editor.isActive('italic'), run: () => editor.chain().focus().toggleItalic().run() },
+    { key: 'strike', label: 'S', titleKey: 'richDoc.strike', className: 'rde-btn-s', active: editor.isActive('strike'), run: () => editor.chain().focus().toggleStrike().run() },
+    { key: 'code', label: '</>', titleKey: 'richDoc.code', active: editor.isActive('code'), run: () => editor.chain().focus().toggleCode().run() },
     { sep: true },
-    { key: 'h1', label: 'H1', title: '一级标题', active: editor.isActive('heading', { level: 1 }), run: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
-    { key: 'h2', label: 'H2', title: '二级标题', active: editor.isActive('heading', { level: 2 }), run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
-    { key: 'h3', label: 'H3', title: '三级标题', active: editor.isActive('heading', { level: 3 }), run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+    { key: 'h1', label: 'H1', titleKey: 'richDoc.heading1', active: editor.isActive('heading', { level: 1 }), run: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
+    { key: 'h2', label: 'H2', titleKey: 'richDoc.heading2', active: editor.isActive('heading', { level: 2 }), run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+    { key: 'h3', label: 'H3', titleKey: 'richDoc.heading3', active: editor.isActive('heading', { level: 3 }), run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
     { sep: true },
-    { key: 'bullet', label: '•', title: '无序列表', active: editor.isActive('bulletList'), run: () => editor.chain().focus().toggleBulletList().run() },
-    { key: 'ordered', label: '1.', title: '有序列表', active: editor.isActive('orderedList'), run: () => editor.chain().focus().toggleOrderedList().run() },
-    { key: 'task', label: '☑', title: '任务清单', active: editor.isActive('taskList'), run: () => editor.chain().focus().toggleTaskList().run() },
-    { key: 'quote', label: '❝', title: '引用', active: editor.isActive('blockquote'), run: () => editor.chain().focus().toggleBlockquote().run() },
-    { key: 'codeblock', label: '{ }', title: '代码块', active: editor.isActive('codeBlock'), run: () => editor.chain().focus().toggleCodeBlock().run() },
+    { key: 'bullet', label: '•', titleKey: 'richDoc.bulletList', active: editor.isActive('bulletList'), run: () => editor.chain().focus().toggleBulletList().run() },
+    { key: 'ordered', label: '1.', titleKey: 'richDoc.orderedList', active: editor.isActive('orderedList'), run: () => editor.chain().focus().toggleOrderedList().run() },
+    { key: 'task', label: '☑', titleKey: 'richDoc.taskList', active: editor.isActive('taskList'), run: () => editor.chain().focus().toggleTaskList().run() },
+    { key: 'quote', label: '❝', titleKey: 'richDoc.quote', active: editor.isActive('blockquote'), run: () => editor.chain().focus().toggleBlockquote().run() },
+    { key: 'codeblock', label: '{ }', titleKey: 'richDoc.codeBlock', active: editor.isActive('codeBlock'), run: () => editor.chain().focus().toggleCodeBlock().run() },
     { sep: true },
-    { key: 'link', label: '🔗', title: '链接（选中文字后点）', active: editor.isActive('link'), run: () => {
-      const url = window.prompt('链接地址：', editor.getAttributes('link').href || 'https://');
+    { key: 'link', label: '🔗', titleKey: 'richDoc.link', active: editor.isActive('link'), run: () => {
+      const url = window.prompt(t('richDoc.linkPrompt'), editor.getAttributes('link').href || 'https://');
       if (url == null) return;
       if (!url) { editor.chain().focus().unsetLink().run(); return; }
       editor.chain().focus().setLink({ href: url }).run();
     } },
-    { key: 'hr', label: '―', title: '分隔线', active: false, run: () => editor.chain().focus().setHorizontalRule().run() },
-    { key: 'undo', label: '↩', title: '撤销', active: false, run: () => editor.chain().focus().undo().run() },
-    { key: 'redo', label: '↪', title: '重做', active: false, run: () => editor.chain().focus().redo().run() },
+    { key: 'hr', label: '―', titleKey: 'richDoc.horizontalRule', active: false, run: () => editor.chain().focus().setHorizontalRule().run() },
+    { key: 'undo', label: '↩', titleKey: 'richDoc.undo', active: false, run: () => editor.chain().focus().undo().run() },
+    { key: 'redo', label: '↪', titleKey: 'richDoc.redo', active: false, run: () => editor.chain().focus().redo().run() },
   ];
 }
 
 function tableState(editor) {
   if (!editor.isActive('table')) return null;
   return [
-    { key: 'add-row', label: '＋行', title: '下方插入行', run: () => editor.chain().focus().addRowAfter().run() },
-    { key: 'del-row', label: '－行', title: '删除本行', run: () => editor.chain().focus().deleteRow().run() },
-    { key: 'add-col', label: '＋列', title: '右侧插入列', run: () => editor.chain().focus().addColumnAfter().run() },
-    { key: 'del-col', label: '－列', title: '删除本列', run: () => editor.chain().focus().deleteColumn().run() },
-    { key: 'header-row', label: '表头行', title: '切换首行为表头', active: editor.isActive('tableHeader'), run: () => editor.chain().focus().toggleHeaderRow().run() },
-    { key: 'merge', label: '合并', title: '合并单元格', run: () => editor.chain().focus().mergeCells().run() },
-    { key: 'split', label: '拆分', title: '拆分单元格', run: () => editor.chain().focus().splitCell().run() },
+    { key: 'add-row', labelKey: 'richDoc.addRowLabel', titleKey: 'richDoc.addRow', run: () => editor.chain().focus().addRowAfter().run() },
+    { key: 'del-row', labelKey: 'richDoc.deleteRowLabel', titleKey: 'richDoc.deleteRow', run: () => editor.chain().focus().deleteRow().run() },
+    { key: 'add-col', labelKey: 'richDoc.addColumnLabel', titleKey: 'richDoc.addColumn', run: () => editor.chain().focus().addColumnAfter().run() },
+    { key: 'del-col', labelKey: 'richDoc.deleteColumnLabel', titleKey: 'richDoc.deleteColumn', run: () => editor.chain().focus().deleteColumn().run() },
+    { key: 'header-row', labelKey: 'richDoc.headerRowLabel', titleKey: 'richDoc.headerRow', active: editor.isActive('tableHeader'), run: () => editor.chain().focus().toggleHeaderRow().run() },
+    { key: 'merge', labelKey: 'richDoc.mergeCellsLabel', titleKey: 'richDoc.mergeCells', run: () => editor.chain().focus().mergeCells().run() },
+    { key: 'split', labelKey: 'richDoc.splitCellLabel', titleKey: 'richDoc.splitCell', run: () => editor.chain().focus().splitCell().run() },
   ];
 }
 
 export function RichDocEditor({ initialMarkdown, onChange, onReady }) {
+  const { t } = useI18n();
   const [tick, setTick] = useState(0); // 编辑器选区/格式态变化 → 重渲染工具条
 
   // deps 留空：只在挂载时解析底稿（受控状态放外面）。若把 initialMarkdown 放进依赖，
@@ -96,33 +98,34 @@ export function RichDocEditor({ initialMarkdown, onChange, onReady }) {
     setTick((t) => t + 1);
   }, [editor]);
 
-  if (!editor) return <div className="rde-loading">编辑器加载中…</div>;
-  const bar = toolbarState(editor);
+  if (!editor) return <div className="rde-loading">{t('richDoc.loading')}</div>;
+  const bar = toolbarState(editor, t);
   const table = tableState(editor);
   void tick; // tick 仅驱动重渲染
 
   return (
     <div className="rde">
-      <div className="rde-toolbar" role="toolbar" aria-label="格式工具条">
+      <div className="rde-toolbar" role="toolbar" aria-label={t('richDoc.toolbar')}>
         {bar.map((item, i) => (item.sep
           ? <span key={`sep${i}`} className="rde-sep" />
           : (
+            (() => { const title = t(item.titleKey); return (
             <button
               key={item.key} type="button" className={`rde-btn ${item.className || ''} ${item.active ? 'rde-btn-on' : ''}`}
-              title={item.title} aria-label={item.title} aria-pressed={item.active}
+              title={title} aria-label={title} aria-pressed={item.active}
               onMouseDown={(e) => e.preventDefault()} // 保住编辑器焦点
               onClick={item.run}
-            >{item.label}</button>
+                >{item.labelKey ? t(item.labelKey) : item.label}</button>); })()
           )))}
-        {!table && <button type="button" className="rde-btn" title="插入表格" aria-label="插入表格" onMouseDown={(e) => e.preventDefault()} onClick={insertTable}>▦</button>}
+        {!table && <button type="button" className="rde-btn" title={t('richDoc.insertTable')} aria-label={t('richDoc.insertTable')} onMouseDown={(e) => e.preventDefault()} onClick={insertTable}>▦</button>}
         {table && (
           <span className="rde-table-tools">
             {table.map((item) => (
               <button
                 key={item.key} type="button" className={`rde-btn ${item.active ? 'rde-btn-on' : ''}`}
-                title={item.title} aria-label={item.title}
+                title={t(item.titleKey)} aria-label={t(item.titleKey)}
                 onMouseDown={(e) => e.preventDefault()} onClick={() => { item.run(); setTick((t) => t + 1); }}
-              >{item.label}</button>
+              >{t(item.labelKey)}</button>
             ))}
           </span>
         )}

@@ -990,7 +990,7 @@ export default function App() {
     setEdges(edges);
     setTemplateOpen(false);
     markDirty();
-    toast(t('toast.templateApplied', { template: tpl.name }), 'success');
+    toast(t('toast.templateApplied', { template: t(tpl.nameKey) }), 'success');
   }, [setNodes, setEdges, toast, markDirty, snapshot, t]);
 
   const resetGraph = useCallback(async () => {

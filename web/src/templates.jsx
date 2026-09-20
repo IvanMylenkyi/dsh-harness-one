@@ -1,18 +1,19 @@
 // 新建工作流模板库：空画布引导 + 快速起步。
 import { useState } from 'react';
 import { Modal } from './ui.jsx';
+import { useI18n } from './i18n/index.js';
 
 export const TEMPLATES = [
   {
     id: 'blank',
-    name: '空白画布',
-    description: '从零开始自由搭建',
+    nameKey: 'template.seed.blankName',
+    descriptionKey: 'template.seed.blankDescription',
     graph: { nodes: [], edges: [] },
   },
   {
     id: 'gongdan',
-    name: '报修工单整理',
-    description: '输入报修信息 → 智能体按工单规范整理落盘 → 汇总输出',
+    nameKey: 'template.seed.gongdanName',
+    descriptionKey: 'template.seed.gongdanDescription',
     graph: {
       nodes: [
         { id: 'in', type: 'input', position: { x: 60, y: 200 }, data: { label: '报修单输入', text: '3栋2单元501室 张先生 13800001111：厨房水槽下水缓慢已有三天，偶尔返味，希望尽快上门查看。', attachments: [] } },
@@ -27,8 +28,8 @@ export const TEMPLATES = [
   },
   {
     id: 'urgency-route',
-    name: '紧急度分流',
-    description: '条件节点按关键词把工单分到紧急/常规两条处理线',
+    nameKey: 'template.seed.urgencyName',
+    descriptionKey: 'template.seed.urgencyDescription',
     graph: {
       nodes: [
         { id: 'in', type: 'input', position: { x: 40, y: 220 }, data: { label: '工单输入', text: '10栋1单元101 李女士 13911112222：家里水管爆了大量漏水，地板已经泡水！', attachments: [] } },
@@ -48,8 +49,8 @@ export const TEMPLATES = [
   },
   {
     id: 'review-summary',
-    name: '多方汇总评审',
-    description: '并行两个视角分析 → 汇总合并出结论（并行分支同时执行）',
+    nameKey: 'template.seed.reviewName',
+    descriptionKey: 'template.seed.reviewDescription',
     graph: {
       nodes: [
         { id: 'in', type: 'input', position: { x: 60, y: 220 }, data: { label: '议题输入', text: '本季度小区绿化改造预算 8 万元，方案包括：更换草坪 2000㎡、补种树木 30 棵、增设灌溉系统。', attachments: [] } },
@@ -70,29 +71,34 @@ export const TEMPLATES = [
 ];
 
 export function TemplateModal({ onClose, onApply }) {
+  const { t } = useI18n();
   const [picked, setPicked] = useState('gongdan');
   const tpl = TEMPLATES.find((t) => t.id === picked);
   return (
     <Modal
-      title="从模板开始"
+      title={t('template.seedTitle')}
       onClose={onClose}
       footer={(
         <>
-          <button className="btn" onClick={onClose}>取消</button>
-          <button className="btn btn-primary" onClick={() => onApply(tpl)}>应用模板</button>
+          <button className="btn" onClick={onClose}>{t('action.cancel')}</button>
+          <button className="btn btn-primary" onClick={() => onApply(tpl)}>{t('template.seedApply')}</button>
         </>
       )}
     >
       <div className="tpl-grid">
-        {TEMPLATES.map((t) => (
-          <button key={t.id} className={`tpl-card ${picked === t.id ? 'tpl-on' : ''}`} onClick={() => setPicked(t.id)}>
-            <div className="tpl-name">{t.name}</div>
-            <div className="tpl-desc">{t.description}</div>
+        {TEMPLATES.map((template) => (
+          <button key={template.id} className={`tpl-card ${picked === template.id ? 'tpl-on' : ''}`} onClick={() => setPicked(template.id)}>
+            <div className="tpl-name">{t(template.nameKey)}</div>
+            <div className="tpl-desc">{t(template.descriptionKey)}</div>
           </button>
         ))}
       </div>
       {tpl.graph.nodes.length > 0 && (
-        <p className="sec-hint">含 {tpl.graph.nodes.length} 个节点（{tpl.graph.nodes.filter((n) => n.type === 'agent').length} 个智能体）、{tpl.graph.edges.length} 条连线</p>
+        <p className="sec-hint">{t('template.seedMeta', {
+          nodes: tpl.graph.nodes.length,
+          agents: tpl.graph.nodes.filter((n) => n.type === 'agent').length,
+          edges: tpl.graph.edges.length,
+        })}</p>
       )}
     </Modal>
   );
