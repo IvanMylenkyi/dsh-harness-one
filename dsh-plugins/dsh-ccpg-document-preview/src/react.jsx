@@ -7,6 +7,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { markdownRemarkPlugins, repairMissingTableDelimiter } from './markdown-compat.mjs';
 import { markdownSanitizeSchema } from './markdown-sanitize.mjs';
 import { documentPreviewKind, loadPreviewText, normalizePreviewDocument, previewErrorMessage } from './index.js';
+import { usePreviewI18n } from './i18n.js';
 import './styles.css';
 
 const PdfRenderer = lazy(() => import('./renderers/pdf.jsx'));
@@ -16,8 +17,8 @@ const PptxRenderer = lazy(() => import('./renderers/pptx.jsx'));
 const UniverRenderer = lazy(() => import('./renderers/univer.jsx'));
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-function Loading() {
-  return <div className="dsh-doc-preview-message">正在准备预览…</div>;
+function Loading({ t }) {
+  return <div className="dsh-doc-preview-message">{t('preview.loading')}</div>;
 }
 
 class PreviewErrorBoundary extends Component {
@@ -32,33 +33,33 @@ class PreviewErrorBoundary extends Component {
 
   render() {
     if (this.state.error) {
-      return <div className="dsh-doc-preview-message is-error">预览组件加载失败，请刷新页面后重试。</div>;
+      return <div className="dsh-doc-preview-message is-error">{this.props.t('preview.errorBoundary')}</div>;
     }
     return this.props.children;
   }
 }
 
-function TextRenderer({ document, kind, maxTextBytes }) {
-  const [state, setState] = useState({ loading: true, error: '', text: '' });
+function TextRenderer({ document, kind, maxTextBytes, locale, t }) {
+  const [state, setState] = useState({ loading: true, error: null, text: '' });
   useEffect(() => {
     const controller = new AbortController();
-    setState({ loading: true, error: '', text: '' });
+    setState({ loading: true, error: null, text: '' });
     loadPreviewText(document.previewUrl, { signal: controller.signal, maxBytes: maxTextBytes })
-      .then((text) => setState({ loading: false, error: '', text }))
+      .then((text) => setState({ loading: false, error: null, text }))
       .catch((reason) => {
-        if (reason?.name !== 'AbortError') setState({ loading: false, error: previewErrorMessage(reason), text: '' });
+        if (reason?.name !== 'AbortError') setState({ loading: false, error: reason, text: '' });
       });
     return () => controller.abort();
-  }, [document.previewUrl, maxTextBytes]);
+  }, [document.previewUrl, maxTextBytes, locale]);
 
   const text = useMemo(() => {
     if (kind !== 'json' || !state.text) return state.text;
     try { return JSON.stringify(JSON.parse(state.text), null, 2); } catch { return state.text; }
   }, [kind, state.text]);
 
-  if (state.loading) return <Loading />;
-  if (state.error) return <div className="dsh-doc-preview-message is-error">{state.error}</div>;
-  if (!text) return <div className="dsh-doc-preview-message">文件为空。</div>;
+  if (state.loading) return <Loading t={t} />;
+  if (state.error) return <div className="dsh-doc-preview-message is-error">{previewErrorMessage(state.error, locale)}</div>;
+  if (!text) return <div className="dsh-doc-preview-message">{t('preview.empty')}</div>;
   if (kind === 'markdown') return <Markdown text={text} />;
   if (kind === 'csv') return <Csv text={text} />;
   return <div className="dsh-doc-preview-scroll"><pre className={`dsh-doc-preview-text is-${kind}`}>{text}</pre></div>;
@@ -109,20 +110,21 @@ function Csv({ text }) {
   })}</tr>)}</tbody></table></div>;
 }
 
-function PreviewContent({ document, kind, maxTextBytes }) {
-  if (!document.previewUrl) return <div className="dsh-doc-preview-message is-error">接口未提供安全预览地址。</div>;
-  if (['text', 'markdown', 'json', 'csv'].includes(kind)) return <TextRenderer document={document} kind={kind} maxTextBytes={maxTextBytes} />;
+function PreviewContent({ document, kind, maxTextBytes, locale, t }) {
+  if (!document.previewUrl) return <div className="dsh-doc-preview-message is-error">{t('preview.missingUrl')}</div>;
+  if (['text', 'markdown', 'json', 'csv'].includes(kind)) return <TextRenderer document={document} kind={kind} maxTextBytes={maxTextBytes} locale={locale} t={t} />;
   if (kind === 'image') return <div className="dsh-doc-preview-scroll dsh-doc-preview-image"><img src={document.previewUrl} alt={document.name} /></div>;
-  if (kind === 'html') return <iframe className="dsh-doc-preview-frame" src={document.previewUrl} sandbox="" title={`预览 ${document.name}`} />;
-  if (kind === 'pdf') return <PdfRenderer document={document} />;
-  if (kind === 'docx') return <DocxRenderer document={document} />;
-  if (kind === 'sheet') return <SheetRenderer document={document} />;
-  if (kind === 'pptx') return <PptxRenderer document={document} />;
-  if (kind === 'univer') return <UniverRenderer document={document} />;
-  return <div className="dsh-doc-preview-message">该文件类型暂不支持预览，旧 DOC 和 PPT 请下载后查看。</div>;
+  if (kind === 'html') return <iframe className="dsh-doc-preview-frame" src={document.previewUrl} sandbox="" title={t('preview.filePreview', { name: document.name })} />;
+  if (kind === 'pdf') return <PdfRenderer document={document} locale={locale} t={t} />;
+  if (kind === 'docx') return <DocxRenderer document={document} locale={locale} t={t} />;
+  if (kind === 'sheet') return <SheetRenderer document={document} locale={locale} t={t} />;
+  if (kind === 'pptx') return <PptxRenderer document={document} locale={locale} t={t} />;
+  if (kind === 'univer') return <UniverRenderer document={document} locale={locale} t={t} />;
+  return <div className="dsh-doc-preview-message">{t('preview.unsupported')}</div>;
 }
 
-export function DocumentPreviewDialog({ document: input, open = true, onClose, maxTextBytes = 2 * 1024 * 1024, title = '文档预览' }) {
+export function DocumentPreviewDialog({ document: input, open = true, onClose, maxTextBytes = 2 * 1024 * 1024, title, locale: explicitLocale }) {
+  const { locale, t } = usePreviewI18n(explicitLocale);
   const document = useMemo(() => normalizePreviewDocument(input), [input]);
   const kind = documentPreviewKind(document.name, document.mimeType);
   const dialogRef = useRef(null);
@@ -188,18 +190,18 @@ export function DocumentPreviewDialog({ document: input, open = true, onClose, m
     <section ref={dialogRef} className="dsh-doc-preview-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
       <header className="dsh-doc-preview-header">
         <div className="dsh-doc-preview-heading">
-          <span id={titleId}>{title}</span>
+          <span id={titleId}>{title || t('preview.title')}</span>
           <strong title={document.name}>{document.name}</strong>
         </div>
         <div className="dsh-doc-preview-actions">
-          {typeof window !== 'undefined' && window.document.fullscreenEnabled && <button type="button" onClick={toggleFullscreen} title={fullscreen ? '退出浏览器全屏' : '浏览器全屏'} aria-label={fullscreen ? '退出浏览器全屏' : '浏览器全屏'}>{fullscreen ? <Minimize aria-hidden="true" /> : <Expand aria-hidden="true" />}</button>}
-          {document.downloadUrl && <a href={document.downloadUrl} download title="下载原文件" aria-label="下载原文件"><Download aria-hidden="true" /></a>}
-          <button type="button" onClick={onClose} title="关闭预览" aria-label="关闭预览"><X aria-hidden="true" /></button>
+          {typeof window !== 'undefined' && window.document.fullscreenEnabled && <button type="button" onClick={toggleFullscreen} title={fullscreen ? t('preview.exitFullscreen') : t('preview.fullscreen')} aria-label={fullscreen ? t('preview.exitFullscreen') : t('preview.fullscreen')}>{fullscreen ? <Minimize aria-hidden="true" /> : <Expand aria-hidden="true" />}</button>}
+          {document.downloadUrl && <a href={document.downloadUrl} download title={t('preview.download')} aria-label={t('preview.download')}><Download aria-hidden="true" /></a>}
+          <button type="button" onClick={onClose} title={t('preview.close')} aria-label={t('preview.close')}><X aria-hidden="true" /></button>
         </div>
       </header>
       <main className="dsh-doc-preview-content">
-        <PreviewErrorBoundary>
-          <Suspense fallback={<Loading />}><PreviewContent document={document} kind={kind} maxTextBytes={maxTextBytes} /></Suspense>
+        <PreviewErrorBoundary t={t}>
+          <Suspense fallback={<Loading t={t} />}><PreviewContent document={document} kind={kind} maxTextBytes={maxTextBytes} locale={locale} t={t} /></Suspense>
         </PreviewErrorBoundary>
       </main>
     </section>
@@ -207,14 +209,16 @@ export function DocumentPreviewDialog({ document: input, open = true, onClose, m
 }
 
 export function DocumentPreviewButton({ document, className = '', children, disabled = false, portal = true, title }) {
+  const { locale, t } = usePreviewI18n();
   const [open, setOpen] = useState(false);
   const normalized = useMemo(() => normalizePreviewDocument(document), [document]);
   const supported = Boolean(documentPreviewKind(normalized.name, normalized.mimeType));
-  const dialog = open ? <DocumentPreviewDialog document={normalized} onClose={() => setOpen(false)} /> : null;
+  const dialog = open ? <DocumentPreviewDialog document={normalized} locale={locale} onClose={() => setOpen(false)} /> : null;
+  const accessibleTitle = title || t('preview.filePreview', { name: normalized.name });
   return <>
     <button type="button" className={`dsh-doc-preview-button ${className}`.trim()} disabled={disabled || !supported || !normalized.previewUrl}
-      onClick={() => setOpen(true)} title={title || `预览 ${normalized.name}`} aria-label={title || `预览 ${normalized.name}`}>
-      {children || <><Eye aria-hidden="true" /><span>预览</span></>}
+      onClick={() => setOpen(true)} title={accessibleTitle} aria-label={accessibleTitle}>
+      {children || <><Eye aria-hidden="true" /><span>{t('preview.open')}</span></>}
     </button>
     {dialog && portal && typeof window !== 'undefined' ? createPortal(dialog, window.document.body) : dialog}
   </>;

@@ -23,9 +23,17 @@ async function buildViewerUrl(resolveUrl, signal) {
   // 端口被占会逐次递增，所以每次现查不缓存。
   const started = await fetchJson('/univer-api/gateway/start', { method: 'POST', signal });
   const gateway = String(started?.gateway || '').replace(/\/$/, '');
-  if (!gateway) throw new Error('univer-office Gateway 启动失败');
+  if (!gateway) {
+    const error = new Error('Univer gateway failed');
+    error.code = 'univer-gateway-failed';
+    throw error;
+  }
   const fileKey = fileKeyOf(resolved.file);
-  if (!fileKey) throw new Error('文件路径编码失败');
+  if (!fileKey) {
+    const error = new Error('Univer file path encoding failed');
+    error.code = 'univer-path-failed';
+    throw error;
+  }
   const listing = await fetchJson(`${gateway}/uf/${fileKey}/worktrees`, { signal });
   const worktree = pickWorktree(listing?.worktrees);
   const params = new URLSearchParams({ file: fileKey, mode: 'embedded' });
@@ -33,34 +41,39 @@ async function buildViewerUrl(resolveUrl, signal) {
   return `${gateway}/?${params.toString()}`;
 }
 
-export default function UniverRenderer({ document }) {
+export default function UniverRenderer({ document, locale, t }) {
   const resolveUrl = useMemo(() => resolveEndpointOf(document.downloadUrl), [document.downloadUrl]);
-  const [state, setState] = useState({ loading: true, error: '', url: '' });
+  const [state, setState] = useState({ loading: true, error: null, url: '' });
 
   useEffect(() => {
     if (!resolveUrl) {
-      setState({ loading: false, error: '预览地址缺少产物定位信息，无法打开 Univer Viewer。', url: '' });
+      setState({ loading: false, error: { key: 'univer.missingArtifact' }, url: '' });
       return undefined;
     }
     const controller = new AbortController();
-    setState({ loading: true, error: '', url: '' });
+    setState({ loading: true, error: null, url: '' });
     buildViewerUrl(resolveUrl, controller.signal).then((url) => {
-      if (!controller.signal.aborted) setState({ loading: false, error: '', url });
+      if (!controller.signal.aborted) setState({ loading: false, error: null, url });
     }).catch((reason) => {
       if (controller.signal.aborted || reason?.name === 'AbortError') return;
       const missing = reason?.status === 404;
       setState({
         loading: false,
         error: missing
-          ? '未安装 dsh-univer-office 插件，无法预览 .univer 文件；请下载后用 Univer 打开。'
-          : `Univer 预览不可用：${previewErrorMessage(reason)}`,
+          ? { key: 'univer.missingPlugin' }
+          : { reason },
         url: '',
       });
     });
     return () => controller.abort();
   }, [resolveUrl]);
 
-  if (state.loading) return <div className="dsh-doc-preview-message">正在连接 Univer Viewer…</div>;
-  if (state.error) return <div className="dsh-doc-preview-message is-error">{state.error}</div>;
-  return <iframe className="dsh-doc-preview-frame" src={state.url} title={`预览 ${document.name}`} />;
+  if (state.loading) return <div className="dsh-doc-preview-message">{t('univer.loading')}</div>;
+  if (state.error) {
+    const message = state.error.key
+      ? t(state.error.key)
+      : t('univer.unavailable', { message: previewErrorMessage(state.error.reason, locale) });
+    return <div className="dsh-doc-preview-message is-error">{message}</div>;
+  }
+  return <iframe className="dsh-doc-preview-frame" src={state.url} title={t('preview.filePreview', { name: document.name })} />;
 }

@@ -28,6 +28,7 @@ assert.equal(translate('status.charsCount', { count: 1 }), '1 char');
 assert.equal(translate('status.charsCount', { count: 2 }), '2 chars');
 assert.equal(translate('status.roundsCount', { count: 1 }), '1 round');
 assert.equal(translate('status.roundsCount', { count: 2 }), '2 rounds');
+assert.equal(translate('添加节点'), '添加节点', 't() must not use the legacy text lookup');
 assert.equal(translateText('添加节点', 'en'), 'Add node');
 assert.equal(translateText('添加节点', 'zh-CN'), '添加节点');
 assert.equal(createTranslator('zh-CN')('settings.languageChanged', { language: 'English' }), '界面语言已切换为English。');

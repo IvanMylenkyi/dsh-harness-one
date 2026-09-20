@@ -6,7 +6,7 @@
     "node": ">=22.15.0"
   },
   "scripts": {
-    "test": "sh scripts/run-tests.sh",
+    "test": "node scripts/run-tests.mjs",
     "build": "sh dsh-plugins/build-web.sh",
     "check:i18n": "node scripts/check-i18n.mjs",
     "verify:packages": "node scripts/verify-plugin-packages.mjs",

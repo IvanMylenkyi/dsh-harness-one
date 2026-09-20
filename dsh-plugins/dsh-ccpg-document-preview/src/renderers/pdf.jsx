@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&inline';
-import { loadPreviewArrayBuffer } from '../index.js';
+import { loadPreviewArrayBuffer, previewErrorMessage } from '../index.js';
 
 let workerConfigured = false;
 
-export default function PdfRenderer({ document }) {
+export default function PdfRenderer({ document, locale, t }) {
   const containerRef = useRef(null);
-  const [status, setStatus] = useState({ loading: true, error: '' });
+  const [status, setStatus] = useState({ loading: true, error: null });
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
 
@@ -15,7 +15,7 @@ export default function PdfRenderer({ document }) {
     const controller = new AbortController();
     let cancelled = false;
     let task;
-    setStatus({ loading: true, error: '' });
+    setStatus({ loading: true, error: null });
 
     async function render() {
       const pdfjs = await import('pdfjs-dist');
@@ -53,7 +53,7 @@ export default function PdfRenderer({ document }) {
     }
 
     render().catch((reason) => {
-      if (!cancelled && reason?.name !== 'AbortError') setStatus({ loading: false, error: reason?.message || String(reason) });
+      if (!cancelled && reason?.name !== 'AbortError') setStatus({ loading: false, error: reason });
     }).finally(() => {
       if (!cancelled) setStatus((current) => ({ ...current, loading: false }));
     });
@@ -66,15 +66,15 @@ export default function PdfRenderer({ document }) {
   }, [document.previewUrl, rotation, scale]);
 
   return <div className="dsh-doc-preview-renderer">
-    <div className="dsh-doc-preview-renderer-tools" aria-label="PDF 查看控制">
-      <button type="button" onClick={() => setScale((value) => Math.max(.5, value - .25))} disabled={scale <= .5} title="缩小" aria-label="缩小"><Minus aria-hidden="true" /></button>
+    <div className="dsh-doc-preview-renderer-tools" aria-label={t('pdf.controls')}>
+      <button type="button" onClick={() => setScale((value) => Math.max(.5, value - .25))} disabled={scale <= .5} title={t('pdf.zoomOut')} aria-label={t('pdf.zoomOut')}><Minus aria-hidden="true" /></button>
       <span>{Math.round(scale * 100)}%</span>
-      <button type="button" onClick={() => setScale((value) => Math.min(2, value + .25))} disabled={scale >= 2} title="放大" aria-label="放大"><Plus aria-hidden="true" /></button>
-      <button type="button" onClick={() => setRotation((value) => (value + 90) % 360)} title="顺时针旋转" aria-label="顺时针旋转"><RotateCcw className="is-clockwise" aria-hidden="true" /></button>
+      <button type="button" onClick={() => setScale((value) => Math.min(2, value + .25))} disabled={scale >= 2} title={t('pdf.zoomIn')} aria-label={t('pdf.zoomIn')}><Plus aria-hidden="true" /></button>
+      <button type="button" onClick={() => setRotation((value) => (value + 90) % 360)} title={t('pdf.rotate')} aria-label={t('pdf.rotate')}><RotateCcw className="is-clockwise" aria-hidden="true" /></button>
     </div>
     <div className="dsh-doc-preview-scroll dsh-doc-preview-pdf">
-      {status.loading && <div className="dsh-doc-preview-message">正在加载 PDF…</div>}
-      {status.error && <div className="dsh-doc-preview-message is-error">{status.error}</div>}
+      {status.loading && <div className="dsh-doc-preview-message">{t('pdf.loading')}</div>}
+      {status.error && <div className="dsh-doc-preview-message is-error">{previewErrorMessage(status.error, locale)}</div>}
       <div ref={containerRef} className="dsh-doc-preview-pdf-pages" />
     </div>
   </div>;

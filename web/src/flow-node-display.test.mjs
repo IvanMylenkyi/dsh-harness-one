@@ -26,7 +26,7 @@ function statusTextFor(data, status) {
 test('源码包含轮次拼接逻辑（liveTurns/runTurns 双路）', () => {
   assert.ok(src.includes('liveTurns'), 'FlowNode 应读 liveTurns');
   assert.ok(src.includes('runTurns'), 'FlowNode 应读 runTurns');
-  assert.ok(src.includes('轮'), '应有轮次文案');
+  assert.ok(src.includes("status.roundsCount"), '应使用稳定的轮次翻译 key');
 });
 
 test('运行中视觉：脉动类名 + 实时计时徽标 + startedAt 数据源', () => {

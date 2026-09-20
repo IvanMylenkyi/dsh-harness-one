@@ -27,7 +27,9 @@ export function translateText(value, locale = 'en') {
 export function createTranslator(locale) {
   const dictionary = LOCALES[locale] || LOCALES.en;
   return (key, variables = {}) => {
-    const raw = dictionary.messages[key] ?? (key.includes('.') ? key : translateText(key, locale));
+    // Stable-key callers must never silently enter the legacy text lookup.
+    // The compatibility API remains explicit through translateText()/tx().
+    const raw = dictionary.messages[key] ?? key;
     return interpolate(pluralize(raw, variables, locale) ?? raw, variables);
   };
 }

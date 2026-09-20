@@ -1,3 +1,5 @@
+import { createPreviewTranslator, resolvePreviewLocale } from './i18n.js';
+
 export const MIME_BY_EXTENSION = Object.freeze({
   avif: 'image/avif', csv: 'text/csv', doc: 'application/msword',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -66,20 +68,34 @@ export function normalizePreviewDocument(document) {
   };
 }
 
-export function previewErrorMessage(reason) {
-  if (reason?.name === 'AbortError') return '';
-  if (reason?.status === 404) return '文件不存在或已随运行历史清理。';
-  if (reason?.status === 409) return '当前工作区会话已失效，请刷新页面后重试。';
-  if (reason?.status >= 500) return '文档服务暂时不可用，请稍后重试。';
+export function previewErrorDescriptor(reason) {
+  if (reason?.name === 'AbortError') return { key: null };
+  if (reason?.code === 'preview-url-missing') return { key: 'error.missingUrl' };
+  if (reason?.code === 'preview-network-error') return { key: 'error.network' };
+  if (reason?.code === 'preview-size') return { key: 'error.size', variables: { kind: reason.kind || 'Document', size: reason.size } };
+  if (reason?.code === 'univer-gateway-failed') return { key: 'univer.gatewayFailed' };
+  if (reason?.code === 'univer-path-failed') return { key: 'univer.pathFailed' };
+  if (reason?.status === 404 || reason?.code === 'preview-not-found') return { key: 'error.notFound' };
+  if (reason?.status === 409 || reason?.code === 'preview-session-required') return { key: 'error.session' };
+  if (reason?.status >= 500) return { key: 'error.service' };
   const raw = String(reason?.message || reason || '');
-  if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
-    return '文档加载失败，请检查连接后重试。';
-  }
-  return raw || '文档加载失败，请稍后重试。';
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) return { key: 'error.network' };
+  return raw ? { raw } : { key: 'error.generic' };
+}
+
+export function previewErrorMessage(reason, locale = 'en') {
+  const descriptor = previewErrorDescriptor(reason);
+  if (descriptor.key === null) return '';
+  if (descriptor.raw) return descriptor.raw;
+  return createPreviewTranslator(resolvePreviewLocale(locale))(descriptor.key, descriptor.variables);
 }
 
 export async function fetchPreviewResponse(url, options = {}) {
-  if (!url) throw new Error('预览地址缺失，无法加载文档。');
+  if (!url) {
+    const error = new Error('Preview URL is missing');
+    error.code = 'preview-url-missing';
+    throw error;
+  }
   let response;
   try {
     response = await fetch(url, { credentials: 'same-origin', ...options });
@@ -103,10 +119,18 @@ export async function loadPreviewText(url, options = {}) {
   const maxBytes = options.maxBytes ?? 2 * 1024 * 1024;
   const response = await fetchPreviewResponse(url, { signal: options.signal });
   const declaredSize = Number(response.headers.get('content-length') || 0);
-  const message = `Text preview exceeds ${Math.ceil(maxBytes / 1024 / 1024)}MB`;
-  if (declaredSize > maxBytes) throw new Error(message);
+  const size = Math.ceil(maxBytes / 1024 / 1024);
+  if (declaredSize > maxBytes) {
+    const error = new Error(`Text preview exceeds ${size}MB`);
+    error.code = 'preview-size'; error.kind = 'Text'; error.size = size;
+    throw error;
+  }
   const text = await response.text();
-  if (new Blob([text]).size > maxBytes) throw new Error(message);
+  if (new Blob([text]).size > maxBytes) {
+    const error = new Error(`Text preview exceeds ${size}MB`);
+    error.code = 'preview-size'; error.kind = 'Text'; error.size = size;
+    throw error;
+  }
   return text;
 }
 
@@ -114,10 +138,18 @@ export async function loadPreviewArrayBuffer(url, options = {}) {
   const maxBytes = options.maxBytes ?? 50 * 1024 * 1024;
   const response = await fetchPreviewResponse(url, { signal: options.signal });
   const declaredSize = Number(response.headers.get('content-length') || 0);
-  const message = `Document preview exceeds ${Math.ceil(maxBytes / 1024 / 1024)}MB`;
-  if (declaredSize > maxBytes) throw new Error(message);
+  const size = Math.ceil(maxBytes / 1024 / 1024);
+  if (declaredSize > maxBytes) {
+    const error = new Error(`Document preview exceeds ${size}MB`);
+    error.code = 'preview-size'; error.kind = 'Document'; error.size = size;
+    throw error;
+  }
   const data = await response.arrayBuffer();
-  if (data.byteLength > maxBytes) throw new Error(message);
+  if (data.byteLength > maxBytes) {
+    const error = new Error(`Document preview exceeds ${size}MB`);
+    error.code = 'preview-size'; error.kind = 'Document'; error.size = size;
+    throw error;
+  }
   return data;
 }
 

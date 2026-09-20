@@ -9,6 +9,7 @@ import {
   createDocumentPreviewHost,
   fetchPreviewResponse,
   previewErrorMessage,
+  previewErrorDescriptor,
   documentExtension,
   documentMimeType,
   documentPreviewKind,
@@ -16,6 +17,14 @@ import {
 } from '../src/index.js';
 import { markdownSanitizeSchema } from '../src/markdown-sanitize.mjs';
 import { markdownRemarkPlugins, repairMissingTableDelimiter } from '../src/markdown-compat.mjs';
+import { createPreviewTranslator } from '../src/i18n.js';
+
+test('preview locale keys support English and Chinese with plural renderer labels', () => {
+  assert.equal(createPreviewTranslator('en')('preview.close'), 'Close preview');
+  assert.equal(createPreviewTranslator('zh-CN')('preview.close'), '关闭预览');
+  assert.equal(createPreviewTranslator('en')('pptx.slides', { count: 1 }), '1 slide');
+  assert.equal(createPreviewTranslator('en')('pptx.slides', { count: 2 }), '2 slides');
+});
 
 test('detects supported preview formats by extension', () => {
   const cases = {
@@ -51,15 +60,17 @@ test('createDocumentPreviewHost exposes pure helper API', () => {
 });
 
 test('preview errors map network and scoped HTTP failures to actionable messages', async () => {
-  assert.equal(previewErrorMessage(new TypeError('Failed to fetch')), '文档加载失败，请检查连接后重试。');
-  assert.equal(previewErrorMessage({ status: 404 }), '文件不存在或已随运行历史清理。');
-  assert.equal(previewErrorMessage({ status: 409 }), '当前工作区会话已失效，请刷新页面后重试。');
+  assert.equal(previewErrorMessage(new TypeError('Failed to fetch')), 'The document could not be loaded. Check your connection and try again.');
+  assert.equal(previewErrorMessage({ status: 404 }), 'The file was not found or was removed with the run history.');
+  assert.equal(previewErrorMessage({ status: 409 }), 'The workspace session has expired. Refresh the page and try again.');
+  assert.equal(previewErrorMessage({ status: 404 }, 'zh-CN'), '文件不存在或已随运行历史清理。');
+  assert.deepEqual(previewErrorDescriptor({ code: 'preview-url-missing' }), { key: 'error.missingUrl' });
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
   try {
     await assert.rejects(fetchPreviewResponse('/artifact'), (error) => {
       assert.equal(error.code, 'preview-network-error');
-      assert.equal(error.message, '文档加载失败，请检查连接后重试。');
+      assert.equal(error.message, 'The document could not be loaded. Check your connection and try again.');
       return true;
     });
   } finally {

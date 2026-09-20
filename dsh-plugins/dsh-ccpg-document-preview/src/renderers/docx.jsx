@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { loadPreviewArrayBuffer } from '../index.js';
+import { loadPreviewArrayBuffer, previewErrorMessage } from '../index.js';
 
-export default function DocxRenderer({ document }) {
+export default function DocxRenderer({ document, locale, t }) {
   const containerRef = useRef(null);
-  const [status, setStatus] = useState({ loading: true, error: '' });
+  const [status, setStatus] = useState({ loading: true, error: null });
 
   useEffect(() => {
     const controller = new AbortController();
     let cancelled = false;
     const root = containerRef.current;
-    setStatus({ loading: true, error: '' });
+    setStatus({ loading: true, error: null });
     Promise.all([import('docx-preview'), loadPreviewArrayBuffer(document.previewUrl, { signal: controller.signal })])
       .then(([docx, data]) => {
         if (!root || cancelled) return;
@@ -19,7 +19,7 @@ export default function DocxRenderer({ document }) {
           inWrapper: true, useBase64URL: true, renderAltChunks: false, renderComments: false,
         });
       }).catch((reason) => {
-        if (!cancelled && reason?.name !== 'AbortError') setStatus({ loading: false, error: reason?.message || String(reason) });
+        if (!cancelled && reason?.name !== 'AbortError') setStatus({ loading: false, error: reason });
       }).finally(() => {
         if (!cancelled) setStatus((current) => ({ ...current, loading: false }));
       });
@@ -31,8 +31,8 @@ export default function DocxRenderer({ document }) {
   }, [document.previewUrl]);
 
   return <div className="dsh-doc-preview-scroll dsh-doc-preview-docx">
-    {status.loading && <div className="dsh-doc-preview-message">正在加载 DOCX…</div>}
-    {status.error && <div className="dsh-doc-preview-message is-error">{status.error}</div>}
+    {status.loading && <div className="dsh-doc-preview-message">{t('docx.loading')}</div>}
+    {status.error && <div className="dsh-doc-preview-message is-error">{previewErrorMessage(status.error, locale)}</div>}
     <div ref={containerRef} className="dsh-doc-preview-docx-body" />
   </div>;
 }

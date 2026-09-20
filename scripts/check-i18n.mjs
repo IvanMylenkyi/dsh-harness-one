@@ -21,6 +21,7 @@ function isSourceFile(file) {
   if (/(^|\/)(node_modules|dist|web-dist|coverage)(\/|$)/.test(normalized)) return false;
   if (/(^|\/)(__tests__|test|tests)(\/|$)/.test(normalized) || /(?:\.test|\.spec)\.[^.]+$/.test(normalized)) return false;
   if (normalized.startsWith('web/src/i18n/')) return false;
+  if (normalized === 'dsh-plugins/dsh-ccpg-document-preview/src/i18n.js') return false;
   return true;
 }
 

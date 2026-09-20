@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Minus, Plus, Presentation } from 'lucide-react';
 import PptxWorker from '@file-viewer/pptx/worker/pptx.worker.js?worker&inline';
-import { loadPreviewArrayBuffer } from '../index.js';
+import { loadPreviewArrayBuffer, previewErrorMessage } from '../index.js';
 
-export default function PptxRenderer({ document }) {
+export default function PptxRenderer({ document, locale, t }) {
   const containerRef = useRef(null);
-  const [status, setStatus] = useState({ loading: true, error: '' });
+  const [status, setStatus] = useState({ loading: true, error: null });
   const [viewerState, setViewerState] = useState({ viewer: null, zoom: 100, slides: 0, warnings: 0 });
 
   useEffect(() => {
@@ -13,7 +13,7 @@ export default function PptxRenderer({ document }) {
     let cancelled = false;
     let viewer;
     const root = containerRef.current;
-    setStatus({ loading: true, error: '' });
+    setStatus({ loading: true, error: null });
     setViewerState({ viewer: null, zoom: 100, slides: 0, warnings: 0 });
     Promise.all([
       import('@file-viewer/pptx'), import('@file-viewer/pptx/styles.css'),
@@ -29,7 +29,7 @@ export default function PptxRenderer({ document }) {
       });
       if (!cancelled) setViewerState({ viewer, zoom: viewer.zoomPercent, slides: viewer.slideCount, warnings: warningCount });
     }).catch((reason) => {
-      if (!cancelled && reason?.name !== 'AbortError') setStatus({ loading: false, error: reason?.message || String(reason) });
+      if (!cancelled && reason?.name !== 'AbortError') setStatus({ loading: false, error: reason });
     }).finally(() => {
       if (!cancelled) setStatus((current) => ({ ...current, loading: false }));
     });
@@ -48,17 +48,17 @@ export default function PptxRenderer({ document }) {
   };
 
   return <div className="dsh-doc-preview-renderer">
-    <div className="dsh-doc-preview-renderer-tools" aria-label="PPTX 查看控制">
-      <button type="button" disabled={!viewerState.viewer || viewerState.zoom <= 50} onClick={() => setZoom(viewerState.zoom - 10)} title="缩小" aria-label="缩小"><Minus aria-hidden="true" /></button>
+    <div className="dsh-doc-preview-renderer-tools" aria-label={t('pptx.controls')}>
+      <button type="button" disabled={!viewerState.viewer || viewerState.zoom <= 50} onClick={() => setZoom(viewerState.zoom - 10)} title={t('pptx.zoomOut')} aria-label={t('pptx.zoomOut')}><Minus aria-hidden="true" /></button>
       <span>{viewerState.zoom}%</span>
-      <button type="button" disabled={!viewerState.viewer || viewerState.zoom >= 200} onClick={() => setZoom(viewerState.zoom + 10)} title="放大" aria-label="放大"><Plus aria-hidden="true" /></button>
-      <button type="button" disabled={!viewerState.viewer} onClick={() => viewerState.viewer?.enterPresentation()} title="放映" aria-label="放映"><Presentation aria-hidden="true" /></button>
-      {viewerState.slides > 0 && <span>{viewerState.slides} 张幻灯片</span>}
-      {viewerState.warnings > 0 && <span className="is-warning">部分复杂内容可能无法完整显示</span>}
+      <button type="button" disabled={!viewerState.viewer || viewerState.zoom >= 200} onClick={() => setZoom(viewerState.zoom + 10)} title={t('pptx.zoomIn')} aria-label={t('pptx.zoomIn')}><Plus aria-hidden="true" /></button>
+      <button type="button" disabled={!viewerState.viewer} onClick={() => viewerState.viewer?.enterPresentation()} title={t('pptx.present')} aria-label={t('pptx.present')}><Presentation aria-hidden="true" /></button>
+      {viewerState.slides > 0 && <span>{t('pptx.slides', { count: viewerState.slides })}</span>}
+      {viewerState.warnings > 0 && <span className="is-warning">{t('pptx.warning')}</span>}
     </div>
     <div className="dsh-doc-preview-scroll dsh-doc-preview-pptx">
-      {status.loading && <div className="dsh-doc-preview-message">正在加载 PPTX…</div>}
-      {status.error && <div className="dsh-doc-preview-message is-error">{status.error}</div>}
+      {status.loading && <div className="dsh-doc-preview-message">{t('pptx.loading')}</div>}
+      {status.error && <div className="dsh-doc-preview-message is-error">{previewErrorMessage(status.error, locale)}</div>}
       <div ref={containerRef} className="dsh-doc-preview-pptx-body" />
     </div>
   </div>;
