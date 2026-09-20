@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { capsuleTime, SOURCE_LABEL, switcherCapsules } from './run-switcher.js';
+import { capsuleTime, SOURCE_KEY, switcherCapsules } from './run-switcher.js';
 
 let passed = 0;
 function test(name, fn) {
@@ -64,8 +64,8 @@ test('来源默认 manual，resumedFrom 透传', () => {
   assert.equal(shown[0].source, 'schedule');
 });
 
-test('catch-up 来源有标签（停机补跑可见），非枚举来源仍透传', () => {
-  assert.equal(SOURCE_LABEL['catch-up'], '补跑');
+test('catch-up 来源有稳定翻译键（停机补跑可见），非枚举来源仍透传', () => {
+  assert.equal(SOURCE_KEY['catch-up'], 'run.source.catchUp');
   const { shown } = switcherCapsules([
     { runId: 'c1', startedAt: '2026-08-25T01:00:00Z', source: 'catch-up' },
   ]);

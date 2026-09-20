@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { apiUrl } from './api.js';
 import { Modal } from './ui.jsx';
+import { useI18n } from './i18n/index.js';
 
-const STATUS_LABEL = { running: '运行中', success: '成功', error: '失败', canceled: '已取消', interrupted: '异常中断' };
+const STATUS_KEY = { running: 'status.running', success: 'status.success', error: 'status.error', canceled: 'status.canceled', interrupted: 'status.interrupted' };
 
 function progressText(r) {
   const p = r.progress;
@@ -12,6 +13,7 @@ function progressText(r) {
 }
 
 export function RunHistory({ onClose, onSelect, onResume, workflowId }) {
+  const { formatDateTime, formatDuration, t } = useI18n();
   const [runs, setRuns] = useState([]);
   const [resuming, setResuming] = useState('');
 
@@ -32,11 +34,11 @@ export function RunHistory({ onClose, onSelect, onResume, workflowId }) {
         body: JSON.stringify({ runId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '续跑失败');
+      if (!res.ok) throw new Error(data.error || t('run.resumeFailed'));
       onResume?.(data.runId, data.resumedNodes, data.rerunNodes);
       onClose();
     } catch (e) {
-      alert(`无法续跑：${e.message}`);
+      alert(`${t('run.resumeUnable')}: ${e.message}`);
       load();
     } finally {
       setResuming('');
@@ -44,29 +46,29 @@ export function RunHistory({ onClose, onSelect, onResume, workflowId }) {
   };
 
   return (
-    <Modal title="运行历史" onClose={onClose}>
+    <Modal title={t('nav.history')} onClose={onClose}>
       <div className="rh-list">
-        {runs.length === 0 && <p className="panel-empty">还没有运行记录。</p>}
+        {runs.length === 0 && <p className="panel-empty">{t('run.empty')}</p>}
         {runs.map((r) => (
           <div key={r.runId} className={`rh-row-wrap ${r.live ? 'rh-live' : ''}`}>
             <button className={`rh-row st-${r.status}`} onClick={() => { onSelect?.(r.runId); onClose(); }}>
-              <span className={`rh-status st-${r.status}`}>{STATUS_LABEL[r.status] || r.status}</span>
-              <span className="rh-name">{r.workflowName || '草稿'}</span>
+              <span className={`rh-status st-${r.status}`}>{t(STATUS_KEY[r.status] || 'run.statusUnknown', { status: r.status })}</span>
+              <span className="rh-name">{r.workflowName || t('run.draft')}</span>
               <span className="rh-meta">
-                {new Date(r.startedAt).toLocaleString('zh-CN', { hour12: false })}
-                {r.durationMs != null && ` · ${(r.durationMs / 1000).toFixed(1)}s`}
-                {r.canceled && ' · 已取消'}
-                {r.replayOf && ' · 重放'}
-                {r.resumedFrom && ' · 续跑'}
+                {formatDateTime(r.startedAt)}
+                {r.durationMs != null && ` · ${formatDuration(r.durationMs)}`}
+                {r.canceled && ` · ${t('status.canceled')}`}
+                {r.replayOf && ` · ${t('run.replay')}`}
+                {r.resumedFrom && ` · ${t('run.resumed')}`}
               </span>
               {progressText(r) && <span className="rh-progress">{progressText(r)}</span>}
               {r.live && <span className="badge badge-plan">LIVE</span>}
             </button>
             {r.resumable && (
               <button className="btn btn-sm rh-resume" disabled={resuming === r.runId}
-                title="从上次完成的节点之后继续运行（改过卡住的节点也不影响，可复用的输出自动保留）"
+                title={t('run.resumeTitle')}
                 onClick={() => resumeRun(r.runId)}>
-                {resuming === r.runId ? '启动中…' : `续跑 ${progressText(r)}`}
+                {resuming === r.runId ? t('run.starting') : `${t('action.resume')} ${progressText(r)}`}
               </button>
             )}
           </div>

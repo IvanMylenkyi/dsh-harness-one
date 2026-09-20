@@ -2,7 +2,17 @@
 // 合并 /runs 列表与本地已见运行，按「LIVE 优先、开始时间倒序」排序，截断展示。
 
 export const SOURCE_ICON = { manual: '▶', 'workflow-list': '▶', schedule: '⏰', webhook: '🪝', resume: '↻', replay: '↺', assistant: '✦', 'catch-up': '⏱', revision: '✎' };
-export const SOURCE_LABEL = { manual: '手动', 'workflow-list': '列表启动', schedule: '定时', webhook: 'Webhook', resume: '续跑', replay: '重放', assistant: '助手', 'catch-up': '补跑', revision: '修订' };
+export const SOURCE_KEY = {
+  manual: 'run.source.manual',
+  'workflow-list': 'run.source.workflowList',
+  schedule: 'run.source.schedule',
+  webhook: 'run.source.webhook',
+  resume: 'run.source.resume',
+  replay: 'run.source.replay',
+  assistant: 'run.source.assistant',
+  'catch-up': 'run.source.catchUp',
+  revision: 'run.source.revision',
+};
 
 export function switcherCapsules(runs, { max = 6 } = {}) {
   const list = [...(runs || [])];

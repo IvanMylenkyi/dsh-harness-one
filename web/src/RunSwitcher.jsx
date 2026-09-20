@@ -1,13 +1,16 @@
 // 运行切换器：成果面板顶部的运行胶囊条。LIVE 优先、时间倒序，点击切换当前查看的运行。
-import { SOURCE_ICON, SOURCE_LABEL, capsuleTime, switcherCapsules } from './run-switcher.js';
+import { SOURCE_ICON, SOURCE_KEY, capsuleTime, switcherCapsules } from './run-switcher.js';
+import { useI18n } from './i18n/index.js';
 
 const STATUS_DOT = { running: 'rs-dot-run', success: 'rs-dot-ok', error: 'rs-dot-err', canceled: 'rs-dot-cancel', interrupted: 'rs-dot-err' };
+const STATUS_KEY = { running: 'status.running', success: 'status.success', error: 'status.error', canceled: 'status.canceled', interrupted: 'status.interrupted' };
 
 export function RunSwitcher({ runs, inspectedRunId, onSelect, onOpenHistory }) {
+  const { formatDateTime, t } = useI18n();
   const { shown, overflow } = switcherCapsules(runs);
   if (!shown.length) return null;
   return (
-    <div className="run-switcher" role="tablist" aria-label="运行切换">
+    <div className="run-switcher" role="tablist" aria-label={t('run.switcher')}>
       {shown.map((r) => {
         const active = r.runId === inspectedRunId;
         return (
@@ -16,7 +19,7 @@ export function RunSwitcher({ runs, inspectedRunId, onSelect, onOpenHistory }) {
             className={`run-pill ${active ? 'run-pill-on' : ''}`}
             role="tab"
             aria-selected={active}
-            title={`${SOURCE_LABEL[r.source] || r.source} · ${r.live ? '运行中' : r.status}${r.startedAt ? ` · ${new Date(r.startedAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`}
+            title={`${t(SOURCE_KEY[r.source] || 'run.source.unknown', { source: r.source })} · ${r.live ? t('status.running') : t(STATUS_KEY[r.status] || 'run.statusUnknown', { status: r.status })}${r.startedAt ? ` · ${formatDateTime(r.startedAt)}` : ''}`}
             onClick={() => onSelect?.(r.runId)}
           >
             <span className={`rs-dot ${STATUS_DOT[r.status] || 'rs-dot-idle'}${r.live ? ' rs-dot-live' : ''}`} aria-hidden="true" />
@@ -27,7 +30,7 @@ export function RunSwitcher({ runs, inspectedRunId, onSelect, onOpenHistory }) {
         );
       })}
       {overflow > 0 && (
-        <button className="run-pill run-pill-more" title="更多历史运行" onClick={onOpenHistory}>+{overflow}</button>
+        <button className="run-pill run-pill-more" title={t('run.moreHistory')} onClick={onOpenHistory}>+{overflow}</button>
       )}
     </div>
   );
