@@ -51,7 +51,7 @@ import { ScheduleCenter } from './ScheduleCenter.jsx';
 import { DocWallView } from './DocWallView.jsx';
 import { adaptRunResults, loadRunResults } from './result-adapter.js';
 import './doc-wall.css';
-import { TEMPLATES, TemplateModal } from './templates.jsx';
+import { TemplateModal } from './templates.jsx';
 
 export default function App() {
   const toast = useToast();
@@ -299,6 +299,8 @@ export default function App() {
       setNodes(graphDoc.nodes.map(toFlowNode));
       setEdges(graphDoc.edges.map(toFlowEdge));
       setCanvasScopeReady(true);
+      // 全新工作区无草稿图（示例工作流已移除）→ 空画布弹模板库引导，与「新建工作流」同款
+      if (!graphDoc.nodes.length) setTemplateOpen(true);
       // 图加载完成后补报 AI 助手（bind 若发生在加载前会拿到空图）。
       // 直接用加载到的 graphDoc 而非 toGraph()——setNodes 后 nodesRef 要到下一次渲染才刷新，
       // 同步读还是空图；graphDoc 就是画布此刻的真图。
@@ -997,27 +999,6 @@ export default function App() {
     markDirty();
     toast(t('toast.templateApplied', { template: t(tpl.nameKey) }), 'success');
   }, [setNodes, setEdges, toast, markDirty, snapshot, t]);
-
-  const resetGraph = useCallback(async () => {
-    setModal({
-      type: 'confirm',
-      titleKey: 'modal.resetTitle',
-      messageKey: currentWf ? 'modal.resetWorkflowMessage' : 'modal.resetDraftMessage',
-      messageVars: currentWf ? { workflow: currentWf.name } : {},
-      confirmKey: 'action.reset',
-      danger: true,
-      onConfirm: async () => {
-        setModal(null);
-        snapshot();
-        await fetch(apiUrl('/graph/reset'), { method: 'POST' });
-        const g = await fetch(apiUrl('/graph')).then((r) => r.json());
-        setNodes(g.nodes.map(toFlowNode));
-        setEdges(g.edges.map(toFlowEdge));
-        setDirty(false);
-        toast(t('toast.resetSuccess'), 'success');
-      },
-    });
-  }, [setNodes, setEdges, currentWf, toast, snapshot, t]);
 
   // 启动运行全流程（lint → 保存 → 续跑决策 → 启动 → 跟随）。
   // 并发运行：不因「已有运行在跑」而拒绝，每次调用都会新开一个 run。
@@ -1819,7 +1800,6 @@ export default function App() {
               { key: 'schedules', icon: '⏰', label: t('menu.schedules'), hint: t('toolbar.schedulesHint'), onClick: () => setScheduleCenterOpen(true) },
               { key: 'settings', icon: '⚙', label: t('menu.settings'), hint: t('toolbar.settingsHint'), onClick: () => setCredOpen(true) },
               { key: 'templates', icon: '▤', label: t('menu.templates'), onClick: () => setTemplateOpen(true) },
-              { key: 'reset', icon: '⟲', label: t('canvas.resetExample'), danger: true, onClick: resetGraph },
             ]} />
             {/* 多运行并发：常驻「运行」随时可再开一轮；「取消」只作用于当前查看的运行 */}
             <button className="btn btn-primary tb-run-btn" onClick={run} aria-label={t('action.run')}><span aria-hidden="true">▶</span><span className="tb-run-label">{t('action.run')}</span></button>
