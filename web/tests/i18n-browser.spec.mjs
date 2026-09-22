@@ -54,26 +54,25 @@ test('localized modal, toast, empty status, and lint error stay reactive', async
   });
   await page.goto('/');
   const language = page.locator('select[aria-label]').first();
+  await page.evaluate(() => window.postMessage({ type: 'wf1-session', sessionId: 'browser-smoke' }, window.location.origin));
 
-  await page.getByRole('button', { name: 'More actions', exact: true }).click();
-  await page.getByRole('menuitem', { name: /Reset to example/ }).click();
-  await expect(page.locator('.modal-head strong')).toHaveText('Reset to example workflow');
+  await expect(page.locator('.modal-head strong')).toHaveText('Start from a template');
+  await expect(page.getByRole('button', { name: 'Apply template', exact: true })).toBeVisible();
 
   await language.selectOption('zh-CN');
-  await expect(page.locator('.modal-head strong')).toHaveText('重置为示例工作流');
-  await expect(page.getByRole('button', { name: '取消', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '重置', exact: true })).toBeVisible();
+  await expect(page.locator('.modal-head strong')).toHaveText('从模板开始');
+  await expect(page.getByRole('button', { name: '应用模板', exact: true })).toBeVisible();
   await language.selectOption('en');
-  await expect(page.locator('.modal-head strong')).toHaveText('Reset to example workflow');
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.locator('.modal-head strong')).toHaveText('Start from a template');
+  await page.getByRole('button', { name: 'Apply template', exact: true }).click();
+  await expect(page.locator('.toast').last()).toContainText('Applied template');
 
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.locator('.toast')).toContainText('Saved draft');
+  await expect(page.locator('.toast').last()).toContainText('Saved draft');
   await language.selectOption('zh-CN');
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.locator('.toast').last()).toContainText('已保存草稿');
 
-  await page.evaluate(() => window.postMessage({ type: 'wf1-session', sessionId: 'browser-smoke' }, window.location.origin));
   await expect(page.getByRole('toolbar', { name: '画布快捷指令' })).toBeVisible();
   await page.getByRole('button', { name: /最近状态/ }).click();
   await expect(page.locator('.toast').last()).toContainText('还没有运行记录');
@@ -191,6 +190,7 @@ test('embedded document wall reloads after an SSE reconnect', async ({ page }) =
   await page.goto('/test-pages/host.html');
   const frame = page.frameLocator('#canvas');
   await expect(page.locator('#host-state')).toHaveText('ready');
+  await frame.getByRole('button', { name: 'Cancel', exact: true }).click();
   await frame.getByRole('button', { name: 'Documents', exact: true }).click();
   await expect(frame.getByText('Recovered workflow')).toBeVisible();
   await expect.poll(() => resultLoads, { timeout: 10_000 }).toBeGreaterThan(1);

@@ -67,8 +67,10 @@ test('migrates valid JSON, reports bad files, and becomes the only write source'
       migrationErrorFile: errorFile,
       logger: { warn(message) { warnings.push(message); } },
     });
-    assert.equal(statSync(root).mode & 0o777, 0o700);
-    assert.equal(statSync(databaseFile).mode & 0o777, 0o600);
+    if (process.platform !== 'win32') {
+      assert.equal(statSync(root).mode & 0o777, 0o700);
+      assert.equal(statSync(databaseFile).mode & 0o777, 0o600);
+    }
     assert.deepEqual(store.listWorkflows(), [{
       id: 'wf_old', name: 'wf_old', updatedAt: '2026-08-01T00:00:00.000Z', nodeCount: 2, agentCount: 1,
     }]);
@@ -98,6 +100,7 @@ test('migrates valid JSON, reports bad files, and becomes the only write source'
     assert.equal(reopened.getWorkflow('wf_late'), null, '完成迁移后不得继续读取 JSON 备份');
     reopened.close();
   } finally {
+    chmodSync(root, 0o755);
     rmSync(root, { recursive: true, force: true });
   }
 });

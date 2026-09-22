@@ -1,24 +1,20 @@
 # Upstream sync
 
 - Canonical upstream: `https://github.com/chumingjun/dsh-harness-one.git`
-- `upstream` remote: `https://github.com/chumingjun/dsh-harness-one.git`
-- `upstream` push URL: `no_push` (fetch-only safety guard)
-- `origin` remote: local fork mirror `T:\DeepSeekHarness\workflow-one-i18n-fork.git`
-- Release compatibility tag: `v0.10.0` (`dd907eaba0b1034bb2c11e8ef3e37bc9ca5841d4`)
-- Current upstream baseline audited: `main` (`a4f7fe95b0d419d3a87f0105ff018d4e56062ee`)
+- `upstream` remote: canonical repository, fetch-only (`push=no_push`)
+- GitHub fork / `origin`: `https://github.com/IvanMylenkyi/dsh-harness-one.git`
+- `local-mirror`: preserved local bare mirror at `T:\DeepSeekHarness\workflow-one-i18n-fork.git`
+- Current upstream baseline: tag `v0.11.0`, commit `9483c87809a0d3efac58da4e35aad7a015ca8371`
 - Local implementation branch: `feat/i18n-en`
 
 Sync procedure:
 
-1. Fetch upstream tags and `main` into the `upstream` remote.
-2. Create a dedicated sync branch from `feat/i18n-en`.
-3. Merge or rebase the selected upstream tag; do not auto-publish.
-4. Run locale parity/placeholder tests, `check:i18n`, web tests, both web
-   builds, and the English/Chinese smoke journeys.
-5. Review the translation delta for semantic changes even when keys are stable.
-6. Record the tested commit and remaining gaps in `COMPATIBILITY.md`.
+1. Fetch upstream tags and `main` into the fetch-only `upstream` remote.
+2. Review the selected upstream range and merge into `feat/i18n-en`, resolving behavior changes deliberately.
+3. Run web/unit/browser tests, locale parity, source scan, production build, and strict bundle scan; document known gaps.
+4. Push only to the GitHub fork `origin/feat/i18n-en`. Do not push to upstream or publish packages without a separate release decision.
 
-The source CJK guard compares the whole first-party tree with
-`docs/i18n/CJK_BASELINE.json`; it does not rely on a working-tree diff. Refresh
-that baseline only when intentionally accepting an upstream source change:
+The source CJK guard scans the full working tree against
+`docs/i18n/CJK_BASELINE.json`, independent of Git diff state. Refresh the
+baseline only when intentionally accepting upstream source changes:
 `node scripts/check-i18n.mjs --write-baseline --baseline-ref <commit>`.

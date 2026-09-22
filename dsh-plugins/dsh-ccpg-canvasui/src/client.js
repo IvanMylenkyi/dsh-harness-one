@@ -63,6 +63,7 @@ window.__ModuleLoader__.load({
         "canvas.node.notify": "Notification",
         "canvas.node.note": "Note",
         "canvas.node.subworkflow": "Subworkflow",
+        "canvas.node.workflow": "Workflow",
         "canvas.node.unknown": "Node",
         "canvas.graph.mainPath": "Main path {count} steps",
         "canvas.graph.otherNodes": " · {count} other nodes",
@@ -85,6 +86,28 @@ window.__ModuleLoader__.load({
         "canvas.patch.collapse": "Collapse",
         "canvas.patch.expand": "Expand {count} items",
         "canvas.example.try": "Try:",
+        "canvas.suggestion.previousDocument": "Review the document from my last run",
+        "canvas.suggestion.runAgain": "Run it again",
+        "canvas.suggestion.saveResult": "Save the run output to the workspace",
+        "canvas.suggestion.continueRevision": "Continue revising from this result",
+        "canvas.suggestion.undoChanges": "Undo those changes",
+        "canvas.suggestion.runWorkflow": "Run this workflow",
+        "canvas.suggestion.saveWorkflow": "Save as a workflow",
+        "canvas.example.ticket.name": "Build a service ticket organizer",
+        "canvas.example.ticket.description": "Have AI arrange a node-based workflow on the canvas",
+        "canvas.example.run.name": "Run the workflow on the current canvas",
+        "canvas.example.run.description": "Run the open workflow",
+        "canvas.example.run.boundDescription": "Run the workflow bound to this canvas",
+        "canvas.example.summary.name": "Summarize the document from the last run",
+        "canvas.example.summary.description": "Organize the run output",
+        "canvas.example.list.name": "What workflows can I run?",
+        "canvas.example.list.description": "Browse workflows in this workspace",
+        "canvas.example.branch.name": "Add a condition branch to the canvas",
+        "canvas.example.branch.description": "Change the current workflow structure",
+        "canvas.example.status.name": "How did the last run go?",
+        "canvas.example.status.description": "Check the latest run status",
+        "canvas.example.save.name": "Save the run output to the workspace",
+        "canvas.example.save.description": "Save the generated artifacts",
         "canvas.binding.label": "Bound: {name} · {count} nodes",
         "canvas.binding.draft": "Draft graph",
         "canvas.binding.openTitle": "Open workflow canvas",
@@ -126,6 +149,7 @@ window.__ModuleLoader__.load({
         "canvas.settings.default300": "Default 300",
         "canvas.settings.systemPrompt": "System prompt",
         "canvas.settings.systemPromptHelp": "Behavior constraints appended to every agent node prompt; leave empty to disable",
+        "canvas.settings.systemPromptPlaceholder": "For example:\n- Keep terminology consistent\n- Lead with the deliverable; skip pleasantries\n- Follow the team's writing guide",
         "canvas.settings.upgrading": "Upgrading…", "canvas.settings.newVersion": "New version v{version} available", "canvas.settings.latest": "Up to date", "canvas.settings.checking": "Checking…", "canvas.settings.updateUnavailable": "Update service unavailable",
         "canvas.trigger.opened": "Canvas opened: {value}", "canvas.trigger.started": "Run started: {value}", "canvas.trigger.fillPromptSuffix": " · click to fill, then press Enter to send", "canvas.trigger.openFailed": "Open failed", "canvas.trigger.runFailed": "Run failed to start", "canvas.trigger.workflowRef": "Reference a workflow · describe what to do after picking", "canvas.trigger.bindName": "Bind the canvas before referencing a node", "canvas.trigger.bindDescription": "Open the Workflow tab to bind the current session", "canvas.trigger.bindHint": "The Workflow tab is open; bind it before using @ node references", "canvas.trigger.workflowHint": "Workflow referenced · describe what to do next and press Enter", "canvas.trigger.nodeHint": "Node referenced · describe what to do next and press Enter", "canvas.trigger.run": "Run this workflow (Workflow One)", "canvas.trigger.open": "Open in the bound canvas (Workflow One)", "canvas.trigger.auto": "Enter to open/run · append run or open to choose (Workflow One)", "canvas.trigger.promptHint": "Example filled in · edit it and press Enter to send", "canvas.trigger.executeHint": "Enter to execute · append run/open to choose an action", "canvas.trigger.missingId": "Workflow id or name is required",
         "canvas.settings.upgradeHintRunning": "The upgrade is finishing automatically; you can leave this window and return for the result.", "canvas.settings.upgradeHintAvailable": "Click the button below to upgrade; everything else is automatic.", "canvas.settings.upgradeHintLatest": "A notice will appear here when a new version is released.", "canvas.settings.upgradeHintCheck": "Check for a new version with one click.",
@@ -146,7 +170,7 @@ window.__ModuleLoader__.load({
         "canvas.run.executing": "执行中", "canvas.run.completed": "完成", "canvas.run.stop": "停止",
         "canvas.run.stopAria": "停止该运行", "canvas.run.stopPending": "停止中…", "canvas.run.nodeExecuting": "「{label}」执行中",
         "canvas.node.input": "输入", "canvas.node.agent": "智能体", "canvas.node.condition": "条件", "canvas.node.script": "脚本",
-        "canvas.node.output": "输出", "canvas.node.notify": "通知", "canvas.node.note": "注释", "canvas.node.subworkflow": "子工作流", "canvas.node.unknown": "节点",
+        "canvas.node.output": "输出", "canvas.node.notify": "通知", "canvas.node.note": "注释", "canvas.node.subworkflow": "子工作流", "canvas.node.workflow": "工作流", "canvas.node.unknown": "节点",
         "canvas.graph.mainPath": "主流程 {count} 步", "canvas.graph.otherNodes": " · 另有 {count} 个节点", "canvas.graph.omitted": "省略 {count} 步", "canvas.graph.ariaSeparator": "：", "canvas.graph.listSeparator": "，",
         "canvas.patch.addNode": "加节点", "canvas.patch.updateNode": "改节点", "canvas.patch.renameNode": "重命名", "canvas.patch.deleteNode": "删节点",
         "canvas.patch.connect": "连线", "canvas.patch.deleteEdge": "删线", "canvas.patch.updateEdge": "改线", "canvas.patch.noOperations": "无操作",
@@ -164,6 +188,15 @@ window.__ModuleLoader__.load({
         "canvas.settings.loadingChannels": "正在读取渠道目录…", "canvas.settings.noChannels": "还没有可用的模型渠道，请先在 dsh 设置里完成配置。", "canvas.settings.channel": "渠道", "canvas.settings.model": "模型", "canvas.settings.reasoning": "思考级别",
         "canvas.settings.nodeTimeout": "节点超时(秒)", "canvas.settings.modelTimeout": "单次超时(秒)", "canvas.settings.default500": "默认 500", "canvas.settings.default300": "默认 300",
         "canvas.settings.systemPrompt": "通用提示词", "canvas.settings.systemPromptHelp": "注入所有 agent 节点提示词末尾的行为约束；留空不注入", "canvas.settings.save": "保存", "canvas.settings.saving": "保存中…",
+        "canvas.settings.systemPromptPlaceholder": "例：\n- 输出统一使用中文\n- 交付物直接给结论，不要寒暄\n- 物业术语遵循公司规范手册",
+        "canvas.suggestion.previousDocument": "查看上次运行的文稿", "canvas.suggestion.runAgain": "再跑一次", "canvas.suggestion.saveResult": "把运行结果存到工作目录", "canvas.suggestion.continueRevision": "基于这次结果继续改", "canvas.suggestion.undoChanges": "撤销刚才那批修改", "canvas.suggestion.runWorkflow": "运行这个工作流", "canvas.suggestion.saveWorkflow": "保存为工作流",
+        "canvas.example.ticket.name": "帮我搭一个报修单整理工作流", "canvas.example.ticket.description": "让 AI 在画布上编排节点式工作流",
+        "canvas.example.run.name": "把当前画布的工作流跑一次", "canvas.example.run.description": "运行已打开的工作流", "canvas.example.run.boundDescription": "运行绑定画布上的工作流",
+        "canvas.example.summary.name": "给上次的文稿写一段总结", "canvas.example.summary.description": "整理运行产物",
+        "canvas.example.list.name": "有哪些工作流可以跑", "canvas.example.list.description": "浏览本工作区的流程库",
+        "canvas.example.branch.name": "在画布上加一个条件分支", "canvas.example.branch.description": "修改当前工作流结构",
+        "canvas.example.status.name": "上次运行的结果怎么样", "canvas.example.status.description": "查看最近运行状态",
+        "canvas.example.save.name": "把运行结果存到工作目录", "canvas.example.save.description": "落地运行产物",
         "canvas.settings.upgrading": "升级中…", "canvas.settings.newVersion": "发现新版本 v{version}", "canvas.settings.latest": "已是最新", "canvas.settings.checking": "检查中…", "canvas.settings.updateUnavailable": "暂时连不上更新服务",
         "canvas.trigger.referenceSource": "引用", "canvas.trigger.nodeSection": "Workflow One 节点", "canvas.trigger.exampleSection": "Workflow One 示例",
         "canvas.settings.upgradeHintRunning": "正在自动完成升级，窗口可以离开，回来再看结果就行。", "canvas.settings.upgradeHintAvailable": "点下面的按钮即可升级，剩余的事全自动。", "canvas.settings.upgradeHintLatest": "有新版本发布时会在这里提示，不用常来点。", "canvas.settings.upgradeHintCheck": "看看有没有新版本？点一下就知道。",
@@ -1045,9 +1078,9 @@ window.__ModuleLoader__.load({
         // #107 suggestion：成功/失败终态给下一步指令（≤3 个，点击只填入）；
         // 「导出 ZIP」无后端能力支撑不做
         footer: dot === "success"
-          ? cardSuggestRow(["查看上次运行的文稿", "再跑一次", "把运行结果存到工作目录"])
+          ? cardSuggestRow(["canvas.suggestion.previousDocument", "canvas.suggestion.runAgain", "canvas.suggestion.saveResult"].map(t))
           : dot === "error" && run.status !== "waiting"
-            ? cardSuggestRow(["再跑一次", "基于这次结果继续改"])
+            ? cardSuggestRow(["canvas.suggestion.runAgain", "canvas.suggestion.continueRevision"].map(t))
             : null,
       });
     }
@@ -1129,7 +1162,7 @@ window.__ModuleLoader__.load({
         t: t,
         // #107 suggestion：已应用（含告警）态的下一步指令；运行中/被拒不显示
         footer: settled && ok
-          ? cardSuggestRow(["撤销刚才那批修改", "运行这个工作流", "保存为工作流"])
+          ? cardSuggestRow(["canvas.suggestion.undoChanges", "canvas.suggestion.runWorkflow", "canvas.suggestion.saveWorkflow"].map(t))
           : null,
       });
     }
@@ -1254,7 +1287,7 @@ window.__ModuleLoader__.load({
         props.input && (props.input.draft === "" || props.input.draft == null) &&
         props.input.phase === "plain";
       if (!visible) return null;
-      var prompts = examplePromptsFor(true);
+      var prompts = examplePromptsFor(true, i18n.locale);
       var fill = function (text, ev) {
         ev.preventDefault();
         fillComposer(text);
@@ -1915,7 +1948,7 @@ window.__ModuleLoader__.load({
                   react.createElement("textarea", {
                     value: draft.systemPrompt || "",
                     disabled: saving,
-                    placeholder: "例：\n- 输出统一使用中文\n- 交付物直接给结论，不要寒暄\n- 物业术语遵循公司规范手册",
+                    placeholder: t("canvas.settings.systemPromptPlaceholder"),
                     style: {
                       width: "100%", minHeight: "72px", padding: "6px 8px", borderRadius: "8px",
                       fontSize: "13px", lineHeight: "20px", resize: "vertical", boxSizing: "border-box",
@@ -2271,19 +2304,22 @@ window.__ModuleLoader__.load({
     // claim.token 复用触发源二段式协议：pick 后草稿替换为完整示例文本，
     // Enter 即按普通消息发送（不带 / 前缀不触发任何源）。
     var WF_EXAMPLE_PROMPTS_UNBOUND = [
-      { name: "帮我搭一个报修单整理工作流", description: "让 AI 在画布上编排节点式工作流" },
-      { name: "把当前画布的工作流跑一次", description: "运行已打开的工作流" },
-      { name: "给上次的文稿写一段总结", description: "整理运行产物" },
-      { name: "有哪些工作流可以跑", description: "浏览本工作区的流程库" },
+      { name: "canvas.example.ticket.name", description: "canvas.example.ticket.description" },
+      { name: "canvas.example.run.name", description: "canvas.example.run.description" },
+      { name: "canvas.example.summary.name", description: "canvas.example.summary.description" },
+      { name: "canvas.example.list.name", description: "canvas.example.list.description" },
     ];
     var WF_EXAMPLE_PROMPTS_BOUND = [
-      { name: "把当前画布的工作流跑一次", description: "运行绑定画布上的工作流" },
-      { name: "在画布上加一个条件分支", description: "修改当前工作流结构" },
-      { name: "上次运行的结果怎么样", description: "查看最近运行状态" },
-      { name: "把运行结果存到工作目录", description: "落地运行产物" },
+      { name: "canvas.example.run.name", description: "canvas.example.run.boundDescription" },
+      { name: "canvas.example.branch.name", description: "canvas.example.branch.description" },
+      { name: "canvas.example.status.name", description: "canvas.example.status.description" },
+      { name: "canvas.example.save.name", description: "canvas.example.save.description" },
     ];
-    function examplePromptsFor(bound) {
-      return bound ? WF_EXAMPLE_PROMPTS_BOUND : WF_EXAMPLE_PROMPTS_UNBOUND;
+    function examplePromptsFor(bound, locale) {
+      var selectedLocale = locale || canvasLocale();
+      return (bound ? WF_EXAMPLE_PROMPTS_BOUND : WF_EXAMPLE_PROMPTS_UNBOUND).map(function (prompt) {
+        return { name: canvasTranslate(selectedLocale, prompt.name), description: canvasTranslate(selectedLocale, prompt.description) };
+      });
     }
 
     // #106/#101 绑定态订阅：轮询刷新后通知监听者（ExampleBar 等宿主不随模块变量重渲染）
@@ -2361,8 +2397,8 @@ window.__ModuleLoader__.load({
       });
     }
 
-    function readableRef(label, typeCn) {
-      return "@" + label + "（" + typeCn + "） ";
+    function readableRef(label, type, locale) {
+      return locale === "zh-CN" ? "@" + label + "（" + type + "） " : "@" + label + " (" + type + ") ";
     }
 
     function registerNodeReferenceSource(ctx) {
@@ -2433,7 +2469,7 @@ window.__ModuleLoader__.load({
           if (v.kind === "workflow") {
             return {
               claim: {
-                token: readableRef(v.name, "工作流"),
+                token: readableRef(v.name, canvasTranslate(canvasLocale(), "canvas.node.workflow"), canvasLocale()),
                 hint: canvasTranslate(canvasLocale(), "canvas.trigger.workflowHint"),
                 submit: function () { return Promise.resolve({ kind: "success", text: "" }); },
               },
@@ -2441,7 +2477,7 @@ window.__ModuleLoader__.load({
           }
           return {
             claim: {
-              token: readableRef(v.label, NODE_TYPE_KEYS[v.type] ? canvasTranslate(canvasLocale(), NODE_TYPE_KEYS[v.type]) : v.type || canvasTranslate(canvasLocale(), "canvas.node.unknown")),
+              token: readableRef(v.label, NODE_TYPE_KEYS[v.type] ? canvasTranslate(canvasLocale(), NODE_TYPE_KEYS[v.type]) : v.type || canvasTranslate(canvasLocale(), "canvas.node.unknown"), canvasLocale()),
               hint: canvasTranslate(canvasLocale(), "canvas.trigger.nodeHint"),
               submit: function () { return Promise.resolve({ kind: "success", text: "" }); },
             },
@@ -2514,7 +2550,7 @@ window.__ModuleLoader__.load({
             if (matched.length) return matched;
             // 空态引导（#101）：无工作流/过滤无命中时列示例指令候选（按绑定取舍），
             // 点击把完整示例文本填入草稿，Enter 即作为普通消息发给 AI。
-            return examplePromptsFor(wfBoundState === true).map(function (p) {
+            return examplePromptsFor(wfBoundState === true, canvasLocale()).map(function (p) {
               return {
                 name: p.name,
                 description: p.description + canvasTranslate(canvasLocale(), "canvas.trigger.fillPromptSuffix"),
@@ -2822,6 +2858,7 @@ window.__ModuleLoader__.load({
       canvasTranslate: canvasTranslate,
       canvasLocale: canvasLocale,
       examplePromptsFor: examplePromptsFor,
+      readableRef: readableRef,
       setWfBoundState: function (v) { wfBoundState = v; },
       modelOptionsFor: modelOptionsFor,
       effortOptionsFor: effortOptionsFor,

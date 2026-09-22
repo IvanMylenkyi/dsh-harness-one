@@ -16,9 +16,9 @@ export const TEMPLATES = [
     descriptionKey: 'template.seed.gongdanDescription',
     graph: {
       nodes: [
-        { id: 'in', type: 'input', position: { x: 60, y: 200 }, data: { label: '报修单输入', text: '3栋2单元501室 张先生 13800001111：厨房水槽下水缓慢已有三天，偶尔返味，希望尽快上门查看。', attachments: [] } },
-        { id: 'agent', type: 'agent', position: { x: 380, y: 190 }, data: { label: '工单整理', prompt: '你是物业客服助手。把上游的报修信息整理为规范工单，写成 gongdan.md 落盘：提取报修人、联系方式、位置、故障描述、紧急程度（低/中/高）。', tools: [] } },
-        { id: 'out', type: 'output', position: { x: 700, y: 210 }, data: { label: '工单输出' } },
+        { id: 'in', type: 'input', position: { x: 60, y: 200 }, data: { label: 'template.content.ticketInputLabel', text: 'template.content.ticketInputText', attachments: [] } },
+        { id: 'agent', type: 'agent', position: { x: 380, y: 190 }, data: { label: 'template.content.ticketOrganizeLabel', prompt: 'template.content.ticketOrganizePrompt', tools: [] } },
+        { id: 'out', type: 'output', position: { x: 700, y: 210 }, data: { label: 'template.content.ticketOutputLabel' } },
       ],
       edges: [
         { id: 'e1', source: 'in', target: 'agent' },
@@ -32,11 +32,11 @@ export const TEMPLATES = [
     descriptionKey: 'template.seed.urgencyDescription',
     graph: {
       nodes: [
-        { id: 'in', type: 'input', position: { x: 40, y: 220 }, data: { label: '工单输入', text: '10栋1单元101 李女士 13911112222：家里水管爆了大量漏水，地板已经泡水！', attachments: [] } },
-        { id: 'cond', type: 'condition', position: { x: 320, y: 220 }, data: { label: '紧急判断', include: '紧急,爆管,漏水,火灾,电梯困人', exclude: '' } },
-        { id: 'urgent', type: 'agent', position: { x: 600, y: 100 }, data: { label: '紧急响应', prompt: '你是物业应急协调员。对紧急工单立即生成应急处置卡（emergency.md）：安抚话术、15分钟内上门、需带工具、升级路径。', tools: [] } },
-        { id: 'normal', type: 'agent', position: { x: 600, y: 330 }, data: { label: '常规处理', prompt: '你是物业客服。对常规工单生成次日处理计划（plan.md）：时间段、负责人角色、需准备的物料。', tools: [] } },
-        { id: 'out', type: 'output', position: { x: 900, y: 215 }, data: { label: '分流输出' } },
+        { id: 'in', type: 'input', position: { x: 40, y: 220 }, data: { label: 'template.content.urgencyInputLabel', text: 'template.content.urgencyInputText', attachments: [] } },
+        { id: 'cond', type: 'condition', position: { x: 320, y: 220 }, data: { label: 'template.content.urgencyConditionLabel', include: 'template.content.urgencyKeywords', exclude: '' } },
+        { id: 'urgent', type: 'agent', position: { x: 600, y: 100 }, data: { label: 'template.content.urgentPathLabel', prompt: 'template.content.urgentPathPrompt', tools: [] } },
+        { id: 'normal', type: 'agent', position: { x: 600, y: 330 }, data: { label: 'template.content.routinePathLabel', prompt: 'template.content.routinePathPrompt', tools: [] } },
+        { id: 'out', type: 'output', position: { x: 900, y: 215 }, data: { label: 'template.content.urgencyOutputLabel' } },
       ],
       edges: [
         { id: 'e1', source: 'in', target: 'cond' },
@@ -53,11 +53,11 @@ export const TEMPLATES = [
     descriptionKey: 'template.seed.reviewDescription',
     graph: {
       nodes: [
-        { id: 'in', type: 'input', position: { x: 60, y: 220 }, data: { label: '议题输入', text: '本季度小区绿化改造预算 8 万元，方案包括：更换草坪 2000㎡、补种树木 30 棵、增设灌溉系统。', attachments: [] } },
-        { id: 'cost', type: 'agent', position: { x: 360, y: 100 }, data: { label: '成本视角', prompt: '你是预算分析师。从成本角度评审该方案，输出 cost.md：单价合理性、超支风险、可削减项。', tools: [] } },
-        { id: 'quality', type: 'agent', position: { x: 360, y: 340 }, data: { label: '品质视角', prompt: '你是园区品质经理。从业主体验角度评审该方案，输出 quality.md：观赏性、维护成本、噪音扬尘影响。', tools: [] } },
-        { id: 'merge', type: 'agent', position: { x: 660, y: 220 }, data: { label: '汇总评审', prompt: '你是评审组长。综合两个视角的分析，写 conclusion.md：结论、分歧点、最终建议。', tools: [] } },
-        { id: 'out', type: 'output', position: { x: 950, y: 220 }, data: { label: '评审结论' } },
+        { id: 'in', type: 'input', position: { x: 60, y: 220 }, data: { label: 'template.content.reviewInputLabel', text: 'template.content.reviewInputText', attachments: [] } },
+        { id: 'cost', type: 'agent', position: { x: 360, y: 100 }, data: { label: 'template.content.costPerspectiveLabel', prompt: 'template.content.costPerspectivePrompt', tools: [] } },
+        { id: 'quality', type: 'agent', position: { x: 360, y: 340 }, data: { label: 'template.content.qualityPerspectiveLabel', prompt: 'template.content.qualityPerspectivePrompt', tools: [] } },
+        { id: 'merge', type: 'agent', position: { x: 660, y: 220 }, data: { label: 'template.content.reviewSummaryLabel', prompt: 'template.content.reviewSummaryPrompt', tools: [] } },
+        { id: 'out', type: 'output', position: { x: 950, y: 220 }, data: { label: 'template.content.reviewOutputLabel' } },
       ],
       edges: [
         { id: 'e1', source: 'in', target: 'cost' },
@@ -73,7 +73,20 @@ export const TEMPLATES = [
 export function TemplateModal({ onClose, onApply }) {
   const { t } = useI18n();
   const [picked, setPicked] = useState('gongdan');
-  const tpl = TEMPLATES.find((t) => t.id === picked);
+  const templates = TEMPLATES.map((template) => ({
+    ...template,
+    graph: {
+      nodes: template.graph.nodes.map((node) => ({
+        ...node,
+        data: Object.fromEntries(Object.entries(node.data).map(([key, value]) => [
+          key,
+          typeof value === 'string' && value.startsWith('template.content.') ? t(value) : value,
+        ])),
+      })),
+      edges: template.graph.edges,
+    },
+  }));
+  const tpl = templates.find((template) => template.id === picked);
   return (
     <Modal
       title={t('template.seedTitle')}
@@ -86,7 +99,7 @@ export function TemplateModal({ onClose, onApply }) {
       )}
     >
       <div className="tpl-grid">
-        {TEMPLATES.map((template) => (
+        {templates.map((template) => (
           <button key={template.id} className={`tpl-card ${picked === template.id ? 'tpl-on' : ''}`} onClick={() => setPicked(template.id)}>
             <div className="tpl-name">{t(template.nameKey)}</div>
             <div className="tpl-desc">{t(template.descriptionKey)}</div>

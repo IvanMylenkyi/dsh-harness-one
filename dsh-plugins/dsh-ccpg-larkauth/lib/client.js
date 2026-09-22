@@ -26,6 +26,7 @@ window.__ModuleLoader__.load({
 				"lark.desktopInstall": "After confirmation, it will be installed in the current Desktop profile; each profile needs its own installation.",
 				"lark.manualInstall": "After installation you can scan to sign in here, or run",
 				"lark.loggedOut": "Not signed in to Lark",
+				"lark.techLine": "App {appId} · Default identity: {identity} · Bot: {bot}",
 				"lark.loggedIn": "Signed in · the agent will use your identity for Lark actions",
 				"lark.expired": "Sign-in expired; scan again to authorize",
 				"lark.renewal": "Token auto-renewal: current until {date}",
@@ -54,6 +55,7 @@ window.__ModuleLoader__.load({
 				"lark.desktopInstall": "确认后将安装到当前 Desktop profile；切换 profile 时需分别安装。",
 				"lark.manualInstall": "安装后此处即可扫码登录；也可手动执行",
 				"lark.loggedOut": "未登录飞书账号",
+				"lark.techLine": "App {appId} · 默认身份：{identity} · Bot：{bot}",
 				"lark.loggedIn": "已登录 · agent 会以你的身份执行飞书操作",
 				"lark.expired": "登录已过期，重新扫码即可",
 				"lark.renewal": "凭证自动续期：当前至 {date}",
@@ -236,8 +238,11 @@ window.__ModuleLoader__.load({
 					(renew.lastAt ? t("lark.renewalLast", { date: fmtWhen(renew.lastAt, locale) }) + renewSuffix : "")
 				: "";
 			// 技术明细挂 title 悬浮提示，界面上不再占一行
-			var techLine = "App " + (status.appId || "-") + " · 默认身份 " + (status.defaultIdentity || "-") +
-				" · bot " + ((status.bot && status.bot.status) || "-");
+			var techLine = t("lark.techLine", {
+				appId: status.appId || "-",
+				identity: status.defaultIdentity || "-",
+				bot: (status.bot && status.bot.status) || "-",
+			});
 
 			return react.createElement("div", { style: S.wrap },
 				react.createElement("div", {

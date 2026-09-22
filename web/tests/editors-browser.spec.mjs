@@ -11,10 +11,17 @@ test('schema, rich document, and template chrome switch English and Chinese reac
   await expect(page.getByText('Output mode')).toBeVisible();
   await expect(page.getByRole('toolbar', { name: 'Formatting toolbar' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Insert table', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Apply template', exact: true }).click();
+  await expect(page.getByTestId('applied-template')).toContainText('Service ticket details');
+  await expect(page.getByTestId('applied-template')).toContainText('Organize service ticket');
+  await expect(page.getByTestId('applied-template')).not.toContainText(/[\u3400-\u9fff]/);
 
   await language.selectOption('zh-CN');
   await expect(page.getByText('从模板开始')).toBeVisible();
   await expect(page.getByRole('button', { name: '应用模板', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '应用模板', exact: true }).click();
+  await expect(page.getByTestId('applied-template')).toContainText('报修信息');
+  await expect(page.getByTestId('applied-template')).toContainText('整理工单');
   await expect(page.getByText('输出模式')).toBeVisible();
   await expect(page.getByRole('toolbar', { name: '格式工具条' })).toBeVisible();
   await expect(page.getByRole('button', { name: '插入表格', exact: true })).toBeVisible();
@@ -22,6 +29,8 @@ test('schema, rich document, and template chrome switch English and Chinese reac
   await language.selectOption('en');
   await expect(page.getByText('Start from a template')).toBeVisible();
   await expect(page.getByText('Output mode')).toBeVisible();
+  await page.getByRole('button', { name: 'Apply template', exact: true }).click();
+  await expect(page.getByTestId('applied-template')).toContainText('Service ticket details');
   expect(pageErrors, `browser page errors: ${pageErrors.join('; ')}`).toEqual([]);
 });
 

@@ -9,6 +9,7 @@ function Fixture() {
   const { locale, setLocale } = useI18n();
   const [schema, setSchema] = useState({ type: 'object', properties: {}, required: [] });
   const [mode, setMode] = useState('structured');
+  const [appliedTemplate, setAppliedTemplate] = useState(null);
   return (
     <div>
       <select aria-label="fixture language" value={locale} onChange={(event) => setLocale(event.target.value)}>
@@ -17,7 +18,8 @@ function Fixture() {
       </select>
       <AgentSchemaEditor mode={mode} value={schema} onModeChange={setMode} onChange={setSchema} />
       <RichDocEditor initialMarkdown="# Draft" onChange={() => {}} />
-      <TemplateModal onClose={() => {}} onApply={() => {}} />
+      <TemplateModal onClose={() => {}} onApply={setAppliedTemplate} />
+      <pre data-testid="applied-template">{appliedTemplate ? JSON.stringify(appliedTemplate.graph) : ''}</pre>
     </div>
   );
 }

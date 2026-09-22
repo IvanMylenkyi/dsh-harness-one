@@ -179,13 +179,25 @@ function checkSource() {
   };
 }
 
+function auditSource() {
+  const scanned = scanWorkingTree();
+  console.log(`Source audit: ${scanned.findings.length} non-comment first-party CJK fragments; ${scanned.invalidKeys.length} unstable translation calls.`);
+  for (const finding of scanned.findings) console.log(`${finding.file}:${finding.line}: ${finding.text}`);
+  for (const finding of scanned.invalidKeys) console.log(`${finding.file}:${finding.line}: ${finding.text}`);
+}
+
 function checkBundle() {
   const assets = path.join(root, 'web', 'dist', 'assets');
   if (!fs.existsSync(assets)) return [];
-  return fs.readdirSync(assets)
-    .filter((file) => file.endsWith('.js'))
+  const files = fs.readdirSync(assets).filter((file) => file.endsWith('.js'));
+  return files
     .filter((file) => cjk.test(fs.readFileSync(path.join(assets, file), 'utf8')))
     .map((file) => `web/dist/assets/${file}`);
+}
+
+if (process.argv.includes('--audit')) {
+  auditSource();
+  process.exit(0);
 }
 
 if (process.argv.includes('--write-baseline')) {

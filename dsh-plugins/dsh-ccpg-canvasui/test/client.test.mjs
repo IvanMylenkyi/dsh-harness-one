@@ -779,12 +779,19 @@ for (const [body, expected] of [
 
 // ---- 空态引导（#101）：示例表取舍与 ExampleBar 渲染 ----
 {
-  assert.equal(client.__test.examplePromptsFor(false), client.__test.examplePromptsFor(false));
+  assert.deepEqual(client.__test.examplePromptsFor(false), client.__test.examplePromptsFor(false));
   const unbound = client.__test.examplePromptsFor(false);
   const bound = client.__test.examplePromptsFor(true);
+  const englishExamples = client.__test.examplePromptsFor(false, "en");
+  const englishBoundExamples = client.__test.examplePromptsFor(true, "en");
   assert.ok(unbound.length >= 3 && unbound.length <= 5, "示例数量 3~5 条");
   assert.ok(unbound.some((p) => p.name.includes("搭")), "未绑定时以搭建类为主");
   assert.ok(bound.some((p) => p.name.includes("当前画布")), "已绑定时以运行/修改类为主");
+  assert.equal(englishExamples[0].name, "Build a service ticket organizer");
+  assert.equal(englishExamples[0].description, "Have AI arrange a node-based workflow on the canvas");
+  assert.equal(englishBoundExamples[0].description, "Run the workflow bound to this canvas");
+  assert.equal(client.__test.readableRef("Quarterly review", "Workflow", "en"), "@Quarterly review (Workflow) ");
+  assert.equal(client.__test.readableRef("月度报表", "工作流", "zh-CN"), "@月度报表（工作流） ");
   assert.notEqual(unbound, bound, "绑定与否返回不同示例集");
 
   // ExampleBar：仅绑定画布后渲染（owner 决策：未绑定不显示示例条）。
