@@ -174,6 +174,7 @@ export default {
     'variables.builtin.upstreamHint': '全部直接上游输出，附带来源标记',
     'variables.group.upstreamNodes': '上游节点',
     'variables.group.runtimeContext': '运行上下文',
+    'variables.type.group': '分组',
     'variables.nodeOutputDescription': '节点 {node} 的输出',
     'variables.fallbackMessage': '变量接口暂不可用（{error}），当前使用画布结构和最近输出推断。',
     'variables.missingToken': '找不到变量 {token}',

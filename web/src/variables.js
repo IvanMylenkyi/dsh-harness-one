@@ -3,6 +3,16 @@ import { apiUrl } from './api.js';
 export const VARIABLE_MIME = 'application/x-workflow-template-variable';
 export const LEGACY_VARIABLE_MIMES = ['application/x-workflow-variable'];
 
+// Stable IDs identify first-party groups from older orchestrator builds.
+// Never infer translations from arbitrary labels: those may be user data.
+const SERVER_GROUP_LABELS = {
+  'group:nodes': 'variables.group.upstreamNodes',
+  'group:builtin': 'variables.group.runtimeContext',
+  'group:global-variables': 'variables.scope.global',
+  'group:workflow-variables': 'variables.scope.workflow',
+  'group:run-inputs': 'variables.scope.input',
+};
+
 const BUILTINS = [
   {
     id: 'builtin:$trigger',
@@ -47,10 +57,14 @@ export function normalizeVariableItem(raw, parent = {}) {
   const children = Array.isArray(rawChildren)
     ? rawChildren
     : Object.entries(rawChildren).map(([name, value]) => ({ name, ...(value || {}) }));
+  const serverGroup = raw.type === 'group' && raw.source === 'group'
+    ? SERVER_GROUP_LABELS[raw.id]
+    : null;
+  const labelKey = raw.labelKey || serverGroup || undefined;
   return {
     id: raw.id || token || `${parent.id || 'variable'}:${raw.name || raw.label || 'field'}`,
     label: raw.label || raw.name || token || '',
-    labelKey: raw.labelKey,
+    labelKey,
     token,
     type: raw.type || raw.valueType || inferType(raw.value ?? raw.recentValue),
     description: raw.description || raw.hint || '',

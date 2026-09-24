@@ -7,6 +7,7 @@ const {
   buildFallbackSchema,
   describeVariables,
   flattenVariables,
+  normalizeVariableSchema,
   renderTemplatePreview,
   tokenForNode,
   validateTemplate,
@@ -25,6 +26,21 @@ const graph = {
 assert.equal(VARIABLE_MIME, 'application/x-workflow-template-variable');
 assert.equal(wrapToken(' node["http-a"].data.json.name '), '{{node["http-a"].data.json.name}}');
 assert.equal(tokenForNode('http-a', ['json', 'x.y', 0, 'name']), 'node["http-a"].data.json["x.y"][0].name');
+
+const apiSchema = normalizeVariableSchema({ items: [
+  { id: 'group:global-variables', label: '实例变量', type: 'group', source: 'group', children: [] },
+  { id: 'group:workflow-variables', label: '工作流变量', type: 'group', source: 'group', children: [] },
+  { id: 'group:run-inputs', label: '运行输入', type: 'group', source: 'group', children: [] },
+  { id: 'group:user-defined', label: '用户自定义组', type: 'group', source: 'group', children: [] },
+  { id: 'node:run-digest', label: '运行日报', type: 'node', source: 'node', children: [] },
+] });
+assert.deepEqual(apiSchema.items.map(({ label, labelKey }) => [label, labelKey]), [
+  ['实例变量', 'variables.scope.global'],
+  ['工作流变量', 'variables.scope.workflow'],
+  ['运行输入', 'variables.scope.input'],
+  ['用户自定义组', undefined],
+  ['运行日报', undefined],
+], 'only known backend-owned group IDs should receive translation keys');
 
 const schema = buildFallbackSchema({
   graph,

@@ -956,6 +956,7 @@
     "variables.title",
     "variables.type",
     "variables.type.boolean",
+    "variables.type.group",
     "variables.type.json",
     "variables.type.number",
     "variables.type.string",

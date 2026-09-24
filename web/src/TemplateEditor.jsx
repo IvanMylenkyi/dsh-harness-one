@@ -458,7 +458,7 @@ export function VariableExplorer({ items, fallback, message, onInsert, onClose, 
   const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState(() => new Set(['group:nodes', 'group:builtin']));
-  const visibleItems = useMemo(() => filterTree(items, query.trim().toLowerCase()), [items, query]);
+  const visibleItems = useMemo(() => filterTree(items, query.trim().toLowerCase(), t), [items, query, t]);
 
   const toggle = (id) => setExpanded((current) => {
     const next = new Set(current);
@@ -493,6 +493,8 @@ function VariableRow({ item, depth, expanded, onToggle, onInsert, forceOpen }) {
   const hasChildren = item.children?.length > 0;
   const open = forceOpen || expanded.has(item.id);
   const insertable = Boolean(item.token);
+  const label = item.labelKey ? t(item.labelKey) : item.label;
+  const typeLabel = item.type === 'group' ? t('variables.type.group') : item.type;
   const preview = previewValue(item.recentValue);
   const copy = async (event) => {
     event.stopPropagation();
@@ -513,14 +515,14 @@ function VariableRow({ item, depth, expanded, onToggle, onInsert, forceOpen }) {
         draggable={insertable}
         onDragStart={drag}
         onClick={() => insertable ? onInsert(item.token) : hasChildren && onToggle(item.id)}
-        title={insertable ? item.token : item.label}
+        title={insertable ? item.token : label}
       >
         <button type="button" className="var-caret" aria-label={open ? t('template.collapseField') : t('template.expandField')} onClick={(event) => { event.stopPropagation(); if (hasChildren) onToggle(item.id); }}>
           {hasChildren ? <ChevronRight size={13} className={open ? 'var-caret-open' : ''} /> : <span />}
         </button>
         {insertable ? <GripVertical size={12} className="var-grip" /> : <Database size={12} className="var-group-icon" />}
         <div className="var-main">
-          <div className="var-name-line"><span className="var-name">{item.labelKey ? t(item.labelKey) : item.label}</span>{item.type && <span className={`var-type type-${item.type}`}>{item.type}</span>}</div>
+          <div className="var-name-line"><span className="var-name">{label}</span>{item.type && <span className={`var-type type-${item.type}`}>{typeLabel}</span>}</div>
           {insertable && <code>{item.token}</code>}
           {(item.description || item.descriptionKey) && <span className="var-description">{item.descriptionKey ? t(item.descriptionKey, item.descriptionVariables) : item.description}</span>}
           {insertable && <span className={item.hasValue ? 'var-preview' : 'var-no-value'}>{item.hasValue ? preview : t('template.noRecentValue')}</span>}
@@ -536,11 +538,12 @@ function VariableRow({ item, depth, expanded, onToggle, onInsert, forceOpen }) {
   );
 }
 
-function filterTree(items, query) {
+function filterTree(items, query, t) {
   if (!query) return items;
   return items.map((item) => {
-    const children = filterTree(item.children || [], query);
-    const self = `${item.label} ${item.token || ''} ${item.type || ''} ${previewValue(item.recentValue)}`.toLowerCase().includes(query);
+    const children = filterTree(item.children || [], query, t);
+    const label = item.labelKey ? t(item.labelKey) : item.label;
+    const self = `${label} ${item.token || ''} ${item.type || ''} ${previewValue(item.recentValue)}`.toLowerCase().includes(query);
     return self || children.length ? { ...item, children } : null;
   }).filter(Boolean);
 }

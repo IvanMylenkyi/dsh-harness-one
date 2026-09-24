@@ -11,6 +11,11 @@ test('schema, rich document, and template chrome switch English and Chinese reac
   await expect(page.getByText('Output mode')).toBeVisible();
   await expect(page.getByRole('toolbar', { name: 'Formatting toolbar' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Insert table', exact: true })).toBeVisible();
+  for (const label of ['Instance variables', 'Workflow variables', 'Run inputs', 'Upstream nodes', 'Run context']) {
+    await expect(page.locator('.var-row-group').getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(page.locator('.var-row-group .var-type').first()).toHaveText('Group');
+  await expect(page.locator('.var-row-insertable').getByText('运行日报', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Apply template', exact: true }).click();
   await expect(page.getByTestId('applied-template')).toContainText('Service ticket details');
   await expect(page.getByTestId('applied-template')).toContainText('Organize service ticket');
@@ -19,6 +24,11 @@ test('schema, rich document, and template chrome switch English and Chinese reac
   await language.selectOption('zh-CN');
   await expect(page.getByText('从模板开始')).toBeVisible();
   await expect(page.getByRole('button', { name: '应用模板', exact: true })).toBeVisible();
+  for (const label of ['实例变量', '工作流变量', '运行输入', '上游节点', '运行上下文']) {
+    await expect(page.locator('.var-row-group').getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(page.locator('.var-row-group .var-type').first()).toHaveText('分组');
+  await expect(page.locator('.var-row-insertable').getByText('运行日报', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '应用模板', exact: true }).click();
   await expect(page.getByTestId('applied-template')).toContainText('报修信息');
   await expect(page.getByTestId('applied-template')).toContainText('整理工单');
@@ -29,6 +39,7 @@ test('schema, rich document, and template chrome switch English and Chinese reac
   await language.selectOption('en');
   await expect(page.getByText('Start from a template')).toBeVisible();
   await expect(page.getByText('Output mode')).toBeVisible();
+  await expect(page.locator('.var-row-group').getByText('Instance variables', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Apply template', exact: true }).click();
   await expect(page.getByTestId('applied-template')).toContainText('Service ticket details');
   expect(pageErrors, `browser page errors: ${pageErrors.join('; ')}`).toEqual([]);

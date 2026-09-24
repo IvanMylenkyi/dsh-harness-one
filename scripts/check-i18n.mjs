@@ -16,6 +16,9 @@ function normalizedPath(file) {
 
 function isSourceFile(file) {
   const normalized = normalizedPath(file);
+  // assemble-one.sh creates this installable aggregate package from the source
+  // plugins. Scan each source package above, not the ignored generated copy.
+  if (normalized.startsWith('dsh-plugins/dsh-harness-one/')) return false;
   if (!sourceRoots.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`))) return false;
   if (!sourceExtensions.has(path.extname(normalized))) return false;
   // Most plugin lib/ trees are generated server artifacts. The larkauth

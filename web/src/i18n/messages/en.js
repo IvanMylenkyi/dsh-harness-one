@@ -174,6 +174,7 @@ export default {
     'variables.builtin.upstreamHint': 'Direct upstream outputs with source markers',
     'variables.group.upstreamNodes': 'Upstream nodes',
     'variables.group.runtimeContext': 'Run context',
+    'variables.type.group': 'Group',
     'variables.nodeOutputDescription': 'Output from node {node}',
     'variables.fallbackMessage': 'The variable service is unavailable ({error}); inferring variables from the canvas and recent output.',
     'variables.missingToken': 'Variable not found: {token}',
